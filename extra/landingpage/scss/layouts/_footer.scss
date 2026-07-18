@@ -1,0 +1,40 @@
+footer {
+    color: $footer-text;
+
+    .list-icons {
+        li {
+            list-style: none;
+            line-height: 40px;
+        }
+
+    }
+
+    a {
+        color: $bodytext;
+        text-decoration: none;
+
+        &:hover {
+            color: $white;
+        }
+    }
+
+    ul.list-icons li a {
+        color: $footer-text;
+
+        &:hover {
+            color: $white;
+        }
+    }
+}
+
+.bt-top {
+    // z-index: 1000;
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+
+}
+
+.icon-arrow-right {
+    font-size: 12px;
+}

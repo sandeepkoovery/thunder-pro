@@ -1,0 +1,16 @@
+//variable file imported to override the bootstrap variable file
+@import "variable";
+
+//bootstrap file
+@import "../../package/scss/bootstrap/scss/bootstrap.scss"; 
+
+//custom files
+@import "./layouts/header";
+@import "./layouts/bt-templates";
+@import "./layouts/icon-section";
+@import "./layouts/footer";
+
+@import "./pages";
+
+//This is for the icons (Required file)
+@import "./icons/simple-line-icons/css/simple-line-icons.css";

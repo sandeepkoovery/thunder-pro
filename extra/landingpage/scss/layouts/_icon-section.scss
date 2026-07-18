@@ -1,0 +1,33 @@
+.icon-section {
+    .row {
+        .col-lg-3 {
+            border: 1px solid rgba(120, 130, 140, 0.13);
+            padding: 30px;
+            transition: 0.1s ease-in;
+            position: relative;
+            background: #ffffff;
+            min-height: 250px;
+
+            &:hover {
+                box-shadow: 0 5px 50px rgb(0 0 0 / 5%);
+                transform: scale(1.1);
+                z-index: 10;
+            }
+        }
+    }
+
+    .display-icon {
+        font-size: 36px;
+    }
+}
+
+.btn-outline-light {
+    border: 2px solid $white;
+    color: $white;
+
+    &:hover {
+        border: 2px solid transparent;
+        background-color: $white;
+        color: $bodytext;
+    }
+}

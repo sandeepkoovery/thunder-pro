@@ -1,0 +1,188 @@
+/*
+Template Name: Monster Admin
+Author: Themedesigner
+Email: niravjoshi87@gmail.com
+File: scss
+*/
+// Variables
+@import "https://fonts.googleapis.com/css?family=Rubik:300,400,500,700,900";
+
+$bodyfont: "Rubik",
+sans-serif;
+$headingfont: "Rubik",
+sans-serif;
+
+/*Theme Colors*/
+
+$topbar: #2196f3;
+$sidebar: #fff;
+$sidebar-white: #e5edef;
+$sidebar-alt: #f2f6f8;
+$bodycolor: #fff;
+$headingtext: #455a64;
+$bodytext: #67757c;
+$footer-text: #8f9aa5;
+$sidebar-text: #607d8b;
+$sidebar-icons: #99abb4;
+$border-color: #ecf0f2;
+$light-text: #a6b7bf;
+$themecolor: #009efb;
+$themecolor-alt: #26c6da;
+$themecolor-dark: #028ee1;
+// $sidebar-active: #186dde;
+
+/*bootstrap Color*/
+$danger: #fc4b6c;
+$success: #26c6da;
+$warning: #ffb22b;
+$primary: #7460ee;
+$info: #1e88e5;
+$inverse: #2f3d4a;
+$muted: #99abb4;
+$dark: #263238;
+$light: #f2f4f8;
+$extra-light: #ebf3f5;
+
+/*Light colors*/
+$light-danger: #f9e7eb;
+$light-success: #e8fdeb;
+$light-warning: #fff8ec;
+$light-primary: #ebf3f5;
+$light-info: #cfecfe;
+$light-inverse: #f6f6f6;
+$light-megna: #e0f2f4;
+
+$danger-dark: #e6294b;
+$success-dark: #4ab657;
+$warning-dark: #e9ab2e;
+$primary-dark: #6352ce;
+$info-dark: #028ee1;
+$red-dark: #d61f1f;
+$inverse-dark: #232a37;
+$dark-transparent: rgba(0, 0, 0, 0.05);
+
+/*Normal Color*/
+$white: #ffffff;
+$red: #fb3a3a;
+$yellow: #a0aec4;
+$purple: #7460ee;
+$blue: #02bec9;
+$megna: #00897b;
+
+$theme-colors: () !default;
+$theme-colors: map-merge(("light-primary": $light-primary,
+    "dark": $inverse,
+    "info": $info,
+    "success": $success,
+    "warning": $warning,
+    "danger": $red),
+  $theme-colors);
+
+/*Extra Variable*/
+$rgt: right;
+$lft: left;
+$border: rgba(120, 130, 140, 0.13);
+$table-border: #f3f1f1;
+$dark-text: #848a96;
+$radius: 4px;
+$form-brd: #d9d9d9;
+
+/*Preloader*/
+.preloader {
+  width: 100%;
+  height: 100%;
+  top: 0px;
+  position: fixed;
+  z-index: 99999;
+  background: #fff;
+
+  .cssload-speeding-wheel {
+    position: absolute;
+    top: calc(50% - 3.5px);
+    left: calc(50% - 3.5px);
+  }
+}
+
+//contrast ratio
+$min-contrast-ratio: 1.5 !default;
+
+$body-color: $bodytext !default;
+
+$grid-breakpoints: (xs: 0,
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1170px,
+  xxl: 1800px,
+) !default;
+
+
+$grid-gutter-width: 30px !default;
+$grid-breakpoints: (xs: 0,
+  sm: 576px,
+  md: 768px,
+  lg: 992px,
+  xl: 1600px,
+  xxl: 1800px,
+) !default;
+
+
+//Spacer
+$spacer: 1rem !default;
+$spacers: (0: 0,
+  1: $spacer * .25,
+  2: $spacer * .5,
+  3: $spacer,
+  4: $spacer * 1.5,
+  5: $spacer * 3,
+  6: 30px,
+  7: 40px,
+  8: 50px,
+  9: 60px,
+  10: 80px) !default;
+
+
+//button
+$btn-padding-y: 7px !default;
+$btn-padding-x: 20px !default;
+$btn-font-size: 13px !default;
+
+$btn-padding-y-sm: 12px !default;
+$btn-padding-x-sm: 30px !default;
+$btn-font-size-sm: 14px !default;
+
+$btn-padding-y-lg: 13px !default;
+$btn-padding-x-lg: 52px !default;
+$btn-font-size-lg: 16px !default;
+
+$btn-border-radius: 4px !default;
+$btn-border-radius-sm:4px !default;
+$btn-border-radius-lg: 4px !default;
+
+// Font size
+$font-sizes: (1: 10px,
+  2: 12px,
+  3: 14px,
+  4: 16px,
+  5: 18px,
+  6: 20px,
+  7: 24px,
+  8: 30px,
+  9: 36px,
+  10:40px) !default;
+$font-size-base: 1rem !default;
+
+//headings
+$h1-font-size: 42px !default;
+$h2-font-size: 30px !default;
+$h3-font-size: 24px !default;
+$h4-font-size: 18px !default;
+$h5-font-size: 16px !default;
+$h6-font-size: 14px !default;
+$headings-font-weight: 500 !default;
+$headings-color: $headingtext !default;
+
+$font-weight-light: 300 !default;
+$font-weight-normal: 400 !default;
+$font-weight-bold: 600 !default;
+$font-weight-base: 300 !default;
