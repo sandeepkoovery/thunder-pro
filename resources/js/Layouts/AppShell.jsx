@@ -21,7 +21,7 @@ export function NavItem({ href, icon: Icon, label, visible, badge, beta, routeNa
   );
 }
 
-export default function AppShell({ children, title = "Dashboard", flash, auth, renderNav }) {
+export default function AppShell({ children, title = "Dashboard", flash, auth, renderNav, bottomNav }) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [customizerOpen, setCustomizerOpen] = useState(false);
@@ -90,11 +90,12 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
         <header className="mp-topbar">
           <div className="mp-topbar-logo-area" style={{ width: logoWidth, minWidth: logoWidth }}>
             <Link href="/" className="mp-topbar-brand" style={{ display: collapsed && !isMobileOpen ? "none" : "flex" }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="#ffffff" style={{ opacity: 0.95 }}>
-                <path d="M13 0L3 14h7l-2 10 10-14h-7l2-10z" />
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.95 }}>
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+                <path d="M9 22V12h6v10" />
               </svg>
               <span className="mp-topbar-brand-text">
-                THUNDER<span>PRO</span>
+                Work<span>Nest</span>
               </span>
             </Link>
           </div>
@@ -263,10 +264,25 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
 
           <aside className={`mp-sidebar${collapsed ? " collapsed" : ""}${isMobileOpen ? " mobile-open" : ""}`}>
             <nav className="mp-sidebar-nav">{renderNav({ collapsed, isMobileOpen })}</nav>
+
+            {/* Logout button — visible only on mobile inside sidebar */}
+            <button
+              className="mp-sidebar-logout"
+              onClick={() => {
+                setIsMobileOpen(false);
+                handleLogout();
+              }}
+            >
+              <LogOut size={18} />
+              <span>Log Out</span>
+            </button>
           </aside>
 
           <main className="mp-main mp-fade">{children}</main>
         </div>
+
+        {/* Bottom nav for employees on mobile */}
+        {bottomNav}
 
         <ThemeCustomizer isOpen={customizerOpen} setIsOpen={setCustomizerOpen} />
       </div>

@@ -3,6 +3,7 @@
     "type": "module",
     "scripts": {
         "build": "vite build",
+        "postbuild": "node -e \"const fs=require('fs');fs.mkdirSync('public/build/icons',{recursive:true});fs.copyFileSync('public/icons/icon-192x192.png','public/build/icons/icon-192x192.png');fs.copyFileSync('public/icons/icon-512x512.png','public/build/icons/icon-512x512.png');console.log('PWA icons copied!');\"",
         "dev": "vite"
     },
     "devDependencies": {

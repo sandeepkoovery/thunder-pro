@@ -134,38 +134,35 @@ export default function Index({ leaves, users, filters, stats }) {
         <AdminLayout>
             <Head title="Leave Requests" />
 
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-                <h1 className="text-3xl font-bold text-gray-800">Leave Requests</h1>
-
-                <div className="flex flex-wrap gap-3">
-                    {/* User Filter */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Leave Requests</h1>
+                <div className="mp-filter-bar flex flex-wrap gap-2">
                     <select
                         value={userId}
                         onChange={(e) => handleFilterChange('user_id', e.target.value)}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg shadow-sm text-sm"
+                        className="border-gray-300 focus:border-blue-500 rounded-lg shadow-sm text-sm flex-1"
+                        style={{ minHeight: '44px' }}
                     >
                         <option value="">All Employees</option>
                         {users.map((u) => (
                             <option key={u.id} value={u.id}>{u.name}</option>
                         ))}
                     </select>
-
-                    {/* Year Filter */}
                     <select
                         value={year}
                         onChange={(e) => handleFilterChange('year', e.target.value)}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg shadow-sm text-sm"
+                        className="border-gray-300 focus:border-blue-500 rounded-lg shadow-sm text-sm flex-1"
+                        style={{ minHeight: '44px' }}
                     >
                         {years.map((y) => (
                             <option key={y} value={y}>{y}</option>
                         ))}
                     </select>
-
-                    {/* Month Filter */}
                     <select
                         value={month}
                         onChange={(e) => handleFilterChange('month', e.target.value)}
-                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500 rounded-lg shadow-sm text-sm"
+                        className="border-gray-300 focus:border-blue-500 rounded-lg shadow-sm text-sm flex-1"
+                        style={{ minHeight: '44px' }}
                     >
                         {months.map((m) => (
                             <option key={m.value} value={m.value}>{m.label}</option>
@@ -226,112 +223,45 @@ export default function Index({ leaves, users, filters, stats }) {
                 </div>
             </div>
 
-            {/* Leaves Table */}
-            <div className="overflow-x-auto bg-white rounded-2xl shadow">
+            {/* Leaves Table — desktop */}
+            <div className="hidden sm:block overflow-x-auto bg-white rounded-2xl shadow">
                 <table className="min-w-full border-collapse">
                     <thead>
                         <tr className="bg-blue-50 text-gray-700 text-sm uppercase">
-                            <th className="px-4 py-2 text-left">Employee</th>
-                            <th className="px-4 py-2 text-left">Type</th>
-                            <th className="px-4 py-2 text-left">Dates</th>
-                            <th className="px-4 py-2 text-left">Days</th>
-                            <th className="px-4 py-2 text-center">Reason</th>
-                            <th className="px-4 py-2 text-left">Status</th>
-                            <th className="px-4 py-2 text-center">Actions</th>
+                            <th className="px-4 py-3 text-left">Employee</th>
+                            <th className="px-4 py-3 text-left">Type</th>
+                            <th className="px-4 py-3 text-left">Dates</th>
+                            <th className="px-4 py-3 text-left">Days</th>
+                            <th className="px-4 py-3 text-center">Reason</th>
+                            <th className="px-4 py-3 text-left">Status</th>
+                            <th className="px-4 py-3 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
                         {data.length === 0 ? (
-                            <tr>
-                                <td colSpan="7" className="text-center py-8 text-gray-500 italic">
-                                    No leave requests found.
-                                </td>
-                            </tr>
+                            <tr><td colSpan="7" className="text-center py-8 text-gray-500 italic">No leave requests found.</td></tr>
                         ) : (
                             data.map((leave) => (
                                 <tr key={leave.id} className="border-t text-gray-700 hover:bg-gray-50 transition">
-                                    <td className="px-4 py-2">
+                                    <td className="px-4 py-3">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                                                <User size={14} />
-                                            </div>
-                                            <div className="flex flex-col">
-                                                <span className="font-semibold text-gray-900 text-sm">{leave.user?.name}</span>
-                                            </div>
+                                            <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><User size={14} /></div>
+                                            <span className="font-semibold text-gray-900 text-sm">{leave.user?.name}</span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-2 text-sm">
-                                        <span className="flex items-center gap-1">
-                                            <FileText size={14} className="text-gray-400" />
-                                            {leave.leave_type === 'SL' || leave.leave_type === 'CL' ? leave.leave_type : leave.leave_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-2 whitespace-nowrap">
-                                        <div className="flex flex-col">
-                                            <span className="text-gray-900 font-medium text-sm">
-                                                {formatDate(leave.from_date)} - {formatDate(leave.to_date)}
-                                            </span>
-                                            <span className="text-[10px] text-blue-600 uppercase font-bold">
-                                                {leave.day_type.replace('_', ' ')}
-                                            </span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-2 font-medium text-blue-600 text-sm">
-                                        {leave.day_type === 'full'
-                                            ? `${parseFloat(leave.no_of_days)} ${parseFloat(leave.no_of_days) > 1 ? 'Days' : 'Day'}`
-                                            : leave.day_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
-                                        }
-                                    </td>
-                                    <td className="px-4 py-2 text-center">
-                                        {leave.reason ? (
-                                            <button
-                                                onClick={() => setSelectedLeave(leave)}
-                                                className="text-gray-500 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50 transition-colors inline-flex items-center justify-center"
-                                                title="View Reason"
-                                            >
-                                                <Eye size={18} />
-                                            </button>
-                                        ) : (
-                                            <span className="text-gray-300">-</span>
-                                        )}
-                                    </td>
-                                    <td className="px-4 py-2">
-                                        {getStatusBadge(leave.status)}
-                                    </td>
-                                    <td className="px-4 py-2">
-                                        <div className="flex justify-center gap-2">
-                                            {leave.status === 'pending' ? (
-                                                <>
-                                                    <button
-                                                        onClick={() => handleAction(leave.id, 'approve')}
-                                                        className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100 transition"
-                                                        title="Approve"
-                                                    >
-                                                        <Check size={16} />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => handleAction(leave.id, 'reject')}
-                                                        className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition"
-                                                        title="Reject"
-                                                    >
-                                                        <X size={16} />
-                                                    </button>
-                                                </>
-                                            ) : null}
-                                            <button
-                                                onClick={() => handleEdit(leave)}
-                                                className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition"
-                                                title="Edit"
-                                            >
-                                                <Pencil size={16} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDelete(leave.id)}
-                                                className="p-1.5 bg-gray-50 text-gray-500 rounded-lg hover:bg-red-50 hover:text-red-600 transition"
-                                                title="Delete"
-                                            >
-                                                <Trash2 size={16} />
-                                            </button>
+                                    <td className="px-4 py-3 text-sm">{leave.leave_type === 'SL' || leave.leave_type === 'CL' ? leave.leave_type : leave.leave_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                                    <td className="px-4 py-3 whitespace-nowrap text-sm">{formatDate(leave.from_date)} – {formatDate(leave.to_date)}<br/><span className="text-[10px] text-blue-600 uppercase font-bold">{leave.day_type.replace('_', ' ')}</span></td>
+                                    <td className="px-4 py-3 font-medium text-blue-600 text-sm">{leave.day_type === 'full' ? `${parseFloat(leave.no_of_days)} ${parseFloat(leave.no_of_days) > 1 ? 'Days' : 'Day'}` : leave.day_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                                    <td className="px-4 py-3 text-center">{leave.reason ? <button onClick={() => setSelectedLeave(leave)} className="text-gray-500 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50 inline-flex" title="View Reason"><Eye size={18} /></button> : <span className="text-gray-300">-</span>}</td>
+                                    <td className="px-4 py-3">{getStatusBadge(leave.status)}</td>
+                                    <td className="px-4 py-3">
+                                        <div className="flex justify-center gap-1.5">
+                                            {leave.status === 'pending' && <>
+                                                <button onClick={() => handleAction(leave.id, 'approve')} className="p-1.5 bg-green-50 text-green-600 rounded-lg hover:bg-green-100" title="Approve"><Check size={16} /></button>
+                                                <button onClick={() => handleAction(leave.id, 'reject')} className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100" title="Reject"><X size={16} /></button>
+                                            </>}
+                                            <button onClick={() => handleEdit(leave)} className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Edit"><Pencil size={16} /></button>
+                                            <button onClick={() => handleDelete(leave.id)} className="p-1.5 bg-gray-50 text-gray-500 rounded-lg hover:bg-red-50 hover:text-red-600" title="Delete"><Trash2 size={16} /></button>
                                         </div>
                                     </td>
                                 </tr>
@@ -339,6 +269,45 @@ export default function Index({ leaves, users, filters, stats }) {
                         )}
                     </tbody>
                 </table>
+            </div>
+
+            {/* Leaves — mobile card view */}
+            <div className="sm:hidden space-y-3">
+                {data.length === 0 ? (
+                    <div className="bg-white rounded-2xl p-8 text-center text-gray-500 text-sm shadow-sm">No leave requests found.</div>
+                ) : (
+                    data.map((leave) => (
+                        <div key={leave.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                            {/* Card header */}
+                            <div className="flex items-center justify-between mb-3">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-sm">{leave.user?.name?.charAt(0)}</div>
+                                    <div>
+                                        <div className="font-semibold text-gray-900 text-sm">{leave.user?.name}</div>
+                                        <div className="text-xs text-gray-400">{leave.leave_type === 'SL' ? 'Sick Leave' : leave.leave_type === 'CL' ? 'Casual Leave' : leave.leave_type}</div>
+                                    </div>
+                                </div>
+                                {getStatusBadge(leave.status)}
+                            </div>
+                            {/* Dates row */}
+                            <div className="flex items-center gap-2 text-xs text-gray-500 mb-3 bg-gray-50 rounded-lg px-3 py-2">
+                                <Calendar size={13} className="text-blue-400" />
+                                <span>{formatDate(leave.from_date)} – {formatDate(leave.to_date)}</span>
+                                <span className="ml-auto font-semibold text-blue-600">{leave.day_type === 'full' ? `${parseFloat(leave.no_of_days)}d` : leave.day_type.replace('_',' ')}</span>
+                            </div>
+                            {/* Action buttons */}
+                            <div className="flex gap-2">
+                                {leave.status === 'pending' && <>
+                                    <button onClick={() => handleAction(leave.id, 'approve')} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-green-50 text-green-700 rounded-xl text-xs font-semibold hover:bg-green-100 transition" style={{minHeight:'44px'}}><Check size={15}/>Approve</button>
+                                    <button onClick={() => handleAction(leave.id, 'reject')} className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-red-50 text-red-700 rounded-xl text-xs font-semibold hover:bg-red-100 transition" style={{minHeight:'44px'}}><X size={15}/>Reject</button>
+                                </>}
+                                {leave.reason && <button onClick={() => setSelectedLeave(leave)} className="p-2.5 bg-gray-100 text-gray-500 rounded-xl hover:bg-gray-200" style={{minHeight:'44px'}} title="View Reason"><Eye size={16}/></button>}
+                                <button onClick={() => handleEdit(leave)} className="p-2.5 bg-blue-50 text-blue-600 rounded-xl hover:bg-blue-100" style={{minHeight:'44px'}} title="Edit"><Pencil size={16}/></button>
+                                <button onClick={() => handleDelete(leave.id)} className="p-2.5 bg-gray-50 text-gray-500 rounded-xl hover:bg-red-50 hover:text-red-600" style={{minHeight:'44px'}} title="Delete"><Trash2 size={16}/></button>
+                            </div>
+                        </div>
+                    ))
+                )}
             </div>
 
             {/* Pagination */}

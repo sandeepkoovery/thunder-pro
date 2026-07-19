@@ -135,17 +135,17 @@ export default function Dashboard({
     <div className="space-y-6">
       <Head title="Admin Dashboard" />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-mp shadow-mp-card">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-mp shadow-mp-card">
         <div>
-          <h1 className="mp-page-title text-xl">Dashboard</h1>
+          <h1 className="mp-page-title text-lg sm:text-xl">Dashboard</h1>
           <p className="mp-breadcrumb text-sm mt-0.5">
             <Link href="/">Home</Link> &gt;{" "}
             <span>Dashboard</span>
           </p>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3 bg-mp-bg rounded-mp-sm px-4 py-2">
-            <CalendarCheck className="w-5 h-5 text-mp-cyan" />
+        <div className="mp-dash-header-chips flex flex-wrap items-center gap-3">
+          <div className="flex items-center gap-3 bg-mp-bg rounded-mp-sm px-4 py-2 flex-1" style={{minWidth:'160px'}}>
+            <CalendarCheck className="w-5 h-5 text-mp-cyan flex-shrink-0" />
             <div>
               <div className="text-xs mp-text-muted">Today's Attendance</div>
               <div className="text-sm text-mp-heading">
@@ -155,8 +155,8 @@ export default function Dashboard({
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-3 bg-mp-bg rounded-mp-sm px-4 py-2">
-            <TrendingUp className="w-5 h-5 text-primary" />
+          <div className="flex items-center gap-3 bg-mp-bg rounded-mp-sm px-4 py-2 flex-1" style={{minWidth:'140px'}}>
+            <TrendingUp className="w-5 h-5 text-primary flex-shrink-0" />
             <div>
               <div className="text-xs mp-text-muted">My Tasks</div>
               <div className="text-sm text-mp-heading">
@@ -167,7 +167,7 @@ export default function Dashboard({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
         {statCards.map((card, i) => {
           const Icon = card.icon;
           const CardWrapper = card.link ? Link : "div";

@@ -167,14 +167,15 @@ export default function Index({ projects, statusCounts, filters, users, success 
       )}
 
       {/* Header and Controls */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-5 px-1">
-        {/* Tabs */}
-        <div className="flex bg-white rounded-2xl shadow-sm border border-slate-100 p-1 overflow-x-auto no-scrollbar">
+      <div className="flex flex-col gap-4 mb-6 px-1">
+        {/* Tabs — scrollable on mobile */}
+        <div className="mp-tab-scroll flex bg-white rounded-2xl shadow-sm border border-slate-100 p-1">
           {['All', 'Ongoing', 'Cancelled', 'Completed', 'Inactive', 'Critical'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all whitespace-nowrap ${activeTab === tab ? "bg-slate-900 text-white shadow-md font-black" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"}`}
+              className={`px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all whitespace-nowrap flex-shrink-0 ${activeTab === tab ? "bg-slate-900 text-white shadow-md" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"}`}
+              style={{ minHeight: '44px' }}
             >
               {tab} <span className={`ml-1 opacity-60 ${activeTab === tab ? "text-slate-300" : ""}`}>{statusCounts?.[tab] || 0}</span>
             </button>
@@ -182,38 +183,44 @@ export default function Index({ projects, statusCounts, filters, users, success 
         </div>
 
         {/* Search & Action */}
-        <div className="flex items-center gap-4 w-full md:w-auto">
-          <div className="relative w-full md:w-72">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-slate-300" />
+        <div className="flex items-center gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
             <input
               type="text"
-              placeholder="SEARCH PROJECT..."
+              placeholder="Search project..."
               value={searchQuery}
               onChange={handleSearch}
-              className="w-full pl-11 pr-5 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-slate-50 focus:border-slate-300 transition-all shadow-sm placeholder:text-slate-300 placeholder:font-black placeholder:uppercase placeholder:tracking-widest placeholder:text-[10px]"
+              className="w-full pl-11 pr-5 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-slate-50 focus:border-slate-300 transition-all shadow-sm placeholder:text-slate-300 placeholder:text-xs"
+              style={{ minHeight: '44px' }}
             />
           </div>
-          <button onClick={openCreateModal} className="px-7 py-3 bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.08em] rounded-2xl shadow-xl shadow-slate-100 hover:bg-black transition-all flex items-center gap-2 whitespace-nowrap active:scale-95">
-            <span>+ NEW PROJECT</span>
+          <button
+            onClick={openCreateModal}
+            className="px-5 py-3 bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.08em] rounded-2xl shadow-xl shadow-slate-100 hover:bg-black transition-all flex items-center gap-2 whitespace-nowrap active:scale-95"
+            style={{ minHeight: '44px' }}
+          >
+            <span className="hidden sm:inline">+ NEW PROJECT</span>
+            <span className="sm:hidden">+ New</span>
           </button>
         </div>
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-1">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 px-1">
         {filteredProjects.length > 0 ? (
           filteredProjects.map((project) => (
             <div key={project.id} className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative">
 
-              {/* Quick Actions (Hover) */}
-              <div className="absolute top-5 right-5 opacity-0 group-hover:opacity-100 transition-all duration-200 flex flex-col gap-2 translate-x-3 group-hover:translate-x-0">
-                <button onClick={() => router.get(route("admin.projects.show", project.id))} className="p-2 bg-white text-slate-600 rounded-lg shadow-lg hover:bg-slate-900 hover:text-white transition-all scale-90">
+              {/* Quick Actions — always visible on mobile, hover on desktop */}
+              <div className="absolute top-5 right-5 flex flex-col gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 sm:translate-x-3 sm:group-hover:translate-x-0 transition-all duration-200">
+                <button onClick={() => router.get(route("admin.projects.show", project.id))} className="p-2 bg-white text-slate-600 rounded-lg shadow-lg hover:bg-slate-900 hover:text-white transition-all" style={{minHeight:'36px',minWidth:'36px'}}>
                   <Eye className="w-4 h-4" />
                 </button>
-                <button onClick={() => openEditModal(project)} className="p-2 bg-white text-slate-600 rounded-lg shadow-lg hover:bg-slate-900 hover:text-white transition-all scale-90">
+                <button onClick={() => openEditModal(project)} className="p-2 bg-white text-slate-600 rounded-lg shadow-lg hover:bg-slate-900 hover:text-white transition-all" style={{minHeight:'36px',minWidth:'36px'}}>
                   <Edit className="w-4 h-4" />
                 </button>
-                <button onClick={() => setDeleteId(project.id)} className="p-2 bg-white text-red-500 rounded-lg shadow-lg hover:bg-red-500 hover:text-white transition-all scale-90">
+                <button onClick={() => setDeleteId(project.id)} className="p-2 bg-white text-red-500 rounded-lg shadow-lg hover:bg-red-500 hover:text-white transition-all" style={{minHeight:'36px',minWidth:'36px'}}>
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>

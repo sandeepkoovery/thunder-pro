@@ -9,11 +9,11 @@ export default function GuestLayout({ children }) {
             <div className="relative z-10 w-full max-w-md">
                 <div className="flex justify-center mb-8">
                     <Link href="/" className="flex flex-col items-center gap-4 group">
-                        <div className="w-16 h-16 bg-gradient-to-br from-primary to-mp-cyan rounded-mp flex items-center justify-center shadow-mp">
-                            <span className="text-white font-bold text-3xl">T</span>
+                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-mp flex items-center justify-center shadow-mp">
+                            <span className="text-white font-bold text-3xl">W</span>
                         </div>
                         <span className="text-2xl font-bold tracking-tight text-mp-heading">
-                            THUNDER <span className="text-primary">PRO</span>
+                            Work<span className="text-emerald-600">Nest</span>
                         </span>
                     </Link>
                 </div>

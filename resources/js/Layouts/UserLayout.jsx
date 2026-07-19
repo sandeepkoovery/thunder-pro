@@ -10,6 +10,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import AppShell, { NavItem } from "@/Layouts/AppShell";
+import BottomNav from "@/Components/BottomNav";
 
 export default function UserLayout({ children, title = "Dashboard" }) {
   const { auth, flash, sharedSettings } = usePage().props;
@@ -48,7 +49,13 @@ export default function UserLayout({ children, title = "Dashboard" }) {
   );
 
   return (
-    <AppShell title={title} flash={flash} auth={auth} renderNav={renderNav}>
+    <AppShell
+      title={title}
+      flash={flash}
+      auth={auth}
+      renderNav={renderNav}
+      bottomNav={<BottomNav sidebarCounts={sidebarCounts} />}
+    >
       {children}
     </AppShell>
   );

@@ -61,48 +61,50 @@ export default function Dashboard({ stats, todayAttendance }) {
       <Head title="User Dashboard" />
 
       {/* TOP HEADER SECTION */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div>
-          <h1 className="text-xl font-bold text-gray-800">My Dashboard</h1>
-          <p className="text-sm text-gray-400 mt-0.5">
-            <Link href="/" className="hover:text-[#26c6da]">Home</Link> &gt; <span className="text-gray-500">Dashboard</span>
-          </p>
-        </div>
-        
-        {/* Sparklines */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-3">
-            <div>
-              <div className="text-xs text-gray-400 font-medium">Work Hours</div>
-              <div className="text-sm font-bold text-gray-700">168 hrs</div>
-            </div>
-            <svg className="w-12 h-8 text-blue-500" viewBox="0 0 50 30" fill="currentColor">
-              <rect x="0" y="15" width="6" height="15" rx="2" />
-              <rect x="10" y="20" width="6" height="10" rx="2" />
-              <rect x="20" y="10" width="6" height="20" rx="2" />
-              <rect x="30" y="5" width="6" height="25" rx="2" />
-              <rect x="40" y="18" width="6" height="12" rx="2" />
-            </svg>
+      <div className="flex flex-col gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-lg sm:text-xl font-bold text-gray-800">My Dashboard</h1>
+            <p className="text-sm text-gray-400 mt-0.5">
+              <Link href="/" className="hover:text-[#26c6da]">Home</Link> &gt; <span className="text-gray-500">Dashboard</span>
+            </p>
           </div>
-          <div className="h-8 w-px bg-gray-200"></div>
-          <div className="flex items-center gap-3">
-            <div>
-              <div className="text-xs text-gray-400 font-medium">Leaves Left</div>
-              <div className="text-sm font-bold text-gray-700">14 Days</div>
+
+          {/* Sparklines */}
+          <div className="mp-dash-header-chips flex items-center gap-4">
+            <div className="flex items-center gap-3 flex-1">
+              <div>
+                <div className="text-xs text-gray-400 font-medium">Work Hours</div>
+                <div className="text-sm font-bold text-gray-700">168 hrs</div>
+              </div>
+              <svg className="w-12 h-8 text-blue-500" viewBox="0 0 50 30" fill="currentColor">
+                <rect x="0" y="15" width="6" height="15" rx="2" />
+                <rect x="10" y="20" width="6" height="10" rx="2" />
+                <rect x="20" y="10" width="6" height="20" rx="2" />
+                <rect x="30" y="5" width="6" height="25" rx="2" />
+                <rect x="40" y="18" width="6" height="12" rx="2" />
+              </svg>
             </div>
-            <svg className="w-12 h-8 text-[#26c6da]" viewBox="0 0 50 30" fill="currentColor">
-              <rect x="0" y="5" width="6" height="25" rx="2" />
-              <rect x="10" y="10" width="6" height="20" rx="2" />
-              <rect x="20" y="18" width="6" height="12" rx="2" />
-              <rect x="30" y="22" width="6" height="8" rx="2" />
-              <rect x="40" y="15" width="6" height="15" rx="2" />
-            </svg>
+            <div className="h-8 w-px bg-gray-200"></div>
+            <div className="flex items-center gap-3 flex-1">
+              <div>
+                <div className="text-xs text-gray-400 font-medium">Leaves Left</div>
+                <div className="text-sm font-bold text-gray-700">14 Days</div>
+              </div>
+              <svg className="w-12 h-8 text-[#26c6da]" viewBox="0 0 50 30" fill="currentColor">
+                <rect x="0" y="5" width="6" height="25" rx="2" />
+                <rect x="10" y="10" width="6" height="20" rx="2" />
+                <rect x="20" y="18" width="6" height="12" rx="2" />
+                <rect x="30" y="22" width="6" height="8" rx="2" />
+                <rect x="40" y="15" width="6" height="15" rx="2" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
 
       {/* FIRST ROW - 4 WIDGETS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {/* Widget 1: Assigned Tasks (Revenue layout) */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between h-40">
           <div className="p-5 pb-0">
@@ -176,7 +178,7 @@ export default function Dashboard({ stats, todayAttendance }) {
       {/* SECOND ROW - BANNER CARDS */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Banner Card 1: Upgrade Plan */}
-        <div className="bg-[#1e88e5] rounded-2xl shadow-sm text-white p-6 md:p-8 flex flex-col md:flex-row justify-between items-center relative overflow-hidden group">
+        <div className="bg-[#1e88e5] rounded-2xl shadow-sm text-white p-5 sm:p-8 flex flex-col md:flex-row justify-between items-center relative overflow-hidden group">
           <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
           <div className="space-y-4 text-center md:text-left z-10">
             <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full uppercase tracking-wider">Leave Balance</span>
@@ -187,7 +189,7 @@ export default function Dashboard({ stats, todayAttendance }) {
             </Link>
           </div>
           {/* Custom Illustration SVG */}
-          <div className="mt-6 md:mt-0 z-10 shrink-0">
+          <div className="mt-4 md:mt-0 z-10 shrink-0 hidden sm:block">
             <svg width="150" height="150" viewBox="0 0 200 200" fill="none">
               <circle cx="100" cy="100" r="80" fill="white" fillOpacity="0.1" />
               <rect x="60" y="40" width="80" height="110" rx="10" fill="white" />

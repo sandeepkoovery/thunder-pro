@@ -26,7 +26,7 @@ export default function Register() {
 
             <div className="mb-8 text-center">
                 <h2 className="text-3xl font-black text-[#2d3436] mb-2">Create Account</h2>
-                <p className="text-[#636e72] font-medium">Join Thunder Pro today</p>
+                <p className="text-[#636e72] font-medium">Join WorkNest today</p>
             </div>
 
             <form onSubmit={submit} className="space-y-6">

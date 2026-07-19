@@ -45,109 +45,148 @@ export default function Index({ attendanceData, filters, totalMonthlyMinutes }) 
     };
 
     return (
-        <UserLayout
-            title="Attendance History"
-        >
+        <UserLayout title="Attendance History">
             <Head title="Attendance History" />
 
-            <div className="py-6">
-                <div className="w-full">
-                    <div className="bg-white overflow-hidden shadow-sm">
-                        <div className="p-6 text-gray-900 border-b border-gray-100 flex justify-between items-center bg-white">
-                            <h3 className="text-lg font-bold text-gray-800">Your Records</h3>
-                            <div className="bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full font-bold border border-blue-100 text-xs uppercase tracking-wider">
-                                Monthly Total: {formatDuration(totalMonthlyMinutes)}
-                            </div>
+            <div className="space-y-4">
+                {/* Page Header */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h1 className="text-lg sm:text-xl font-bold text-gray-800">Attendance History</h1>
+                        <p className="text-sm text-gray-400 mt-0.5">Your monthly attendance records</p>
+                    </div>
+                    <div className="bg-blue-50 text-blue-700 px-4 py-2 rounded-full font-bold border border-blue-100 text-xs uppercase tracking-wider self-start sm:self-auto">
+                        Total: {formatDuration(totalMonthlyMinutes)}
+                    </div>
+                </div>
+
+                {/* Filter Section */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4">
+                    <div className="mp-filter-bar flex flex-wrap gap-3 items-end">
+                        <div className="flex flex-col flex-1" style={{ minWidth: '160px' }}>
+                            <label className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wider">Select Month</label>
+                            <MonthPicker
+                                value={filters.month || ''}
+                                onChange={handleMonthChange}
+                                className="w-full"
+                            />
                         </div>
+                        <button
+                            onClick={handleReset}
+                            className="flex items-center gap-2 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors text-sm font-medium"
+                            title="Reset Filter"
+                            style={{ minHeight: '44px' }}
+                        >
+                            <RotateCcw className="w-4 h-4" />
+                            <span>Reset</span>
+                        </button>
+                    </div>
+                </div>
 
-                        <div className="p-6 text-gray-900">
-
-                            {/* Filter Section */}
-                            <div className="flex flex-wrap gap-4 mb-6 bg-gray-50 p-4 rounded-lg items-end">
-                                <div className="flex flex-col">
-                                    <label className="text-sm font-medium text-gray-700 mb-1">Select Month</label>
-                                    <MonthPicker
-                                        value={filters.month || ''}
-                                        onChange={handleMonthChange}
-                                        className="min-w-[200px]"
-                                    />
-                                </div>
-                                <div className="flex items-end">
-                                    <button
-                                        onClick={handleReset}
-                                        className="flex items-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors text-sm"
-                                        title="Reset Filter"
-                                    >
-                                        <RotateCcw className="w-4 h-4" />
-                                        Reset
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Attendance List Table */}
-                            <div className="overflow-x-auto border rounded-lg">
-                                <table className="min-w-full divide-y divide-gray-200">
-                                    <thead className="bg-gray-50">
-                                        <tr>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Worked Hours</th>
-                                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Break Time</th>
+                {/* Attendance Table — card-view on mobile, table on desktop */}
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                    {/* Desktop Table */}
+                    <div className="hidden sm:block overflow-x-auto">
+                        <table className="min-w-full divide-y divide-gray-200">
+                            <thead className="bg-gray-50">
+                                <tr>
+                                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check In</th>
+                                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Check Out</th>
+                                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Worked</th>
+                                    <th className="px-5 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Break</th>
+                                </tr>
+                            </thead>
+                            <tbody className="bg-white divide-y divide-gray-200">
+                                {attendanceData.length > 0 ? (
+                                    attendanceData.map((record) => (
+                                        <tr key={record.id} className={`hover:bg-gray-50 transition-colors ${getRowStyle(record.status)}`}>
+                                            <td className="px-5 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                {new Date(record.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                            </td>
+                                            <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Clock className="w-4 h-4 text-green-500" />
+                                                    {record.check_in || '—'}
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-600">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Clock className="w-4 h-4 text-red-400" />
+                                                    {record.check_out || '—'}
+                                                </div>
+                                            </td>
+                                            <td className="px-5 py-3 whitespace-nowrap">
+                                                <span className={`px-2.5 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(record.status)}`}>
+                                                    {record.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-700 font-medium">{record.hours}</td>
+                                            <td className="px-5 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Coffee className="w-4 h-4 text-orange-400" />
+                                                    {record.break_time}
+                                                </div>
+                                            </td>
                                         </tr>
-                                    </thead>
-                                    <tbody className="bg-white divide-y divide-gray-200">
-                                        {attendanceData.length > 0 ? (
-                                            attendanceData.map((record) => (
-                                                <tr key={record.id} className={`hover:bg-gray-50 transition-colors ${getRowStyle(record.status)}`}>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                        {new Date(record.date).toLocaleDateString('en-GB', {
-                                                            day: '2-digit',
-                                                            month: 'short',
-                                                            year: 'numeric'
-                                                        })}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                        <div className="flex items-center">
-                                                            <Clock className="w-4 h-4 mr-2 text-green-500" />
-                                                            {record.check_in}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                                                        <div className="flex items-center">
-                                                            <Clock className="w-4 h-4 mr-2 text-red-400" />
-                                                            {record.check_out}
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(record.status)}`}>
-                                                            {record.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700 font-medium">
-                                                        {record.hours}
-                                                    </td>
-                                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                        <div className="flex items-center">
-                                                            <Coffee className="w-4 h-4 mr-2 text-orange-400" />
-                                                            {record.break_time}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan="6" className="px-6 py-10 text-center text-gray-500">
-                                                    No attendance records found for this month.
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan="6" className="px-5 py-10 text-center text-gray-500 text-sm">
+                                            No attendance records found for this month.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
 
-                        </div>
+                    {/* Mobile Card View */}
+                    <div className="sm:hidden p-4 space-y-3">
+                        {attendanceData.length > 0 ? (
+                            attendanceData.map((record) => (
+                                <div
+                                    key={record.id}
+                                    className={`rounded-xl border border-gray-100 p-4 shadow-sm ${getRowStyle(record.status)}`}
+                                >
+                                    {/* Card header: date + status */}
+                                    <div className="flex items-center justify-between mb-3">
+                                        <span className="text-sm font-semibold text-gray-800">
+                                            {new Date(record.date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                        </span>
+                                        <span className={`px-2.5 py-1 text-xs font-semibold rounded-full ${getStatusColor(record.status)}`}>
+                                            {record.status}
+                                        </span>
+                                    </div>
+                                    {/* Card body: times + hours */}
+                                    <div className="grid grid-cols-3 gap-2">
+                                        <div className="text-center bg-green-50 rounded-lg py-2 px-1">
+                                            <div className="text-xs text-gray-400 mb-1">In</div>
+                                            <div className="text-xs font-semibold text-green-700">{record.check_in || '—'}</div>
+                                        </div>
+                                        <div className="text-center bg-red-50 rounded-lg py-2 px-1">
+                                            <div className="text-xs text-gray-400 mb-1">Out</div>
+                                            <div className="text-xs font-semibold text-red-600">{record.check_out || '—'}</div>
+                                        </div>
+                                        <div className="text-center bg-blue-50 rounded-lg py-2 px-1">
+                                            <div className="text-xs text-gray-400 mb-1">Hours</div>
+                                            <div className="text-xs font-semibold text-blue-700">{record.hours || '—'}</div>
+                                        </div>
+                                    </div>
+                                    {record.break_time && (
+                                        <div className="flex items-center gap-1 mt-2 text-xs text-gray-400">
+                                            <Coffee className="w-3.5 h-3.5 text-orange-400" />
+                                            Break: {record.break_time}
+                                        </div>
+                                    )}
+                                </div>
+                            ))
+                        ) : (
+                            <div className="py-12 text-center text-gray-500 text-sm">
+                                No attendance records found for this month.
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
