@@ -21,6 +21,16 @@ export function NavItem({ href, icon: Icon, label, visible, badge, beta, routeNa
   );
 }
 
+const getAssetUrl = (path) => {
+    try {
+        const base = route('/');
+        const baseSlash = base.endsWith('/') ? base : base + '/';
+        return baseSlash + (path.startsWith('/') ? path.substring(1) : path);
+    } catch (e) {
+        return path;
+    }
+};
+
 export default function AppShell({ children, title = "Dashboard", flash, auth, renderNav, bottomNav }) {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -28,7 +38,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const profileDropdownRef = useRef(null);
-
+  
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -90,10 +100,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
         <header className="mp-topbar">
           <div className="mp-topbar-logo-area" style={{ width: logoWidth, minWidth: logoWidth }}>
             <Link href="/" className="mp-topbar-brand" style={{ display: collapsed && !isMobileOpen ? "none" : "flex" }}>
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.95 }}>
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-                <path d="M9 22V12h6v10" />
-              </svg>
+              <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest Logo" className="w-12 h-12 rounded-lg object-contain" />
               <span className="mp-topbar-brand-text">
                 Work<span>Nest</span>
               </span>

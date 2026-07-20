@@ -1,5 +1,15 @@
 import { Link } from '@inertiajs/react';
 
+const getAssetUrl = (path) => {
+    try {
+        const base = route('/');
+        const baseSlash = base.endsWith('/') ? base : base + '/';
+        return baseSlash + (path.startsWith('/') ? path.substring(1) : path);
+    } catch (e) {
+        return path;
+    }
+};
+
 export default function GuestLayout({ children }) {
     return (
         <div className="min-h-screen bg-mp-bg relative overflow-hidden font-sans flex flex-col items-center justify-center p-6">
@@ -8,10 +18,8 @@ export default function GuestLayout({ children }) {
 
             <div className="relative z-10 w-full max-w-md">
                 <div className="flex justify-center mb-8">
-                    <Link href="/" className="flex flex-col items-center gap-4 group">
-                        <div className="w-16 h-16 bg-gradient-to-br from-emerald-600 to-teal-600 rounded-mp flex items-center justify-center shadow-mp">
-                            <span className="text-white font-bold text-3xl">W</span>
-                        </div>
+                    <Link href="/" className="flex flex-col items-center gap-3 group">
+                        <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest Logo" className="w-20 h-20 rounded-2xl shadow-md object-contain" />
                         <span className="text-2xl font-bold tracking-tight text-mp-heading">
                             Work<span className="text-emerald-600">Nest</span>
                         </span>
