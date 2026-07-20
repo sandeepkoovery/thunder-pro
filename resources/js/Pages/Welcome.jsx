@@ -48,52 +48,52 @@ export default function Welcome({ canLogin, canRegister }) {
         {
             icon: FolderKanban,
             title: "Project Management",
-            highlights: ["Kanban Boards", "Milestones", "Deadlines"]
+            description: "Organize tasks, track progress on interactive Kanban boards, set milestones, and meet project deadlines effortlessly."
         },
         {
             icon: CheckSquare,
             title: "Task Management",
-            highlights: ["Assignments", "Priorities", "Comments"]
+            description: "Assign tasks to team members, set priorities, add checklist items, and collaborate directly with inline task comments."
         },
         {
             icon: Users2,
             title: "Employee Management",
-            highlights: ["Profiles", "Departments", "Roles"]
+            description: "Maintain comprehensive worker profiles, manage internal departments, and assign specific access roles and permissions."
         },
         {
             icon: Clock,
             title: "Attendance Management",
-            highlights: ["Daily Attendance", "Late Reports", "Working Hours"]
+            description: "Monitor daily attendance logs in real time, generate late reports, and track working hours and shifts automatically."
         },
         {
             icon: FileText,
             title: "Leave Management",
-            highlights: ["Leave Requests", "Approvals", "Balance"]
+            description: "Submit leave requests, track approvals through manager hierarchies, and check individual balances instantly."
         },
         {
             icon: Calendar,
             title: "Event Calendar",
-            highlights: ["Meetings", "Company Events", "Deadlines"]
+            description: "Schedule company meetings, coordinate major events, set visual deadline reminders, and sync with external tools."
         },
         {
             icon: MessageSquare,
             title: "Team Chat",
-            highlights: ["Real-time Messaging", "Announcements"]
+            description: "Foster seamless collaboration with instant messaging channels, group chats, notifications, and company announcements."
         },
         {
             icon: BarChart3,
             title: "Reports",
-            highlights: ["Charts", "Analytics", "Exports"]
+            description: "Generate deep analytic charts on task output, worker efficiency, shifts, and export raw data summaries to CSV/PDF."
         },
         {
             icon: Bell,
             title: "Notifications",
-            highlights: ["Instant Alerts", "Reminders"]
+            description: "Receive instant push alerts and customizable email reminders for task updates, shift changes, and approvals."
         },
         {
             icon: Download,
             title: "Progressive Web App",
-            highlights: ["Install on Desktop", "Android", "iPhone"]
+            description: "Install the dashboard on your desktop or mobile device (Android/iOS) for a native app experience with offline capability."
         }
     ];
 
@@ -111,9 +111,9 @@ export default function Welcome({ canLogin, canRegister }) {
                 <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? "bg-white/80 backdrop-blur-md border-b border-slate-100 shadow-sm py-4" : "bg-transparent py-6"}`}>
                     <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 flex justify-between items-center">
                         {/* Logo left side styled in sky-blue */}
-                        <div className="flex items-center gap-3">
-                            <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest" className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl object-contain" />
-                            <span className="hidden sm:inline-block text-2xl font-black tracking-wider text-[#00A8FF] uppercase">
+                        <div className="flex items-center gap-3 sm:gap-5">
+                            <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest" className="w-16 h-16 sm:w-32 sm:h-32 rounded-3xl object-contain" />
+                            <span className="text-2xl sm:text-4xl font-black tracking-widest text-[#00A8FF] uppercase">
                                 WorkNest
                             </span>
                         </div>
@@ -127,11 +127,12 @@ export default function Welcome({ canLogin, canRegister }) {
                         </div>
 
                         {/* Right Side CTA with proper auth checks */}
+                        {/* Right Side CTA with proper auth checks */}
                         <div className="flex items-center gap-2 sm:gap-4">
                             {auth?.user ? (
                                 <Link 
                                     href="/dashboard" 
-                                    className="px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-[15px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
+                                    className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
                                     style={{ minHeight: '44px' }}
                                 >
                                     Dashboard
@@ -140,7 +141,7 @@ export default function Welcome({ canLogin, canRegister }) {
                                 <>
                                     <Link 
                                         href={route('login')} 
-                                        className="px-3 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-[15px] font-semibold text-slate-700 hover:text-[#00A8FF] transition-all flex items-center"
+                                        className="px-3 py-2 sm:px-5 sm:py-2.5 text-[15px] sm:text-[17px] font-semibold text-slate-700 hover:text-[#00A8FF] transition-all flex items-center"
                                         style={{ minHeight: '44px' }}
                                     >
                                         Login
@@ -148,10 +149,10 @@ export default function Welcome({ canLogin, canRegister }) {
                                     {canRegister && (
                                         <Link 
                                             href={route('register')} 
-                                            className="px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-[15px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
+                                            className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
                                             style={{ minHeight: '44px' }}
                                         >
-                                            Get Started
+                                            Signup
                                         </Link>
                                     )}
                                 </>
@@ -159,11 +160,11 @@ export default function Welcome({ canLogin, canRegister }) {
                         </div>
                     </div>
                 </nav>
-
+ 
                 {/* Hero Section - Full Width layout container */}
-                <main className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-40 pb-24">
+                <main className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-32 pb-12">
                     
-                    <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center mb-28">
+                    <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center mb-12">
                         
                         {/* Hero Left Content Column */}
                         <div className="lg:col-span-5 flex flex-col justify-center space-y-7">
@@ -174,7 +175,7 @@ export default function Welcome({ canLogin, canRegister }) {
                             <p className="text-base text-slate-500 font-medium leading-relaxed">
                                 Streamline your operations with a unified workspace. Manage projects, tasks, attendance tracking, leave requests, employee profiles, and team collaboration in one secure system.
                             </p>
-
+ 
                             {/* Bullet points with blue dots exactly like screenshot */}
                             <div className="space-y-3.5 pt-2">
                                 <div className="flex items-center gap-3.5 text-[15px] font-bold text-slate-600">
@@ -186,15 +187,15 @@ export default function Welcome({ canLogin, canRegister }) {
                                     Manage projects, tasks, and leave requests effortlessly.
                                 </div>
                             </div>
-
-                            {/* Get Started Button */}
+ 
+                            {/* Hero Signup Button */}
                             <div className="pt-4">
                                 <Link
-                                    href={auth?.user ? "/dashboard" : route('login')}
-                                    className="inline-flex items-center justify-center px-9 py-4 bg-[#00A8FF] hover:bg-[#0097e6] text-white font-extrabold rounded-2xl text-xs uppercase tracking-wider transition-colors shadow-sm"
+                                    href={auth?.user ? "/dashboard" : route('register')}
+                                    className="inline-flex items-center justify-center px-9 py-4 bg-[#00A8FF] hover:bg-[#0097e6] text-white font-extrabold rounded-2xl text-[14px] sm:text-[15px] uppercase tracking-wider transition-colors shadow-sm"
                                     style={{ minHeight: '44px' }}
                                 >
-                                    Get Started
+                                    {auth?.user ? "Dashboard" : "Get Started"}
                                 </Link>
                             </div>
                         </div>
@@ -214,37 +215,37 @@ export default function Welcome({ canLogin, canRegister }) {
 
 
                     {/* Features Section (10 Modules responsive cards grid styled for this theme) */}
-                    <div id="features" className="pt-20 border-t border-slate-100 mb-20">
+                    <div id="features" className="pt-12 border-t border-slate-100 mb-12">
                         
-                        <div className="text-center max-w-xl mx-auto mb-20">
-                            <span className="inline-flex items-center gap-1 bg-[#00A8FF]/5 text-[#00A8FF] px-4.5 py-1.5 rounded-full text-xs font-black uppercase tracking-wider border border-[#00A8FF]/10 mb-4">
-                                ✦ WorkNest Modules
+                        <div className="text-center max-w-2xl mx-auto mb-16">
+                            <span className="inline-flex items-center gap-1 bg-[#00A8FF]/5 text-[#00A8FF] px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-[#00A8FF]/10 mb-4">
+                                + WorkNest Modules
                             </span>
-                            <h2 className="text-3xl sm:text-4xl font-extrabold text-[#0B132B] tracking-tight leading-[1.1] mb-5">Everything You Need to Run Your Business</h2>
-                            <p className="text-base text-slate-500 font-medium leading-relaxed">Integrated corporate spaces tailored for robust operations.</p>
+                            <h2 className="text-3xl sm:text-[42px] font-black text-[#0B132B] tracking-tight leading-[1.1] mb-5">
+                                Everything You Need to Succeed with WorkNest
+                            </h2>
+                            <p className="text-base sm:text-[17px] text-slate-500 font-medium leading-relaxed">
+                                From custom workflows to deep employee metrics, WorkNest gives you everything you need to run your workforce.
+                            </p>
                         </div>
 
-                        {/* Features Responsive Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+                        {/* Features Responsive 4-Column Grid with reduced spacing gap */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto px-4">
                             {modules.map((m, i) => {
                                 const Icon = m.icon;
                                 return (
-                                    <div key={i} className="bg-white rounded-[28px] p-8 border border-slate-100 hover:border-[#00A8FF]/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 shadow-sm flex flex-col justify-between">
+                                    <div key={i} className="bg-white rounded-[24px] p-7 border border-slate-100/80 hover:border-[#00A8FF]/30 hover:shadow-[0_12px_40px_rgba(59,130,246,0.08)] hover:-translate-y-1 transition-all duration-300 shadow-[0_8px_30px_rgba(0,0,0,0.015)] flex flex-col justify-between">
                                         <div>
-                                            <div className="w-12 h-12 rounded-2xl bg-[#00A8FF]/5 text-[#00A8FF] flex items-center justify-center shadow-sm mb-6">
-                                                <Icon size={22} />
+                                            {/* Glowing soft icon badge */}
+                                            <div className="w-12 h-12 rounded-2xl bg-[#00A8FF]/10 text-[#00A8FF] flex items-center justify-center shadow-[0_4px_14px_rgba(0,168,255,0.15)] mb-5">
+                                                <Icon size={20} />
                                             </div>
-                                            <h3 className="text-[20px] font-bold text-[#0B132B] mb-3">{m.title}</h3>
-                                            
-                                            {/* Sub-highlights bullet details */}
-                                            <ul className="space-y-1.5 pt-2">
-                                                {m.highlights.map((h, hi) => (
-                                                    <li key={hi} className="flex items-center gap-2 text-xs font-semibold text-slate-500">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-[#00A8FF]"></span>
-                                                        {h}
-                                                    </li>
-                                                ))}
-                                            </ul>
+                                            <h3 className="text-[18px] font-extrabold text-[#0B132B] mb-3 tracking-tight">
+                                                {m.title}
+                                            </h3>
+                                            <p className="text-[13.5px] text-slate-500 leading-relaxed font-medium">
+                                                {m.description}
+                                            </p>
                                         </div>
                                     </div>
                                 );
@@ -255,7 +256,7 @@ export default function Welcome({ canLogin, canRegister }) {
                 </main>
 
                 {/* Footer Section */}
-                <footer className="border-t border-slate-100 bg-white py-16 relative z-50 text-slate-500">
+                <footer className="border-t border-slate-100 bg-white py-10 relative z-50 text-slate-500">
                     <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
                         {/* Box */}
                         <div className="space-y-4 col-span-2 md:col-span-1">
