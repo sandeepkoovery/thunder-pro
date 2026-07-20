@@ -16,7 +16,7 @@ export default defineConfig({
             manifest: {
                 name: 'WorkNest ERP',
                 short_name: 'WorkNest',
-                theme_color: '#10b981',
+                theme_color: '#00A8FF',
                 background_color: '#FFFFFF',
                 display: 'standalone',
                 orientation: 'portrait',

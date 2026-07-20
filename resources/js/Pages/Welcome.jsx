@@ -112,8 +112,8 @@ export default function Welcome({ canLogin, canRegister }) {
                     <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 flex justify-between items-center">
                         {/* Logo left side styled in sky-blue */}
                         <div className="flex items-center gap-3">
-                            <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest" className="w-14 h-14 rounded-2xl object-contain" />
-                            <span className="text-2xl font-black tracking-wider text-[#00A8FF] uppercase">
+                            <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest" className="w-10 h-10 sm:w-14 sm:h-14 rounded-2xl object-contain" />
+                            <span className="hidden sm:inline-block text-2xl font-black tracking-wider text-[#00A8FF] uppercase">
                                 WorkNest
                             </span>
                         </div>
@@ -126,23 +126,35 @@ export default function Welcome({ canLogin, canRegister }) {
                             <a href="#" className="text-slate-500 hover:text-[#00A8FF] text-[15px] font-semibold transition-colors">Contact</a>
                         </div>
 
-                        {/* Right Side CTA */}
-                        <div className="flex items-center gap-4">
-                            <Link 
-                                href={route('login')} 
-                                className="px-5 py-2.5 text-[15px] font-semibold text-slate-700 hover:text-[#00A8FF] transition-all"
-                                style={{ minHeight: '44px', display: 'flex', alignItems: 'center' }}
-                            >
-                                Login
-                            </Link>
-                            {canRegister && (
+                        {/* Right Side CTA with proper auth checks */}
+                        <div className="flex items-center gap-2 sm:gap-4">
+                            {auth?.user ? (
                                 <Link 
-                                    href={route('register')} 
-                                    className="px-6 py-2.5 text-[15px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
+                                    href="/dashboard" 
+                                    className="px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-[15px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
                                     style={{ minHeight: '44px' }}
                                 >
-                                    Get Started
+                                    Dashboard
                                 </Link>
+                            ) : (
+                                <>
+                                    <Link 
+                                        href={route('login')} 
+                                        className="px-3 py-2 sm:px-5 sm:py-2.5 text-xs sm:text-[15px] font-semibold text-slate-700 hover:text-[#00A8FF] transition-all flex items-center"
+                                        style={{ minHeight: '44px' }}
+                                    >
+                                        Login
+                                    </Link>
+                                    {canRegister && (
+                                        <Link 
+                                            href={route('register')} 
+                                            className="px-4 py-2 sm:px-6 sm:py-2.5 text-xs sm:text-[15px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
+                                            style={{ minHeight: '44px' }}
+                                        >
+                                            Get Started
+                                        </Link>
+                                    )}
+                                </>
                             )}
                         </div>
                     </div>
