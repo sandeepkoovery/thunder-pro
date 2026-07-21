@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePage, Head } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
-import { Search, MoreVertical, Send } from 'lucide-react';
+import { Search, MoreVertical, Send, ArrowLeft } from 'lucide-react';
 import axios from 'axios';
 import moment from 'moment';
 
@@ -18,6 +18,16 @@ export default function ChatIndex() {
     const messagesEndRef = useRef(null);
     const pollInterval = useRef(null);
     const usersPollInterval = useRef(null);
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Filter + sort users
     const filteredUsers = users.filter(u =>
@@ -99,10 +109,18 @@ export default function ChatIndex() {
         <Layout title="Chat">
             <Head title="Chat" />
 
-            <div style={styles.wrapper}>
+            <div style={{
+                ...styles.wrapper,
+                height: isMobile ? 'calc(100vh - 140px)' : 'calc(100vh - 120px)',
+            }}>
 
                 {/* ── LEFT PANEL ── */}
-                <div style={styles.leftPanel}>
+                <div style={{
+                    ...styles.leftPanel,
+                    display: (isMobile && selectedUser) ? 'none' : 'flex',
+                    width: isMobile ? '100%' : 320,
+                    minWidth: isMobile ? '100%' : 280,
+                }}>
 
                     {/* My Profile header */}
                     <div style={styles.profileHeader}>
@@ -174,11 +192,24 @@ export default function ChatIndex() {
                 </div>
 
                 {/* ── RIGHT PANEL ── */}
-                <div style={styles.rightPanel}>
+                <div style={{
+                    ...styles.rightPanel,
+                    display: (isMobile && !selectedUser) ? 'none' : 'flex',
+                    width: isMobile ? '100%' : 'auto',
+                }}>
                     {selectedUser ? (
                         <>
                             {/* Chat header */}
                             <div style={styles.chatHeader}>
+                                {isMobile && (
+                                    <button 
+                                        onClick={() => setSelectedUser(null)} 
+                                        style={{ ...styles.iconBtn, marginRight: 8, padding: 8, background: '#f5f7fa', borderRadius: '50%' }}
+                                        title="Back"
+                                    >
+                                        <ArrowLeft size={18} color="#555" />
+                                    </button>
+                                )}
                                 <div style={styles.avatarWrap}>
                                     <img src={avatar(selectedUser.name, selectedUser.image_url)} alt={selectedUser.name} style={styles.userAvatar} />
                                     <span style={{ ...styles.statusDot, background: '#26c6da' }} />

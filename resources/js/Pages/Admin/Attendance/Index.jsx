@@ -491,153 +491,302 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
 
                     {/* Table View (Used for both Daily and Monthly) */}
                     {displayMode === 'table' ? (
-                        <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 ring-1 ring-gray-100">
-                            <div className="overflow-x-auto overflow-y-hidden w-full custom-scrollbar-h">
-                                <table className="w-full text-left border-collapse min-w-[1400px]">
-                                    <thead className="bg-[#fcfcfd] border-b border-gray-100">
-                                        <tr>
-                                            {viewType === 'daily' && (
-                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest pl-10">Name</th>
-                                            )}
-                                            <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Date</th>
-                                            <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Check In</th>
-                                            <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Check Out</th>
-                                            <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Status</th>
-                                            <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Current Status</th>
-                                            <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Hours</th>
-                                            <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Break</th>
-                                            <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Location</th>
-                                            <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Device</th>
-                                            <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest text-right pr-10">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {attendanceData && attendanceData.length > 0 ? (
-                                            attendanceData.map((record, idx) => (
-                                                <tr key={record?.id || Math.random()} className={`group hover:bg-gray-50/30 transition-all ${getRowStyle(record?.status)}`}>
-                                                    {viewType === 'daily' && (
-                                                        <td className="py-5 px-4 pl-10">
-                                                            <div className="text-[14px] font-bold text-gray-900">{record?.name}</div>
+                        <>
+                            <div className="hidden md:block bg-white rounded-[32px] shadow-sm border border-gray-100 ring-1 ring-gray-100">
+                                <div className="overflow-x-auto overflow-y-hidden w-full custom-scrollbar-h">
+                                    <table className="w-full text-left border-collapse min-w-[1400px]">
+                                        <thead className="bg-[#fcfcfd] border-b border-gray-100">
+                                            <tr>
+                                                {viewType === 'daily' && (
+                                                    <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest pl-10">Name</th>
+                                                )}
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Date</th>
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Check In</th>
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Check Out</th>
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Status</th>
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Current Status</th>
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Hours</th>
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Break</th>
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Location</th>
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Device</th>
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest text-right pr-10">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-50">
+                                            {attendanceData && attendanceData.length > 0 ? (
+                                                attendanceData.map((record, idx) => (
+                                                    <tr key={record?.id || Math.random()} className={`group hover:bg-gray-50/30 transition-all ${getRowStyle(record?.status)}`}>
+                                                        {viewType === 'daily' && (
+                                                            <td className="py-5 px-4 pl-10">
+                                                                <div className="text-[14px] font-bold text-gray-900">{record?.name}</div>
+                                                            </td>
+                                                        )}
+                                                        <td className="py-5 px-4">
+                                                            <div className="text-[14px] font-bold text-gray-800">{formatDate(record?.date || filters?.date)}</div>
                                                         </td>
-                                                    )}
-                                                    <td className="py-5 px-4">
-                                                        <div className="text-[14px] font-bold text-gray-800">{formatDate(record?.date || filters?.date)}</div>
-                                                    </td>
-                                                    <td className="py-5 px-4">
-                                                        <div className="text-[14px] font-semibold text-gray-700">{record?.check_in === '-' ? '--' : record?.check_in}</div>
-                                                    </td>
-                                                    <td className="py-5 px-4">
-                                                        <div className="text-[14px] font-semibold text-gray-700">{record?.check_out === '-' ? '--' : record?.check_out}</div>
-                                                    </td>
-                                                    <td className="py-5 px-4">
-                                                        <span className={`px-4 py-1.5 inline-flex text-[11px] leading-5 font-bold rounded-xl uppercase tracking-wider ${getStatusColor(record?.status)}`}>
-                                                            {record?.status}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-5 px-4">
-                                                        {record?.current_status === 'Working' ? (
-                                                            <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-xl text-[10px] font-bold uppercase tracking-wide">
-                                                                Working
+                                                        <td className="py-5 px-4">
+                                                            <div className="text-[14px] font-semibold text-gray-700">{record?.check_in === '-' ? '--' : record?.check_in}</div>
+                                                        </td>
+                                                        <td className="py-5 px-4">
+                                                            <div className="text-[14px] font-semibold text-gray-700">{record?.check_out === '-' ? '--' : record?.check_out}</div>
+                                                        </td>
+                                                        <td className="py-5 px-4">
+                                                            <span className={`px-4 py-1.5 inline-flex text-[11px] leading-5 font-bold rounded-xl uppercase tracking-wider ${getStatusColor(record?.status)}`}>
+                                                                {record?.status}
                                                             </span>
-                                                        ) : record?.current_status === 'Break' ? (
-                                                            <span className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-xl text-[10px] font-bold uppercase tracking-wide">
-                                                                Break
-                                                            </span>
-                                                        ) : record?.current_status === 'Punched Out' ? (
-                                                            <span className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-wide">
-                                                                Punched Out
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-gray-400 text-xs">-</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-5 px-4">
-                                                        <div className="text-[14px] font-bold text-gray-800">{record?.hours === '0h 0m' ? '--' : record?.hours}</div>
-                                                    </td>
-                                                    <td className="py-5 px-4">
-                                                        <div className="flex items-center gap-2">
-                                                            <span className="text-[14px] font-bold text-gray-800">{record?.break_time === '0h 0m' ? '--' : record?.break_time}</span>
-                                                            {record?.attendance_id && (
-                                                                <button
-                                                                    onClick={() => setViewingBreaks(record)}
-                                                                    className="text-blue-500 hover:text-blue-700 transition-colors p-1 hover:bg-blue-50 rounded-lg"
-                                                                    title={record.breaks && record.breaks.length > 0 ? "View Break History" : "Add Break"}
-                                                                >
-                                                                    <Info className="w-4 h-4" />
-                                                                </button>
+                                                        </td>
+                                                        <td className="py-5 px-4">
+                                                            {record?.current_status === 'Working' ? (
+                                                                <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-xl text-[10px] font-bold uppercase tracking-wide">
+                                                                    Working
+                                                                </span>
+                                                            ) : record?.current_status === 'Break' ? (
+                                                                <span className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-xl text-[10px] font-bold uppercase tracking-wide">
+                                                                    Break
+                                                                </span>
+                                                            ) : record?.current_status === 'Punched Out' ? (
+                                                                <span className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-wide">
+                                                                    Punched Out
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-gray-400 text-xs">-</span>
                                                             )}
+                                                        </td>
+                                                        <td className="py-5 px-4">
+                                                            <div className="text-[14px] font-bold text-gray-800">{record?.hours === '0h 0m' ? '--' : record?.hours}</div>
+                                                        </td>
+                                                        <td className="py-5 px-4">
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-[14px] font-bold text-gray-800">{record?.break_time === '0h 0m' ? '--' : record?.break_time}</span>
+                                                                {record?.attendance_id && (
+                                                                    <button
+                                                                        onClick={() => setViewingBreaks(record)}
+                                                                        className="text-blue-500 hover:text-blue-700 transition-colors p-1 hover:bg-blue-50 rounded-lg"
+                                                                        title={record.breaks && record.breaks.length > 0 ? "View Break History" : "Add Break"}
+                                                                    >
+                                                                        <Info className="w-4 h-4" />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-5 px-4">
+                                                            <div className="flex items-center gap-3">
+                                                                {record?.punch_in_lat && (
+                                                                    <a
+                                                                        href={`https://www.google.com/maps?q=${record.punch_in_lat},${record.punch_in_lng}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-green-500 hover:text-green-700 transition-all p-2 hover:bg-green-50 rounded-xl"
+                                                                        title="Check-in Location"
+                                                                    >
+                                                                        <MapPin className="w-4 h-4" />
+                                                                    </a>
+                                                                )}
+                                                                {record?.punch_out_lat && (
+                                                                    <a
+                                                                        href={`https://www.google.com/maps?q=${record.punch_out_lat},${record.punch_out_lng}`}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-red-500 hover:text-red-700 transition-all p-2 hover:bg-red-50 rounded-xl"
+                                                                        title="Check-out Location"
+                                                                    >
+                                                                        <MapPin className="w-4 h-4" />
+                                                                    </a>
+                                                                )}
+                                                                {!record?.punch_in_lat && !record?.punch_out_lat && <span className="text-gray-400">--</span>}
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-5 px-4">
+                                                            {record?.device_type === 'Mobile' ? (
+                                                                <span className="flex items-center gap-2 text-[13px] font-bold text-gray-700" title="Mobile">
+                                                                    <Smartphone className="w-4 h-4 text-gray-500" /> Mobile
+                                                                </span>
+                                                            ) : record?.device_type === 'Desktop' ? (
+                                                                <span className="flex items-center gap-2 text-[13px] font-bold text-gray-700" title="Desktop">
+                                                                    <Monitor className="w-4 h-4 text-gray-500" /> Desktop
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-gray-400">--</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-5 px-4 text-right pr-10">
+                                                            <button
+                                                                onClick={() => openEditModal(record)}
+                                                                className="w-10 h-10 bg-white text-blue-500 rounded-xl hover:shadow-xl hover:shadow-blue-100 transition-all active:scale-90 border border-gray-100 flex items-center justify-center"
+                                                                title="Edit"
+                                                            >
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                            ) : (
+                                                <tr>
+                                                    <td colSpan={viewType === 'daily' ? 11 : 10} className="py-40 text-center">
+                                                        <div className="flex flex-col items-center gap-6">
+                                                            <div className="w-20 h-20 bg-gray-50 rounded-[24px] flex items-center justify-center shadow-sm">
+                                                                <Filter size={32} className="text-gray-200" />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <h4 className="text-[16px] font-bold text-gray-900">No records found</h4>
+                                                                <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Try adjusting your filters</p>
+                                                            </div>
                                                         </div>
-                                                    </td>
-                                                    <td className="py-5 px-4">
-                                                        <div className="flex items-center gap-3">
-                                                            {record?.punch_in_lat && (
-                                                                <a
-                                                                    href={`https://www.google.com/maps?q=${record.punch_in_lat},${record.punch_in_lng}`}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-green-500 hover:text-green-700 transition-all p-2 hover:bg-green-50 rounded-xl"
-                                                                    title="Check-in Location"
-                                                                >
-                                                                    <MapPin className="w-4 h-4" />
-                                                                </a>
-                                                            )}
-                                                            {record?.punch_out_lat && (
-                                                                <a
-                                                                    href={`https://www.google.com/maps?q=${record.punch_out_lat},${record.punch_out_lng}`}
-                                                                    target="_blank"
-                                                                    rel="noopener noreferrer"
-                                                                    className="text-red-500 hover:text-red-700 transition-all p-2 hover:bg-red-50 rounded-xl"
-                                                                    title="Check-out Location"
-                                                                >
-                                                                    <MapPin className="w-4 h-4" />
-                                                                </a>
-                                                            )}
-                                                            {!record?.punch_in_lat && !record?.punch_out_lat && <span className="text-gray-400">--</span>}
-                                                        </div>
-                                                    </td>
-                                                    <td className="py-5 px-4">
-                                                        {record?.device_type === 'Mobile' ? (
-                                                            <span className="flex items-center gap-2 text-[13px] font-bold text-gray-700" title="Mobile">
-                                                                <Smartphone className="w-4 h-4 text-gray-500" /> Mobile
-                                                            </span>
-                                                        ) : record?.device_type === 'Desktop' ? (
-                                                            <span className="flex items-center gap-2 text-[13px] font-bold text-gray-700" title="Desktop">
-                                                                <Monitor className="w-4 h-4 text-gray-500" /> Desktop
-                                                            </span>
-                                                        ) : (
-                                                            <span className="text-gray-400">--</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="py-5 px-4 text-right pr-10">
-                                                        <button
-                                                            onClick={() => openEditModal(record)}
-                                                            className="w-10 h-10 bg-white text-blue-500 rounded-xl hover:shadow-xl hover:shadow-blue-100 transition-all active:scale-90 border border-gray-100 flex items-center justify-center"
-                                                            title="Edit"
-                                                        >
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
                                                     </td>
                                                 </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={viewType === 'daily' ? 11 : 10} className="py-40 text-center">
-                                                    <div className="flex flex-col items-center gap-6">
-                                                        <div className="w-20 h-20 bg-gray-50 rounded-[24px] flex items-center justify-center shadow-sm">
-                                                            <Filter size={32} className="text-gray-200" />
-                                                        </div>
-                                                        <div className="space-y-2">
-                                                            <h4 className="text-[16px] font-bold text-gray-900">No records found</h4>
-                                                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Try adjusting your filters</p>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                        </div>
+
+                            {/* Mobile Card View */}
+                            <div className="md:hidden space-y-4">
+                                {attendanceData && attendanceData.length > 0 ? (
+                                    attendanceData.map((record) => (
+                                        <div
+                                            key={record?.id || Math.random()}
+                                            className={`bg-white rounded-[24px] shadow-sm border border-gray-100 p-5 ${getRowStyle(record?.status)}`}
+                                        >
+                                            {/* Card Header: Name + Date */}
+                                            <div className="flex items-start justify-between gap-2 mb-3">
+                                                <div>
+                                                    {viewType === 'daily' && (
+                                                        <h4 className="font-bold text-gray-900 text-[15px]">{record?.name}</h4>
+                                                    )}
+                                                    <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mt-0.5">
+                                                        {formatDate(record?.date || filters?.date)}
+                                                    </p>
+                                                </div>
+                                                <span className={`px-3 py-1 text-[10px] leading-5 font-bold rounded-full uppercase tracking-wider ${getStatusColor(record?.status)}`}>
+                                                    {record?.status}
+                                                </span>
+                                            </div>
+
+                                            {/* Worked / Break details */}
+                                            <div className="grid grid-cols-3 gap-2 mb-3">
+                                                <div className="text-center bg-green-50/50 rounded-xl py-2 px-1 border border-green-50">
+                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">In</div>
+                                                    <div className="text-xs font-bold text-green-700">{record?.check_in === '-' ? '--' : record?.check_in}</div>
+                                                </div>
+                                                <div className="text-center bg-red-50/50 rounded-xl py-2 px-1 border border-red-50">
+                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Out</div>
+                                                    <div className="text-xs font-bold text-red-600">{record?.check_out === '-' ? '--' : record?.check_out}</div>
+                                                </div>
+                                                <div className="text-center bg-blue-50/50 rounded-xl py-2 px-1 border border-blue-50">
+                                                    <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Hours</div>
+                                                    <div className="text-xs font-bold text-blue-700">{record?.hours === '0h 0m' ? '--' : record?.hours}</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Metadata Row: Current status + Break + Location + Device */}
+                                            <div className="bg-gray-50/50 border border-gray-100 rounded-2xl p-3 space-y-2.5 text-xs mb-4">
+                                                {/* Current Status */}
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-semibold text-gray-400">Current Status:</span>
+                                                    {record?.current_status === 'Working' ? (
+                                                        <span className="px-2.5 py-1 bg-green-100 text-green-700 rounded-lg text-[9px] font-bold uppercase tracking-wider">
+                                                            Working
+                                                        </span>
+                                                    ) : record?.current_status === 'Break' ? (
+                                                        <span className="px-2.5 py-1 bg-orange-100 text-orange-700 rounded-lg text-[9px] font-bold uppercase tracking-wider">
+                                                            Break
+                                                        </span>
+                                                    ) : record?.current_status === 'Punched Out' ? (
+                                                        <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-[9px] font-bold uppercase tracking-wider">
+                                                            Punched Out
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400">-</span>
+                                                    )}
+                                                </div>
+
+                                                {/* Break Time */}
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-semibold text-gray-400">Break Time:</span>
+                                                    <div className="flex items-center gap-1.5 font-bold text-gray-700">
+                                                        <span>{record?.break_time === '0h 0m' ? '--' : record?.break_time}</span>
+                                                        {record?.attendance_id && (
+                                                            <button
+                                                                onClick={() => setViewingBreaks(record)}
+                                                                className="text-blue-500 hover:text-blue-700 transition-colors p-0.5 hover:bg-blue-50 rounded"
+                                                                title={record.breaks && record.breaks.length > 0 ? "View Break History" : "Add Break"}
+                                                            >
+                                                                <Info className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Location Maps */}
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-semibold text-gray-400">Location:</span>
+                                                    <div className="flex items-center gap-2">
+                                                        {record?.punch_in_lat && (
+                                                            <a
+                                                                href={`https://www.google.com/maps?q=${record.punch_in_lat},${record.punch_in_lng}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-green-600 hover:underline flex items-center gap-1 font-bold"
+                                                            >
+                                                                Check In Maps
+                                                            </a>
+                                                        )}
+                                                        {record?.punch_in_lat && record?.punch_out_lat && <span className="text-gray-300">|</span>}
+                                                        {record?.punch_out_lat && (
+                                                            <a
+                                                                href={`https://www.google.com/maps?q=${record.punch_out_lat},${record.punch_out_lng}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="text-red-600 hover:underline flex items-center gap-1 font-bold"
+                                                            >
+                                                                Check Out Maps
+                                                            </a>
+                                                        )}
+                                                        {!record?.punch_in_lat && !record?.punch_out_lat && <span className="text-gray-400">--</span>}
+                                                    </div>
+                                                </div>
+
+                                                {/* Device Type */}
+                                                <div className="flex items-center justify-between">
+                                                    <span className="font-semibold text-gray-400">Device:</span>
+                                                    {record?.device_type === 'Mobile' ? (
+                                                        <span className="flex items-center gap-1.5 font-bold text-gray-700" title="Mobile">
+                                                            <Smartphone className="w-3.5 h-3.5 text-gray-400" /> Mobile
+                                                        </span>
+                                                    ) : record?.device_type === 'Desktop' ? (
+                                                        <span className="flex items-center gap-1.5 font-bold text-gray-700" title="Desktop">
+                                                            <Monitor className="w-3.5 h-3.5 text-gray-400" /> Desktop
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-gray-400">--</span>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            {/* Actions Bar */}
+                                            <div className="flex gap-2">
+                                                <button
+                                                    onClick={() => openEditModal(record)}
+                                                    className="flex-1 flex items-center justify-center gap-1.5 py-3 bg-blue-50 text-blue-600 rounded-xl text-xs font-bold hover:bg-blue-100 transition-colors"
+                                                    style={{ minHeight: '44px' }}
+                                                >
+                                                    <Edit className="w-4 h-4" /> Edit Record
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="bg-white rounded-[24px] p-12 text-center border border-gray-100 shadow-sm">
+                                        <div className="w-16 h-16 bg-gray-50 rounded-[20px] flex items-center justify-center mx-auto mb-4">
+                                            <Filter size={24} className="text-gray-300" />
+                                        </div>
+                                        <h4 className="text-sm font-bold text-gray-900">No records found</h4>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1">Try adjusting your filters</p>
+                                    </div>
+                                )}
+                            </div>
+                        </>
                     ) : displayMode === 'calendar' ? (
                         <CalendarView
                             attendanceData={attendanceData}
