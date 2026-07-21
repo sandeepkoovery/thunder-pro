@@ -20,8 +20,8 @@ export default defineConfig({
                 background_color: '#FFFFFF',
                 display: 'standalone',
                 orientation: 'portrait',
-                start_url: '/',
-                scope: '/',
+                start_url: './',
+                scope: './',
                 icons: [
                     {
                         src: '../icons/icon-192x192.png',
@@ -30,7 +30,7 @@ export default defineConfig({
                         purpose: 'any'
                     },
                     {
-                        src: '../icons/icon-192x192.png',
+                        src: '../icons/icon-maskable-192x192.png',
                         sizes: '192x192',
                         type: 'image/png',
                         purpose: 'maskable'
@@ -42,7 +42,7 @@ export default defineConfig({
                         purpose: 'any'
                     },
                     {
-                        src: '../icons/icon-512x512.png',
+                        src: '../icons/icon-maskable-512x512.png',
                         sizes: '512x512',
                         type: 'image/png',
                         purpose: 'maskable'
@@ -50,14 +50,14 @@ export default defineConfig({
                 ],
                 screenshots: [
                     {
-                        src: '../icons/icon-512x512.png',
+                        src: '../icons/icon-maskable-512x512.png',
                         sizes: '512x512',
                         type: 'image/png',
                         form_factor: 'wide',
                         label: 'WorkNest ERP Dashboard'
                     },
                     {
-                        src: '../icons/icon-512x512.png',
+                        src: '../icons/icon-maskable-512x512.png',
                         sizes: '512x512',
                         type: 'image/png',
                         form_factor: 'narrow',
