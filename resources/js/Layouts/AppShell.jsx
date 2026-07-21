@@ -1,7 +1,7 @@
 // resources/js/Layouts/AppShell.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { Link, router, Head } from "@inertiajs/react";
-import { Menu, Search, Moon, ChevronDown, LogOut, Settings, User, CreditCard, DollarSign, HelpCircle, Power, Download } from "lucide-react";
+import { Menu, Search, Moon, Sun, ChevronDown, LogOut, Settings, User, CreditCard, DollarSign, HelpCircle, Power, Download } from "lucide-react";
 import NotificationDropdown from "@/Components/NotificationDropdown";
 import ThemeCustomizer from "@/Components/ThemeCustomizer";
 import { Toaster, toast } from "react-hot-toast";
@@ -23,11 +23,21 @@ export function NavItem({ href, icon: Icon, label, visible, badge, beta, routeNa
 
 const getAssetUrl = (path) => {
     try {
-        const base = route('/');
+        let base = "";
+        if (window.Ziggy && window.Ziggy.url) {
+            base = window.Ziggy.url;
+        } else {
+            const origin = window.location.origin;
+            if (window.location.pathname.includes('/erp_pro/public')) {
+                base = origin + '/erp_pro/public';
+            } else {
+                base = origin;
+            }
+        }
         const baseSlash = base.endsWith('/') ? base : base + '/';
         return baseSlash + (path.startsWith('/') ? path.substring(1) : path);
     } catch (e) {
-        return path;
+        return '/' + path;
     }
 };
 
@@ -37,6 +47,26 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const [themeMode, setThemeMode] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("tp-theme-mode") || "light";
+    }
+    return "light";
+  });
+
+  const toggleDarkMode = () => {
+    const nextMode = themeMode === "dark" ? "light" : "dark";
+    setThemeMode(nextMode);
+    localStorage.setItem("tp-theme-mode", nextMode);
+    
+    const root = document.documentElement;
+    if (nextMode === "dark") {
+      root.classList.add("dark-theme");
+    } else {
+      root.classList.remove("dark-theme");
+    }
+  };
+
   const profileDropdownRef = useRef(null);
   
   useEffect(() => {
@@ -98,7 +128,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
       <div className="mp-wrapper">
         {/* Blue topbar — full width */}
         <header className="mp-topbar">
-          <div className="mp-topbar-logo-area" style={{ width: logoWidth, minWidth: logoWidth }}>
+          <div className="mp-topbar-logo-area hidden md:flex" style={{ width: logoWidth, minWidth: logoWidth }}>
             <Link href="/" className="mp-topbar-brand" style={{ display: collapsed && !isMobileOpen ? "none" : "flex" }}>
               <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest Logo" className="w-12 h-12 rounded-lg object-contain" />
               <span className="mp-topbar-brand-text">
@@ -121,6 +151,10 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
             >
               <Menu size={22} />
             </button>
+            <div className="md:hidden flex items-center gap-2">
+              <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest" className="w-8 h-8 rounded-lg object-contain" />
+              <span className="text-white font-black text-sm tracking-wider uppercase">WorkNest</span>
+            </div>
             <div className="mp-topbar-search-wrap">
               <Search size={16} color="rgba(255,255,255,0.7)" style={{ marginRight: 8, flexShrink: 0 }} />
               <input type="text" placeholder="Search..." />
@@ -144,8 +178,8 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
               </button>
             )}
 
-            <button className="mp-nav-btn" title="Dark mode">
-              <Moon size={20} />
+            <button className="mp-nav-btn" onClick={toggleDarkMode} title={themeMode === "dark" ? "Light mode" : "Dark mode"}>
+              {themeMode === "dark" ? <Sun size={20} /> : <Moon size={20} />}
             </button>
 
             <NotificationDropdown variant="topbar" />

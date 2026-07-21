@@ -19,11 +19,21 @@ import {
 
 const getAssetUrl = (path) => {
     try {
-        const base = route('/');
+        let base = "";
+        if (window.Ziggy && window.Ziggy.url) {
+            base = window.Ziggy.url;
+        } else {
+            const origin = window.location.origin;
+            if (window.location.pathname.includes('/erp_pro/public')) {
+                base = origin + '/erp_pro/public';
+            } else {
+                base = origin;
+            }
+        }
         const baseSlash = base.endsWith('/') ? base : base + '/';
         return baseSlash + (path.startsWith('/') ? path.substring(1) : path);
     } catch (e) {
-        return path;
+        return '/' + path;
     }
 };
 

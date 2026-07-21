@@ -1,5 +1,5 @@
-// resources/js/Components/ThemeCustomizer.jsx
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Settings, X, Sun, Moon, Monitor, RotateCcw } from "lucide-react";
 
 const COLOR_PRESETS = [
@@ -144,20 +144,8 @@ export default function ThemeCustomizer({ isOpen: controlledIsOpen, setIsOpen: c
     handleThemeChange("light");
   }, [handleColorChange, handleThemeChange]);
 
-  return (
+  const customizerContent = (
     <>
-      {/* Floating Gear Button */}
-      {controlledIsOpen === undefined && (
-        <button
-          className="tp-fab"
-          onClick={() => setIsOpen(true)}
-          title="Customize Theme"
-          aria-label="Open theme customizer"
-        >
-          <Settings size={22} className="tp-fab-icon" />
-        </button>
-      )}
-
       {/* Overlay */}
       {isOpen && (
         <div className="tp-overlay" onClick={() => setIsOpen(false)} />
@@ -254,6 +242,24 @@ export default function ThemeCustomizer({ isOpen: controlledIsOpen, setIsOpen: c
           </div>
         </div>
       </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Floating Gear Button */}
+      {controlledIsOpen === undefined && (
+        <button
+          className="tp-fab"
+          onClick={() => setIsOpen(true)}
+          title="Customize Theme"
+          aria-label="Open theme customizer"
+        >
+          <Settings size={22} className="tp-fab-icon" />
+        </button>
+      )}
+
+      {typeof document !== 'undefined' ? createPortal(customizerContent, document.body) : null}
 
       <style
         dangerouslySetInnerHTML={{
@@ -305,6 +311,7 @@ export default function ThemeCustomizer({ isOpen: controlledIsOpen, setIsOpen: c
           right: -360px;
           z-index: 1001;
           width: 340px;
+          max-width: 100%;
           height: 100vh;
           background: #ffffff;
           box-shadow: -8px 0 30px rgba(0, 0, 0, 0.12);
@@ -593,6 +600,9 @@ export default function ThemeCustomizer({ isOpen: controlledIsOpen, setIsOpen: c
           .tp-panel {
             width: 300px;
             right: -320px;
+          }
+          .tp-panel.tp-panel-open {
+            right: 0;
           }
           .tp-fab {
             bottom: 20px;

@@ -406,8 +406,8 @@ export default function Index() {
           </div>
         </div>
 
-        {/* Datatable Wrapper */}
-        <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
+        {/* Datatable Wrapper — desktop */}
+        <div className="hidden sm:block bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -559,6 +559,100 @@ export default function Index() {
                   <ChevronRight size={16} />
                 </button>
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Employees — mobile card view */}
+        <div className="sm:hidden space-y-3">
+          {paginatedUsers.length === 0 ? (
+            <div className="bg-white rounded-[24px] p-8 text-center text-gray-400 font-medium border border-gray-100 shadow-sm">No matching employees found.</div>
+          ) : (
+            paginatedUsers.map((user) => (
+              <div key={user.id} className="bg-white rounded-[20px] shadow-sm border border-gray-100 p-4">
+                {/* Card header */}
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    {renderAvatar(user)}
+                    <div>
+                      <Link
+                        href={route("admin.users.show", user.id)}
+                        className="font-bold text-gray-800 text-[15px] hover:text-[#1e88e5] transition-colors"
+                      >
+                        {user.name}
+                      </Link>
+                      <div className="text-xs text-gray-400">{user.designation || "No Designation"}</div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleToggle(user.id)}
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold transition-all hover:opacity-80 capitalize ${
+                      user.is_active
+                        ? "bg-emerald-50 text-emerald-600 border border-emerald-100/50"
+                        : "bg-gray-100 text-gray-500 border border-gray-200/50"
+                    }`}
+                  >
+                    {user.is_active ? "Active" : "Inactive"}
+                  </button>
+                </div>
+                {/* Details row */}
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-3 bg-gray-50 rounded-xl px-3 py-2 border border-gray-50">
+                  <div className="font-semibold text-gray-600">
+                    Dept: <span className="font-bold text-gray-800">{user.department?.name || "-"}</span>
+                  </div>
+                  <div>
+                    {renderRole(user.role)}
+                  </div>
+                </div>
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  <Link
+                    href={route("admin.users.show", user.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-blue-50 text-blue-600 rounded-xl text-xs font-semibold hover:bg-blue-100 transition"
+                    style={{ minHeight: '44px' }}
+                  >
+                    <Eye size={15} /> Details
+                  </Link>
+                  <button
+                    onClick={() => openModal(user)}
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-gray-50 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-100 transition"
+                    style={{ minHeight: '44px' }}
+                  >
+                    <Edit size={15} /> Edit
+                  </button>
+                  <button
+                    onClick={() => confirmDelete(user.id)}
+                    className="p-2.5 bg-red-50 text-red-600 rounded-xl hover:bg-red-100 transition"
+                    style={{ minHeight: '44px' }}
+                    title="Delete Employee"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+
+          {/* Mobile pagination indicators */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-4 px-2">
+              <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                className="px-4 py-2 flex items-center gap-1.5 rounded-xl border border-gray-200 text-gray-600 bg-white text-xs font-bold disabled:opacity-40 transition-colors"
+                style={{ minHeight: '40px' }}
+              >
+                <ChevronLeft size={14} /> Prev
+              </button>
+              <span className="text-xs text-gray-400 font-bold">Page {currentPage} of {totalPages}</span>
+              <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                className="px-4 py-2 flex items-center gap-1.5 rounded-xl border border-gray-200 text-gray-600 bg-white text-xs font-bold disabled:opacity-40 transition-colors"
+                style={{ minHeight: '40px' }}
+              >
+                Next <ChevronRight size={14} />
+              </button>
             </div>
           )}
         </div>

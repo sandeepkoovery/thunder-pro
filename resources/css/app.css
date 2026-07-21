@@ -764,6 +764,7 @@ body:has(.mp-wrapper) {
     left: 0 !important;
   }
 
+  .mp-topbar-logo-area,
   .mp-topbar-search-wrap,
   .mp-user-chip-name {
     display: none !important;
