@@ -1,7 +1,20 @@
 import React, { useState, useEffect } from "react";
 import { Head, useForm, router, Link } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
-import { Edit, Trash2, Eye, X, Search, LayoutGrid, List } from "lucide-react";
+import { 
+  Edit, 
+  Trash2, 
+  Eye, 
+  X, 
+  Search, 
+  LayoutGrid, 
+  List, 
+  MoreHorizontal, 
+  Clock, 
+  ChevronLeft, 
+  ChevronRight,
+  Plus
+} from "lucide-react";
 
 export default function Index({ projects, statusCounts, filters, users, success }) {
   const [deleteId, setDeleteId] = useState(null);
@@ -12,6 +25,8 @@ export default function Index({ projects, statusCounts, filters, users, success 
   const [fade, setFade] = useState(false);
   const [activeTab, setActiveTab] = useState("All");
   const [searchQuery, setSearchQuery] = useState(filters?.search || "");
+  const [openMenuId, setOpenMenuId] = useState(null);
+  const [viewMode, setViewMode] = useState("grid");
 
   const { data: form, setData, post, put, reset, errors, clearErrors } = useForm({
     name: "",
@@ -27,13 +42,16 @@ export default function Index({ projects, statusCounts, filters, users, success 
   // Filter projects by active tab
   const filteredProjects = rows.filter(project => {
     if (activeTab === "All") return true;
-    if (activeTab === "Ongoing" && project.status === "in progress") return true;
+    if (activeTab === "Active" && project.status === "in progress") return true;
     if (activeTab === "Completed" && project.status === "completed") return true;
-    if (activeTab === "Cancelled" && project.status === "cancelled") return true;
-    if (activeTab === "Inactive" && project.status === "on hold") return true;
-    if (activeTab === "Critical" && project.status === "critical") return true;
     return false;
   });
+
+  useEffect(() => {
+    const handleOutsideClick = () => setOpenMenuId(null);
+    document.addEventListener("click", handleOutsideClick);
+    return () => document.removeEventListener("click", handleOutsideClick);
+  }, []);
 
   useEffect(() => {
     if (success) {
@@ -92,51 +110,128 @@ export default function Index({ projects, statusCounts, filters, users, success 
     setDeleteId(null);
   };
 
-  const getStatusBadge = (status) => {
-    const s = status?.toLowerCase();
-
-    // Status Badge Style: Capsule shape, light bg, colored border
-    if (s === "completed" || s === "finished")
-      return <span className="bg-[#E8F5E9] text-[#2E7D32] px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-widest border border-[#C8E6C9]">Completed</span>;
-    if (s === "in progress")
-      return <span className="bg-[#E3F2FD] text-[#1976D2] px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-widest border border-[#BBDEFB]">Ongoing</span>;
-    if (s === "on hold" || s === "postponed")
-      return <span className="bg-[#FFF3E0] text-[#EF6C00] px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-widest border border-[#FFE0B2]">Inactive</span>;
-    if (s === "cancelled")
-      return <span className="bg-slate-100 text-slate-500 px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-widest border border-slate-200">Cancelled</span>;
-    if (s === "critical")
-      return <span className="bg-[#FFEBEE] text-[#C62828] px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-widest border border-[#FFCDD2]">Critical</span>;
-
-    return <span className="bg-slate-50 text-slate-400 px-3 py-1 rounded-md text-[11px] font-black uppercase tracking-widest border border-slate-100">Pending</span>;
-  };
-
-  const getProgressBarColor = (status) => {
-    const s = status?.toLowerCase();
-    if (s === "completed" || s === "finished") return "bg-[#2E7D32]";
-    if (s === "in progress") return "bg-[#1976D2]";
-    if (s === "on hold" || s === "postponed") return "bg-[#EF6C00]";
-    if (s === "critical") return "bg-[#C62828]";
-    return "bg-slate-300";
+  const getDaysLeftText = (endDateStr) => {
+    if (!endDateStr) return { text: "No deadline", colorClass: "bg-gray-50 text-gray-400" };
+    const end = new Date(endDateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const diffTime = end.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays < 0) {
+      return { text: "Overdue", colorClass: "bg-rose-50 text-rose-500 border border-rose-100" };
+    } else if (diffDays === 0) {
+      return { text: "Due today", colorClass: "bg-amber-50 text-amber-500 border border-amber-100" };
+    } else if (diffDays <= 3) {
+      return { text: `${diffDays} days left`, colorClass: "bg-rose-50 text-rose-500 border border-rose-100" };
+    } else if (diffDays <= 7) {
+      return { text: `${diffDays} days left`, colorClass: "bg-amber-50 text-amber-500 border border-amber-100" };
+    } else {
+      return { text: `${diffDays} days left`, colorClass: "bg-green-50 text-green-500 border border-green-100" };
+    }
   };
 
   const formatDate = (dateStr) => {
-    if (!dateStr) return "-";
+    if (!dateStr) return "No deadline";
     const date = new Date(dateStr);
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    const month = months[date.getMonth()];
     const day = date.getDate();
-    const month = date.toLocaleString('default', { month: 'short' });
     const year = date.getFullYear();
+    return `${month} ${day}, ${year}`;
+  };
 
-    // Formatting as "17th Nov. 2020" style
-    const suffix = (d) => {
-      if (d > 3 && d < 21) return 'th';
-      switch (d % 10) {
-        case 1: return "st";
-        case 2: return "nd";
-        case 3: return "rd";
-        default: return "th";
-      }
-    };
-    return `${day}${suffix(day)} ${month}. ${year}`;
+  const getProjectLogo = (projectId) => {
+    const index = (projectId || 0) % 8;
+    const logos = [
+      // Triangle logo (neon purple/blue)
+      <svg viewBox="0 0 100 100" className="w-12 h-12">
+        <defs>
+          <linearGradient id={`grad0-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#8A2387" />
+            <stop offset="50%" stopColor="#E94057" />
+            <stop offset="100%" stopColor="#F27121" />
+          </linearGradient>
+        </defs>
+        <path d="M50 20 L80 75 L20 75 Z" fill={`url(#grad0-${projectId})`} />
+      </svg>,
+      // Teal wave logo
+      <svg viewBox="0 0 100 100" className="w-12 h-12">
+        <defs>
+          <linearGradient id={`grad1-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#11998e" />
+            <stop offset="100%" stopColor="#38ef7d" />
+          </linearGradient>
+        </defs>
+        <path d="M20 50 Q 35 20, 50 50 T 80 50" fill="none" stroke={`url(#grad1-${projectId})`} strokeWidth="12" strokeLinecap="round" />
+        <circle cx="50" cy="50" r="10" fill={`url(#grad1-${projectId})`} />
+      </svg>,
+      // Blue loop logo
+      <svg viewBox="0 0 100 100" className="w-12 h-12">
+        <defs>
+          <linearGradient id={`grad2-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#00c6ff" />
+            <stop offset="100%" stopColor="#0072ff" />
+          </linearGradient>
+        </defs>
+        <path d="M50 20 A 30 30 0 1 1 50 80 A 30 30 0 1 1 50 20 Z" fill="none" stroke={`url(#grad2-${projectId})`} strokeWidth="10" />
+        <path d="M50 35 L50 65 L65 50 Z" fill={`url(#grad2-${projectId})`} />
+      </svg>,
+      // Circular letter 'e' logo
+      <svg viewBox="0 0 100 100" className="w-12 h-12">
+        <defs>
+          <linearGradient id={`grad3-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#7F00FF" />
+            <stop offset="100%" stopColor="#E100FF" />
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="35" fill="none" stroke={`url(#grad3-${projectId})`} strokeWidth="8" />
+        <text x="50" y="62" textAnchor="middle" fontSize="38" fontWeight="900" fill={`url(#grad3-${projectId})`} fontFamily="sans-serif">e</text>
+      </svg>,
+      // Ring logo
+      <svg viewBox="0 0 100 100" className="w-12 h-12">
+        <defs>
+          <linearGradient id={`grad4-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#ff4b1f" />
+            <stop offset="100%" stopColor="#ff9068" />
+          </linearGradient>
+        </defs>
+        <circle cx="50" cy="50" r="30" fill="none" stroke={`url(#grad4-${projectId})`} strokeWidth="12" />
+      </svg>,
+      // Green wave / leaf logo
+      <svg viewBox="0 0 100 100" className="w-12 h-12">
+        <defs>
+          <linearGradient id={`grad5-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#3CA55C" />
+            <stop offset="100%" stopColor="#B5AC49" />
+          </linearGradient>
+        </defs>
+        <path d="M50 15 C30 35 30 65 50 85 C70 65 70 35 50 15 Z" fill={`url(#grad5-${projectId})`} />
+      </svg>,
+      // Double wave logo
+      <svg viewBox="0 0 100 100" className="w-12 h-12">
+        <defs>
+          <linearGradient id={`grad6-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#f857a6" />
+            <stop offset="100%" stopColor="#ff5858" />
+          </linearGradient>
+        </defs>
+        <path d="M25 40 Q 40 15, 55 40 T 85 40" fill="none" stroke={`url(#grad6-${projectId})`} strokeWidth="10" strokeLinecap="round" />
+        <path d="M15 60 Q 40 35, 60 60 T 75 60" fill="none" stroke={`url(#grad6-${projectId})`} strokeWidth="10" strokeLinecap="round" />
+      </svg>,
+      // Star/Sun gradient logo
+      <svg viewBox="0 0 100 100" className="w-12 h-12">
+        <defs>
+          <linearGradient id={`grad7-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor="#F5af19" />
+            <stop offset="100%" stopColor="#f12711" />
+          </linearGradient>
+        </defs>
+        <polygon points="50,15 62,38 88,38 67,54 75,80 50,64 25,80 33,54 12,38 38,38" fill={`url(#grad7-${projectId})`} />
+      </svg>
+    ];
+    return logos[index];
   };
 
   const handleSearch = (e) => {
@@ -167,184 +262,438 @@ export default function Index({ projects, statusCounts, filters, users, success 
       )}
 
       {/* Header and Controls */}
-      <div className="flex flex-col gap-4 mb-6 px-1">
-        {/* Tabs — scrollable on mobile */}
-        <div className="mp-tab-scroll flex bg-white rounded-2xl shadow-sm border border-slate-100 p-1">
-          {['All', 'Ongoing', 'Cancelled', 'Completed', 'Inactive', 'Critical'].map(tab => (
+      <div className="flex flex-col gap-6 mb-6 px-1">
+        {/* Top bar with Add New and Search elements */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <button
+            onClick={openCreateModal}
+            className="px-5 py-2.5 bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50 transition-colors flex items-center gap-2 whitespace-nowrap self-start"
+            style={{ minHeight: '40px' }}
+          >
+            <Plus size={16} />
+            Add New
+          </button>
+
+          <div className="flex items-center gap-3 self-stretch sm:self-auto">
+            {/* Search */}
+            <div className="relative flex-1 sm:w-60">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search..."
+                value={searchQuery}
+                onChange={handleSearch}
+                className="w-full pl-10 pr-4 py-2.5 bg-gray-50/70 border-0 rounded-xl text-xs font-semibold focus:outline-none focus:bg-white focus:ring-2 focus:ring-indigo-100 transition-all placeholder:text-gray-400"
+                style={{ minHeight: '40px' }}
+              />
+            </div>
+            
+            {/* View toggles */}
+            <div className="flex items-center bg-gray-50 p-1 rounded-xl" style={{ minHeight: '40px' }}>
+              <button 
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'list' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <List size={16} />
+              </button>
+              <button 
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-indigo-600 text-white shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
+              >
+                <LayoutGrid size={16} />
+              </button>
+            </div>
+
+            {/* Config button */}
+            <button className="p-2 hover:bg-gray-50 rounded-xl text-gray-400 hover:text-gray-600" style={{ minHeight: '40px' }}>
+              <MoreHorizontal size={18} />
+            </button>
+          </div>
+        </div>
+
+        {/* Tab Filters */}
+        <div className="flex items-center gap-6 border-b border-gray-100 pb-0.5">
+          {['All', 'Active', 'Completed'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl transition-all whitespace-nowrap flex-shrink-0 ${activeTab === tab ? "bg-slate-900 text-white shadow-md" : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"}`}
-              style={{ minHeight: '44px' }}
+              className={`pb-3 text-sm font-bold tracking-tight transition-all relative ${activeTab === tab ? "text-indigo-600" : "text-gray-400 hover:text-gray-600"}`}
+              style={{ minHeight: '40px' }}
             >
-              {tab} <span className={`ml-1 opacity-60 ${activeTab === tab ? "text-slate-300" : ""}`}>{statusCounts?.[tab] || 0}</span>
+              {tab}
+              {activeTab === tab && (
+                <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />
+              )}
             </button>
           ))}
         </div>
-
-        {/* Search & Action */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-300" />
-            <input
-              type="text"
-              placeholder="Search project..."
-              value={searchQuery}
-              onChange={handleSearch}
-              className="w-full pl-11 pr-5 py-3 bg-white border border-slate-100 rounded-2xl text-sm font-semibold focus:outline-none focus:ring-4 focus:ring-slate-50 focus:border-slate-300 transition-all shadow-sm placeholder:text-slate-300 placeholder:text-xs"
-              style={{ minHeight: '44px' }}
-            />
-          </div>
-          <button
-            onClick={openCreateModal}
-            className="px-5 py-3 bg-slate-900 text-white text-[11px] font-black uppercase tracking-[0.08em] rounded-2xl shadow-xl shadow-slate-100 hover:bg-black transition-all flex items-center gap-2 whitespace-nowrap active:scale-95"
-            style={{ minHeight: '44px' }}
-          >
-            <span className="hidden sm:inline">+ NEW PROJECT</span>
-            <span className="sm:hidden">+ New</span>
-          </button>
-        </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 px-1">
-        {filteredProjects.length > 0 ? (
-          filteredProjects.map((project) => (
-            <div key={project.id} className="bg-white border border-slate-100 rounded-[28px] p-6 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group relative">
-
-              {/* Quick Actions — always visible on mobile, hover on desktop */}
-              <div className="absolute top-5 right-5 flex flex-col gap-1.5 sm:opacity-0 sm:group-hover:opacity-100 sm:translate-x-3 sm:group-hover:translate-x-0 transition-all duration-200">
-                <button onClick={() => router.get(route("admin.projects.show", project.id))} className="p-2 bg-white text-slate-600 rounded-lg shadow-lg hover:bg-slate-900 hover:text-white transition-all" style={{minHeight:'36px',minWidth:'36px'}}>
-                  <Eye className="w-4 h-4" />
-                </button>
-                <button onClick={() => openEditModal(project)} className="p-2 bg-white text-slate-600 rounded-lg shadow-lg hover:bg-slate-900 hover:text-white transition-all" style={{minHeight:'36px',minWidth:'36px'}}>
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button onClick={() => setDeleteId(project.id)} className="p-2 bg-white text-red-500 rounded-lg shadow-lg hover:bg-red-500 hover:text-white transition-all" style={{minHeight:'36px',minWidth:'36px'}}>
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-
-              {/* Title */}
-              <Link href={route("admin.projects.show", project.id)} className="block mb-4">
-                <h3 className="text-lg font-black text-slate-900 leading-tight group-hover:text-blue-600 transition-colors line-clamp-2 min-h-[50px] tracking-tight">{project.name}</h3>
-              </Link>
-
-              {/* Status Badge */}
-              <div className="mb-6">
-                {getStatusBadge(project.status)}
-              </div>
-
-              {/* Progress Bar */}
-              <div className="mb-6">
-                <div className="flex justify-between items-end mb-2.5">
-                  <span className="text-[14px] font-bold text-slate-400 leading-none">Progress</span>
-                  <span className="text-[16px] font-black text-slate-900 leading-none">{project.progress}%</span>
-                </div>
-                <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-1000 ease-out ${getProgressBarColor(project.status)}`}
-                    style={{ width: `${project.progress}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Dates */}
-              <div className="space-y-2 mb-6 text-[13px]">
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-700">Started :</span>
-                  <span className="text-slate-500 font-medium">{formatDate(project.start_date)}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="font-bold text-slate-700">Deadline :</span>
-                  <span className="text-slate-500 font-medium">{formatDate(project.end_date)}</span>
-                </div>
-              </div>
-
-              {/* Footer: Team & Tasks */}
-              <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                <div className="flex -space-x-3">
-                  {project.team && project.team.slice(0, 4).map((member, i) => (
-                    member.image ? (
-                      <img key={i} src={member.image} alt={member.name} className="w-9 h-9 rounded-full border-[2.5px] border-white object-cover shadow-sm bg-slate-50 transition-transform hover:scale-110 hover:z-20 cursor-pointer" title={member.name} />
-                    ) : (
-                      <div key={i} className="w-9 h-9 rounded-full border-[2.5px] border-white bg-slate-800 flex items-center justify-center text-[10px] font-black text-white shadow-md">
-                        {member.name.substring(0, 2).toUpperCase()}
+      {/* Grid or List View conditionally */}
+      {viewMode === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-1">
+          {filteredProjects.length > 0 ? (
+            filteredProjects.map((project) => {
+              const daysLeft = getDaysLeftText(project.end_date);
+              return (
+                <div key={project.id} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col justify-between">
+                  
+                  {/* Top card area */}
+                  <div>
+                    <div className="flex items-start justify-between mb-5">
+                      {/* Dynamic logo representation */}
+                      <div className="p-1 bg-gray-50/50 rounded-2xl inline-block">
+                        {getProjectLogo(project.id)}
                       </div>
-                    )
-                  ))}
-                  {project.team && project.team.length > 4 && (
-                    <div className="w-9 h-9 rounded-full border-[2.5px] border-white bg-slate-50 flex items-center justify-center text-[10px] font-black text-slate-400 shadow-sm z-10">
-                      +{project.team.length - 4}
-                    </div>
-                  )}
-                </div>
-                <div className="flex items-center text-slate-500 font-bold group/task transition-all hover:text-blue-600 cursor-pointer">
-                  <List className="w-4.5 h-4.5 mr-2" />
-                  <span className="text-[14px] font-black tracking-tight">{project.tasks_count || 0} Task</span>
-                </div>
-              </div>
 
+                      {/* Quick actions dropdown */}
+                      <div className="relative">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === project.id ? null : project.id);
+                          }}
+                          className="p-1.5 hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+                          style={{ minHeight: '32px' }}
+                        >
+                          <MoreHorizontal size={18} />
+                        </button>
+                        {openMenuId === project.id && (
+                          <div className="absolute right-0 mt-1 w-36 bg-white border border-gray-100 rounded-xl shadow-lg py-1 z-30">
+                            <Link href={route("admin.projects.show", project.id)} className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                              <Eye size={14} /> View Project
+                            </Link>
+                            <button onClick={() => openEditModal(project)} className="flex items-center gap-2 w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                              <Edit size={14} /> Edit
+                            </button>
+                            <button onClick={() => setDeleteId(project.id)} className="flex items-center gap-2 w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors">
+                              <Trash2 size={14} /> Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Title & Description */}
+                    <Link href={route("admin.projects.show", project.id)} className="block mb-2 group">
+                      <h3 className="text-sm font-bold text-gray-900 leading-tight group-hover:text-indigo-600 transition-colors line-clamp-1">
+                        {project.name}
+                      </h3>
+                    </Link>
+                    <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 mb-6 min-h-[32px]">
+                      {project.description || "No project description provided."}
+                    </p>
+
+                    {/* Progress Line */}
+                    <div className="mb-6">
+                      <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="h-full bg-indigo-600 rounded-full transition-all duration-1000 ease-out"
+                          style={{ width: `${project.progress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Footer Section */}
+                  <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                    {/* Days left badge */}
+                    <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${daysLeft.colorClass}`}>
+                      <Clock size={10} />
+                      {daysLeft.text}
+                    </div>
+
+                    {/* Team Avatars */}
+                    <div className="flex items-center gap-2">
+                      {project.team && project.team.length > 0 ? (
+                        <div className="flex -space-x-2 overflow-hidden">
+                          {project.team.slice(0, 3).map((member, i) => (
+                            member.image ? (
+                              <img 
+                                key={i} 
+                                src={member.image} 
+                                alt={member.name} 
+                                className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" 
+                                title={member.name} 
+                              />
+                            ) : (
+                              <div 
+                                key={i} 
+                                className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-indigo-500 flex items-center justify-center text-[8px] font-bold text-white uppercase"
+                                title={member.name}
+                              >
+                                {member.name.charAt(0)}
+                              </div>
+                            )
+                          ))}
+                          {project.team.length > 3 && (
+                            <div className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-[8px] font-bold text-gray-500">
+                              +{project.team.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-[10px] text-gray-300 font-semibold uppercase tracking-wider">No team</span>
+                      )}
+                    </div>
+                  </div>
+
+                </div>
+              );
+            })
+          ) : (
+            <div className="col-span-full py-24 text-center bg-white rounded-[40px] border border-dashed border-gray-100 shadow-sm">
+              <div className="bg-gray-50 w-20 h-20 rounded-[28px] flex items-center justify-center mx-auto mb-6">
+                <LayoutGrid className="w-10 h-10 text-gray-200" />
+              </div>
+              <h3 className="text-base font-bold text-gray-800 mb-1">No Projects Found</h3>
+              <p className="text-gray-400 text-xs max-w-xs mx-auto mb-6">Create a new project to get started with task management</p>
+              <button onClick={() => { setActiveTab("All"); setSearchQuery(""); }} className="text-indigo-600 font-bold text-xs uppercase tracking-wider hover:underline">Clear Search</button>
             </div>
-          ))
-        ) : (
-          <div className="col-span-full py-24 text-center bg-white rounded-[40px] border-2 border-dashed border-slate-100 shadow-inner">
-            <div className="bg-slate-50 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-              <LayoutGrid className="w-12 h-12 text-slate-200" />
-            </div>
-            <h3 className="text-xl font-black text-slate-800 mb-2 uppercase">No Initiatives Found</h3>
-            <p className="text-slate-400 text-xs font-black uppercase tracking-widest max-w-xs mx-auto mb-8 leading-loose px-4">Adjust filter matrix to locate active records</p>
-            <button onClick={() => { setActiveTab("All"); setSearchQuery(""); }} className="text-slate-900 font-black text-xs uppercase tracking-[0.2em] hover:underline underline-offset-8 decoration-2">Re-Sync System</button>
+          )}
+        </div>
+      ) : (
+        <div className="bg-white border border-gray-100 rounded-3xl shadow-sm overflow-hidden px-1">
+          <div className="overflow-x-auto min-h-[280px]">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr className="border-b border-gray-100 text-[13px] font-semibold text-slate-500 text-left bg-gray-50/70">
+                  <th className="p-4 pl-6 font-semibold">Project</th>
+                  <th className="p-4 font-semibold">Status</th>
+                  <th className="p-4 font-semibold">Progress</th>
+                  <th className="p-4 font-semibold">Deadline</th>
+                  <th className="p-4 font-semibold">Team</th>
+                  <th className="p-4 text-right pr-8 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {filteredProjects.length > 0 ? (
+                  filteredProjects.map((project) => {
+                    const daysLeft = getDaysLeftText(project.end_date);
+                    const isStarred = ['high', 'critical'].includes((project.priority || '').toLowerCase()) || project.id % 3 === 0;
+                    
+                    const statusColorBars = {
+                      "completed": "bg-green-500",
+                      "in progress": "bg-amber-500",
+                      "on hold": "bg-rose-500",
+                      "critical": "bg-red-500",
+                      "not started": "bg-sky-500",
+                    };
+
+                    const tableStatusBadges = {
+                      "completed": "bg-green-50 text-green-600 border border-green-100",
+                      "in progress": "bg-amber-50 text-amber-600 border border-amber-100",
+                      "on hold": "bg-rose-50 text-rose-600 border border-rose-100",
+                      "critical": "bg-red-50 text-red-600 border border-red-100",
+                      "not started": "bg-sky-50 text-sky-600 border border-sky-100",
+                    };
+
+                    const columns = {
+                      "completed": "Completed",
+                      "in progress": "In Progress",
+                      "on hold": "On Hold",
+                      "critical": "Critical",
+                      "not started": "Planning",
+                    };
+
+                    return (
+                      <tr key={project.id} className="text-gray-700 hover:bg-gray-50/40 transition-colors">
+                        <td className="p-4 pl-6">
+                          <div className="flex items-center gap-3">
+                            <div className={`w-1 h-8 rounded-full ${statusColorBars[project.status] || 'bg-gray-300'}`} />
+                            <div>
+                              <div className="flex items-center gap-1.5">
+                                <Link href={route("admin.projects.show", project.id)} className="font-bold text-[15px] text-gray-900 hover:text-indigo-600 transition-colors">
+                                  {project.name}
+                                </Link>
+                                {isStarred && (
+                                  <svg className="w-3.5 h-3.5 fill-amber-400 text-amber-400" viewBox="0 0 20 20">
+                                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                  </svg>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-400 mt-0.5 max-w-sm truncate">{project.description || "No description provided."}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <span className={`px-3 py-1 rounded-full text-sm font-bold ${tableStatusBadges[project.status] || 'bg-gray-100 text-gray-600'}`}>
+                            {columns[project.status] || project.status}
+                          </span>
+                        </td>
+                        <td className="p-4 w-44">
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between items-center text-sm font-semibold text-gray-400">
+                              <span>Progress</span>
+                              <span className="text-[15px] font-bold text-slate-700">{project.progress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                              <div className="h-full bg-gray-900 rounded-full" style={{ width: `${project.progress}%` }} />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="p-4 text-xs font-medium text-slate-600">
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-[15px] font-semibold text-slate-600">{formatDate(project.end_date)}</span>
+                          </div>
+                        </td>
+                        <td className="p-4">
+                          <div className="flex -space-x-1.5 overflow-hidden">
+                            {project.team && project.team.slice(0, 3).map((member, i) => (
+                              member.image ? (
+                                <img key={i} src={member.image} alt={member.name} className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" title={member.name} />
+                              ) : (
+                                <div key={i} className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-indigo-500 flex items-center justify-center text-[8px] font-bold text-white uppercase shadow-sm" title={member.name}>
+                                  {member.name.charAt(0)}
+                                </div>
+                              )
+                            ))}
+                          </div>
+                        </td>
+                        <td className="p-4 text-right pr-8 relative">
+                          <button 
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOpenMenuId(openMenuId === project.id ? null : project.id);
+                            }}
+                            className="p-1.5 hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
+                            style={{ minHeight: '32px' }}
+                          >
+                            <MoreHorizontal size={18} />
+                          </button>
+                          {openMenuId === project.id && (
+                            <div className="absolute right-8 mt-1 w-36 bg-white border border-gray-150 rounded-xl shadow-lg py-1 z-30 text-left">
+                              <Link href={route("admin.projects.show", project.id)} className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                                <Eye size={14} /> View Project
+                              </Link>
+                              <button onClick={() => openEditModal(project)} className="flex items-center gap-2 w-full text-left px-4 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                                <Edit size={14} /> Edit
+                              </button>
+                              <button onClick={() => setDeleteId(project.id)} className="flex items-center gap-2 w-full text-left px-4 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors">
+                                <Trash2 size={14} /> Delete
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="6" className="py-12 text-center text-gray-400 italic text-sm">
+                      No projects found matching the criteria.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {projects.last_page > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-12 px-1">
+          <div className="text-xs font-bold text-gray-400">
+            Showing {projects.from || 0} to {projects.to || 0} of {projects.total} entries
+          </div>
+          <div className="flex items-center gap-1">
+            {projects.links.map((link, idx) => {
+              const isPrev = link.label.includes('Previous');
+              const isNext = link.label.includes('Next');
+              
+              if (isPrev) {
+                return (
+                  <Link 
+                    key={idx}
+                    href={link.url || '#'}
+                    className={`p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all ${!link.url ? 'opacity-30 pointer-events-none' : ''}`}
+                    disabled={!link.url}
+                  >
+                    <ChevronLeft size={16} />
+                  </Link>
+                );
+              }
+              
+              if (isNext) {
+                return (
+                  <Link 
+                    key={idx}
+                    href={link.url || '#'}
+                    className={`p-2 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-50 transition-all ${!link.url ? 'opacity-30 pointer-events-none' : ''}`}
+                    disabled={!link.url}
+                  >
+                    <ChevronRight size={16} />
+                  </Link>
+                );
+              }
+
+              return (
+                <Link
+                  key={idx}
+                  href={link.url || '#'}
+                  className={`w-8 h-8 flex items-center justify-center rounded-full text-xs font-bold transition-all ${
+                    link.active 
+                      ? "bg-indigo-600 text-white shadow-sm" 
+                      : "text-gray-500 hover:text-indigo-600 hover:bg-gray-50"
+                  }`}
+                  dangerouslySetInnerHTML={{ __html: link.label }}
+                />
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Create / Edit Modal (Premium Studio Redesign) */}
       {(showCreate || showEdit) && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white p-10 rounded-[32px] shadow-[0_32px_96px_-16px_rgba(0,0,0,0.1)] w-full max-w-lg border border-slate-100/50 transition-all">
-            <div className="flex justify-between items-start mb-10">
+          <div className="bg-white p-8 rounded-[24px] shadow-[0_32px_96px_-16px_rgba(0,0,0,0.1)] w-full max-w-lg border border-slate-100/50 transition-all">
+            <div className="flex justify-between items-start mb-6">
               <div>
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight mb-0.5 uppercase">
-                  {editingProject ? "Update Unit" : "New Initiative"}
+                <h2 className="text-lg font-bold text-slate-900 tracking-tight">
+                  {editingProject ? "Update Project" : "New Project"}
                 </h2>
-                <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.2em]">Data management interface</p>
+                <p className="text-xs font-medium text-slate-400 mt-0.5">Configure project settings and properties</p>
               </div>
-              <button onClick={closeModal} className="p-2.5 hover:bg-slate-50 rounded-full transition-colors text-slate-200 hover:text-slate-900 active:scale-90">
-                <X className="w-6 h-6" />
+              <button onClick={closeModal} className="p-1.5 hover:bg-slate-50 rounded-full transition-colors text-slate-400 hover:text-slate-900 active:scale-90">
+                <X className="w-5 h-5" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-7">
+            <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 px-0.5">Project Identifier</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">Project Name</label>
                 <input
                   type="text"
                   value={form.name}
                   onChange={(e) => setData("name", e.target.value)}
-                  className={`w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-2xl text-base font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-100 focus:border-slate-300 transition-all placeholder:text-slate-200 ${errors.name ? "border-red-200 ring-2 ring-red-50/50" : ""}`}
-                  placeholder="e.g. SKYLINE RESIDENCY"
+                  className={`w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-slate-400 ${errors.name ? "border-red-200 ring-2 ring-red-50/50" : ""}`}
+                  placeholder="Enter project name"
                 />
-                {errors.name && <p className="text-red-500 text-[10px] mt-2 px-1 font-bold tracking-tight">{errors.name}</p>}
+                {errors.name && <p className="text-red-500 text-xs mt-1.5 px-1 font-semibold tracking-tight">{errors.name}</p>}
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 px-0.5">Operational Scope</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">Project Description</label>
                 <textarea
                   value={form.description}
                   onChange={(e) => setData("description", e.target.value)}
-                  className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-2xl text-[15px] font-bold text-slate-900 focus:bg-white focus:ring-4 focus:ring-slate-100 focus:border-slate-300 transition-all min-h-[120px] no-scrollbar resize-none placeholder:text-slate-200"
-                  placeholder="DEFINE KEY OBJECTIVES..."
+                  className="w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all min-h-[100px] resize-none placeholder:text-slate-400"
+                  placeholder="Describe the key objectives and requirements..."
                 ></textarea>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="col-span-full">
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 px-0.5">Project Status</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">Project Status</label>
                   <select
                     value={form.status}
                     onChange={(e) => setData("status", e.target.value)}
-                    className="w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-2xl text-xs font-black uppercase tracking-widest text-slate-700 focus:ring-4 focus:ring-slate-100 transition-all appearance-none cursor-pointer"
+                    className="w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all cursor-pointer"
                   >
                     <option value="not started">Pending</option>
                     <option value="in progress">Ongoing</option>
@@ -356,36 +705,36 @@ export default function Index({ projects, statusCounts, filters, users, success 
                 </div>
 
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 px-0.5">Launched</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">Start Date</label>
                   <input
                     type="date"
                     value={form.start_date}
                     onChange={(e) => setData("start_date", e.target.value)}
-                    className={`w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-2xl text-xs font-black text-slate-700 focus:ring-4 focus:ring-slate-100 transition-all uppercase ${errors.start_date ? "border-red-200" : ""}`}
+                    className={`w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all ${errors.start_date ? "border-red-200" : ""}`}
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-2.5 px-0.5">Deadline</label>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">End Date</label>
                   <input
                     type="date"
                     value={form.end_date}
                     onChange={(e) => setData("end_date", e.target.value)}
-                    className={`w-full bg-slate-50/50 border border-slate-100 px-6 py-4 rounded-2xl text-xs font-black text-slate-700 focus:ring-4 focus:ring-slate-100 transition-all uppercase ${errors.end_date ? "border-red-200" : ""}`}
+                    className={`w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all ${errors.end_date ? "border-red-200" : ""}`}
                   />
                 </div>
               </div>
 
-              <div className="flex gap-4 pt-6">
+              <div className="flex gap-4 pt-4">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-8 py-3.5 text-sm font-semibold text-slate-500 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all active:scale-[0.98]"
+                  className="px-6 py-3 text-sm font-semibold text-slate-500 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all active:scale-[0.98]"
                 >
                   Discard
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3.5 px-10 text-sm font-semibold text-white bg-slate-900 hover:bg-black rounded-xl shadow-[0_10px_20px_-10px_rgba(15,23,42,0.4)] transition-all active:scale-[0.98]"
+                  className="flex-1 py-3 px-6 text-sm font-semibold text-white bg-slate-900 hover:bg-black rounded-xl shadow-[0_10px_20px_-10px_rgba(15,23,42,0.4)] transition-all active:scale-[0.98]"
                 >
                   {editingProject ? "Update Project" : "Create Project"}
                 </button>
@@ -398,18 +747,18 @@ export default function Index({ projects, statusCounts, filters, users, success 
       {/* Delete Confirmation */}
       {deleteId && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-md flex items-center justify-center z-[110] p-4">
-          <div className="bg-white p-12 rounded-[56px] shadow-2xl w-full max-w-sm text-center border-b-[12px] border-slate-900">
-            <div className="w-24 h-24 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-8">
-              <Trash2 className="w-12 h-12 text-slate-900" />
+          <div className="bg-white p-8 rounded-[24px] shadow-2xl w-full max-w-sm text-center border-t-4 border-red-500">
+            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-5">
+              <Trash2 className="w-8 h-8 text-red-600" />
             </div>
-            <h2 className="text-3xl font-black text-slate-900 mb-4 tracking-tighter uppercase">Purge Unit?</h2>
-            <p className="text-slate-400 text-[11px] font-black uppercase tracking-[0.2em] mb-10 leading-relaxed px-4">Operation is permanent. Data structure will be terminated immediately.</p>
-            <div className="flex flex-col gap-4">
-              <button onClick={() => handleDelete(deleteId)} className="w-full py-5 text-sm font-black uppercase tracking-[0.25em] text-white bg-slate-900 hover:bg-black rounded-3xl transition-all shadow-lg shadow-slate-200">
-                Confirm Purge
+            <h2 className="text-lg font-bold text-slate-900 mb-2">Delete Project?</h2>
+            <p className="text-slate-500 text-sm mb-6 leading-relaxed px-4">This action cannot be undone. All project data will be permanently removed.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteId(null)} className="flex-1 py-3 text-sm font-semibold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-xl transition-all">
+                Cancel
               </button>
-              <button onClick={() => setDeleteId(null)} className="w-full py-5 text-sm font-black uppercase tracking-[0.2em] text-slate-400 bg-slate-50 hover:bg-slate-100 rounded-3xl transition-all">
-                Abort Mission
+              <button onClick={() => handleDelete(deleteId)} className="flex-1 py-3 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-all">
+                Delete
               </button>
             </div>
           </div>

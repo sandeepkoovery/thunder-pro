@@ -105,24 +105,15 @@ export default function Dashboard({ stats, todayAttendance }) {
 
       {/* FIRST ROW - 4 WIDGETS */}
       <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Widget 1: Assigned Tasks (Revenue layout) */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between h-40">
-          <div className="p-5 pb-0">
-            <h3 className="text-sm font-medium text-gray-400">Assigned Tasks</h3>
-            <p className="text-2xl font-bold text-gray-800 mt-1">{stats.total_tasks || 0}</p>
+        {/* Widget 1: Assigned Tasks */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between h-40">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-400">Assigned Tasks</h3>
+            <p className="text-3xl font-black text-gray-800 mt-2">{stats.total_tasks || 0}</p>
           </div>
-          <div className="w-full h-16">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={taskActivityData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorTasks" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#26c6da" stopOpacity={0.2}/>
-                    <stop offset="95%" stopColor="#26c6da" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <Area type="monotone" dataKey="tasks" stroke="#26c6da" strokeWidth={2} fillOpacity={1} fill="url(#colorTasks)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="flex items-center gap-2 text-xs font-bold text-[#26c6da] bg-[#26c6da]/10 border border-[#26c6da]/20 rounded-xl px-2.5 py-1 w-max">
+            <TrendingUp size={13} />
+            <span>+12.5% this month</span>
           </div>
         </div>
 
@@ -220,41 +211,6 @@ export default function Dashboard({ stats, todayAttendance }) {
                 Manage Attendance <ChevronRight className="w-3.5 h-3.5" />
               </Link>
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* THIRD ROW - CHARTS */}
-      <div className="grid grid-cols-1 gap-6">
-        {/* Large Line Chart Widget: Newsletter Campaign style */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 space-y-4">
-          <div className="flex justify-between items-center border-b border-gray-100 pb-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">Productivity Overview</h2>
-              <p className="text-xs text-gray-400">Monthly Assigned vs Completed tasks</p>
-            </div>
-            {/* Chart Legend */}
-            <div className="flex items-center gap-4 text-xs">
-              <span className="flex items-center gap-1.5 font-medium text-gray-600">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#1e88e5]"></span> Assigned Tasks
-              </span>
-              <span className="flex items-center gap-1.5 font-medium text-gray-600">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#26c6da]"></span> Completed Tasks
-              </span>
-            </div>
-          </div>
-
-          <div className="w-full h-80">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={productivityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eef5f9" />
-                <XAxis dataKey="name" stroke="#607d8b" fontSize={11} tickLine={false} />
-                <YAxis stroke="#607d8b" fontSize={11} tickLine={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey="assigned" stroke="#1e88e5" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="completed" stroke="#26c6da" strokeWidth={3} dot={{ r: 4 }} />
-              </LineChart>
-            </ResponsiveContainer>
           </div>
         </div>
       </div>

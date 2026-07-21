@@ -17,6 +17,8 @@ import {
   Area,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -37,8 +39,8 @@ const sparkBars = [
 
 function MiniLine({ id = "spark-grad" }) {
   return (
-    <ResponsiveContainer width={120} height={50}>
-      <AreaChart data={sparkLine} margin={{ top: 4, right: 0, left: 0, bottom: 0 }}>
+    <ResponsiveContainer width={100} height={40}>
+      <AreaChart data={sparkLine} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
         <defs>
           <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
             <stop offset="5%" stopColor="rgba(255,255,255,0.4)" stopOpacity={1} />
@@ -53,11 +55,30 @@ function MiniLine({ id = "spark-grad" }) {
 
 function MiniBar() {
   return (
-    <ResponsiveContainer width={120} height={50}>
-      <BarChart data={sparkBars} margin={{ top: 4, right: 0, left: 0, bottom: 0 }} barSize={6} barGap={2}>
+    <ResponsiveContainer width={100} height={40}>
+      <BarChart data={sparkBars} margin={{ top: 2, right: 0, left: 0, bottom: 0 }} barSize={5} barGap={1}>
         <Bar dataKey="v" fill="rgba(255,255,255,0.6)" radius={[2, 2, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
+  );
+}
+
+function MiniPureLine() {
+  return (
+    <ResponsiveContainer width={100} height={40}>
+      <LineChart data={sparkLine} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
+        <Line type="monotone" dataKey="v" stroke="#ffffff" strokeWidth={2.5} dot={false} strokeDasharray="3 3" />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+function MiniTrend() {
+  return (
+    <div className="bg-white/15 border border-white/20 px-3 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1 shadow-sm backdrop-blur-sm self-center">
+      <TrendingUp size={14} className="text-white animate-pulse" />
+      <span>+8.2%</span>
+    </div>
   );
 }
 
@@ -111,7 +132,7 @@ export default function Dashboard({
       value: stats.total_tasks ?? 0,
       icon: ListTodo,
       gradient: "linear-gradient(135deg, #1e88e5 0%, #42a5f5 100%)",
-      chart: "line",
+      chart: "pure-line",
       link: null,
     },
     isAdmin && {
@@ -120,7 +141,7 @@ export default function Dashboard({
       value: stats.pending_leaves ?? 0,
       icon: AlertCircle,
       gradient: "linear-gradient(135deg, #ffb22b 0%, #ffd166 100%)",
-      chart: "bar",
+      chart: "trend",
       link: route("admin.leaves.index"),
     },
   ].filter(Boolean);
@@ -190,7 +211,10 @@ export default function Dashboard({
               <div className="flex items-center justify-between mt-6 gap-2">
                 <h2 className="text-3xl md:text-4xl font-medium leading-none text-white">{card.value}</h2>
                 <div className="opacity-90 flex-shrink-0">
-                  {card.chart === "line" ? <MiniLine id={`spark-grad-${i}`} /> : <MiniBar />}
+                  {card.chart === "line" && <MiniLine id={`spark-grad-${i}`} />}
+                  {card.chart === "bar" && <MiniBar />}
+                  {card.chart === "pure-line" && <MiniPureLine />}
+                  {card.chart === "trend" && <MiniTrend />}
                 </div>
               </div>
             </CardWrapper>
@@ -198,70 +222,7 @@ export default function Dashboard({
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-mp shadow-mp-card p-6">
-          <div className="flex justify-between items-center border-b border-gray-100 pb-4 mb-4">
-            <div>
-              <h2 className="mp-card-title text-lg">Task Overview</h2>
-              <p className="mp-card-subtitle text-xs">All tasks breakdown by status</p>
-            </div>
-          </div>
-          {taskPieData.length > 0 ? (
-            <div className="w-full h-56">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={taskPieData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={4} dataKey="value">
-                    {taskPieData.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="h-56 flex items-center justify-center text-mp-body text-sm">No tasks found</div>
-          )}
-          <div className="grid grid-cols-3 gap-3 mt-4">
-            <div className="bg-cyan-50 rounded-mp-sm p-3 text-center">
-              <div className="text-2xl text-mp-cyan">{stats.completed_tasks || 0}</div>
-              <div className="text-xs mp-text-muted mt-0.5">Completed</div>
-            </div>
-            <div className="bg-blue-50 rounded-mp-sm p-3 text-center">
-              <div className="text-2xl text-primary">{stats.in_progress_tasks || 0}</div>
-              <div className="text-xs mp-text-muted mt-0.5">In Progress</div>
-            </div>
-            <div className="bg-amber-50 rounded-mp-sm p-3 text-center">
-              <div className="text-2xl text-mp-warning">{stats.pending_tasks || 0}</div>
-              <div className="text-xs mp-text-muted mt-0.5">Pending</div>
-            </div>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-mp shadow-mp-card p-6">
-          <div className="border-b border-gray-100 pb-4 mb-4">
-            <h2 className="mp-card-title text-lg">My Task Summary</h2>
-            <p className="mp-card-subtitle text-xs">Personal task statistics</p>
-          </div>
-          <div className="w-full h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={myTasksData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }} barSize={36}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eef5f9" />
-                <XAxis dataKey="name" stroke="#607d8b" fontSize={11} tickLine={false} />
-                <YAxis stroke="#607d8b" fontSize={11} tickLine={false} allowDecimals={false} />
-                <Tooltip />
-                <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-                  {myTasksData.map((_, index) => {
-                    const colors = ["#7460ee", "#ffb22b", "#1e88e5", "#26c6da"];
-                    return <Cell key={index} fill={colors[index]} />;
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white rounded-mp shadow-mp-card p-6">

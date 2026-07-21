@@ -227,14 +227,14 @@ export default function Index({ leaves, users, filters, stats }) {
             <div className="hidden sm:block overflow-x-auto bg-white rounded-2xl shadow">
                 <table className="min-w-full border-collapse">
                     <thead>
-                        <tr className="bg-blue-50 text-gray-700 text-sm uppercase">
-                            <th className="px-4 py-3 text-left">Employee</th>
-                            <th className="px-4 py-3 text-left">Type</th>
-                            <th className="px-4 py-3 text-left">Dates</th>
-                            <th className="px-4 py-3 text-left">Days</th>
-                            <th className="px-4 py-3 text-center">Reason</th>
-                            <th className="px-4 py-3 text-left">Status</th>
-                            <th className="px-4 py-3 text-center">Actions</th>
+                        <tr className="bg-gray-50/50 text-gray-400 text-[13px] font-bold uppercase tracking-widest border-b border-gray-100">
+                            <th className="px-6 py-4 text-left">Employee</th>
+                            <th className="px-6 py-4 text-left">Type</th>
+                            <th className="px-6 py-4 text-left">Dates</th>
+                            <th className="px-6 py-4 text-left">Days</th>
+                            <th className="px-6 py-4 text-center">Reason</th>
+                            <th className="px-6 py-4 text-left">Status</th>
+                            <th className="px-6 py-4 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -242,18 +242,18 @@ export default function Index({ leaves, users, filters, stats }) {
                             <tr><td colSpan="7" className="text-center py-8 text-gray-500 italic">No leave requests found.</td></tr>
                         ) : (
                             data.map((leave) => (
-                                <tr key={leave.id} className="border-t text-gray-700 hover:bg-gray-50 transition">
-                                    <td className="px-4 py-3">
+                                <tr key={leave.id} className="border-t text-gray-700 hover:bg-gray-50/50 transition-colors">
+                                    <td className="px-6 py-4">
                                         <div className="flex items-center gap-2">
-                                            <div className="w-7 h-7 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><User size={14} /></div>
-                                            <span className="font-semibold text-gray-900 text-sm">{leave.user?.name}</span>
+                                            <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600"><User size={14} /></div>
+                                            <span className="font-bold text-gray-800 text-[15px]">{leave.user?.name}</span>
                                         </div>
                                     </td>
-                                    <td className="px-4 py-3 text-sm">{leave.leave_type === 'SL' || leave.leave_type === 'CL' ? leave.leave_type : leave.leave_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
-                                    <td className="px-4 py-3 whitespace-nowrap text-sm">{formatDate(leave.from_date)} – {formatDate(leave.to_date)}<br/><span className="text-[10px] text-blue-600 uppercase font-bold">{leave.day_type.replace('_', ' ')}</span></td>
-                                    <td className="px-4 py-3 font-medium text-blue-600 text-sm">{leave.day_type === 'full' ? `${parseFloat(leave.no_of_days)} ${parseFloat(leave.no_of_days) > 1 ? 'Days' : 'Day'}` : leave.day_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
-                                    <td className="px-4 py-3 text-center">{leave.reason ? <button onClick={() => setSelectedLeave(leave)} className="text-gray-500 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50 inline-flex" title="View Reason"><Eye size={18} /></button> : <span className="text-gray-300">-</span>}</td>
-                                    <td className="px-4 py-3">{getStatusBadge(leave.status)}</td>
+                                    <td className="px-6 py-4 text-[15px] text-gray-700 font-medium">{leave.leave_type === 'SL' || leave.leave_type === 'CL' ? leave.leave_type : leave.leave_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-[15px] text-gray-700 font-medium">{formatDate(leave.from_date)} – {formatDate(leave.to_date)}<br/><span className="text-[10px] text-blue-600 uppercase font-bold">{leave.day_type.replace('_', ' ')}</span></td>
+                                    <td className="px-6 py-4 font-semibold text-blue-600 text-[15px]">{leave.day_type === 'full' ? `${parseFloat(leave.no_of_days)} ${parseFloat(leave.no_of_days) > 1 ? 'Days' : 'Day'}` : leave.day_type.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}</td>
+                                    <td className="px-6 py-4 text-center">{leave.reason ? <button onClick={() => setSelectedLeave(leave)} className="text-gray-500 hover:text-blue-600 p-1.5 rounded-full hover:bg-blue-50 inline-flex" title="View Reason"><Eye size={18} /></button> : <span className="text-gray-300">-</span>}</td>
+                                    <td className="px-6 py-4">{getStatusBadge(leave.status)}</td>
                                     <td className="px-4 py-3">
                                         <div className="flex justify-center gap-1.5">
                                             {leave.status === 'pending' && <>

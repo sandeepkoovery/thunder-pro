@@ -10,6 +10,115 @@ use Illuminate\Support\Facades\DB;
 
 class NotificationController extends Controller
 {
+    public function index()
+    {
+        $user = Auth::user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
+        $seenIds = DB::table('notification_reads')
+            ->where('user_id', $user->id)
+            ->pluck('notification_id')
+            ->toArray();
+
+        $notifications = [];
+
+        // 1. Chat Messages
+        $messages = Message::with('sender')
+            ->where('receiver_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->take(50)
+            ->get();
+
+        foreach ($messages as $msg) {
+            $notifId = 'msg_' . $msg->id;
+            $isRead = $msg->is_read || in_array($notifId, $seenIds);
+            
+            $notifications[] = [
+                'id' => $notifId,
+                'type' => 'chat',
+                'title' => 'Message from ' . $msg->sender->name,
+                'message' => $msg->message,
+                'time' => $msg->created_at->diffForHumans(),
+                'is_read' => $isRead,
+                'link' => route('chat.index'),
+                'icon' => 'chat',
+                'created_at' => $msg->created_at->toIso8601String(),
+                'sender_avatar' => $msg->sender->image ? asset('storage/' . $msg->sender->image) : null,
+                'sender_name' => $msg->sender->name,
+            ];
+        }
+
+        // 2. Leave Requests
+        if (in_array($user->role, ['admin', 'manager', 'editor'])) {
+            $leaves = Leave::with('user')
+                ->orderBy('created_at', 'desc')
+                ->take(50)
+                ->get();
+
+            foreach ($leaves as $leave) {
+                $notifId = 'leave_' . $leave->id;
+                $isRead = in_array($notifId, $seenIds) || $leave->status !== 'pending';
+
+                $fromStr = \Carbon\Carbon::parse($leave->from_date)->format('Y-m-d');
+                $toStr = \Carbon\Carbon::parse($leave->to_date)->format('Y-m-d');
+                $leaveText = ($fromStr === $toStr) 
+                    ? "{$leave->leave_type} on {$fromStr}"
+                    : "{$leave->leave_type} from {$fromStr} to {$toStr}";
+
+                $notifications[] = [
+                    'id' => $notifId,
+                    'type' => 'leave',
+                    'title' => 'Leave Request: ' . $leave->user->name,
+                    'message' => $leaveText . ' (' . $leave->status . ')',
+                    'time' => $leave->created_at->diffForHumans(),
+                    'is_read' => $isRead,
+                    'link' => route('admin.leaves.index'),
+                    'icon' => 'leave',
+                    'created_at' => $leave->created_at->toIso8601String(),
+                    'sender_avatar' => $leave->user->image ? asset('storage/' . $leave->user->image) : null,
+                    'sender_name' => $leave->user->name,
+                ];
+            }
+        } else {
+            $leaves = Leave::where('user_id', $user->id)
+                ->orderBy('updated_at', 'desc')
+                ->take(50)
+                ->get();
+
+            foreach ($leaves as $leave) {
+                $notifId = 'leave_' . $leave->id;
+                $isRead = in_array($notifId, $seenIds);
+
+                $notifications[] = [
+                    'id' => $notifId,
+                    'type' => 'leave_update',
+                    'title' => 'Leave ' . ucfirst($leave->status),
+                    'message' => 'Your ' . $leave->leave_type . ' request was ' . $leave->status,
+                    'time' => $leave->updated_at->diffForHumans(),
+                    'is_read' => $isRead,
+                    'link' => route('leave.index'),
+                    'icon' => 'leave',
+                    'created_at' => $leave->updated_at->toIso8601String(),
+                    'sender_avatar' => null,
+                    'sender_name' => 'System',
+                ];
+            }
+        }
+
+        // Sort by created_at desc
+        usort($notifications, function ($a, $b) {
+            return strtotime($b['created_at']) - strtotime($a['created_at']);
+        });
+
+        $notifications = array_slice($notifications, 0, 50);
+
+        return \Inertia\Inertia::render('Notifications/Index', [
+            'initialNotifications' => $notifications
+        ]);
+    }
+
     public function getNotifications()
     {
         $user = Auth::user();
@@ -60,11 +169,17 @@ class NotificationController extends Controller
                 if (in_array($notifId, $seenIds))
                     continue;
 
+                $fromStr = \Carbon\Carbon::parse($leave->from_date)->format('Y-m-d');
+                $toStr = \Carbon\Carbon::parse($leave->to_date)->format('Y-m-d');
+                $leaveText = ($fromStr === $toStr) 
+                    ? "{$leave->leave_type} on {$fromStr}"
+                    : "{$leave->leave_type} from {$fromStr} to {$toStr}";
+
                 $notifications[] = [
                     'id' => $notifId,
                     'type' => 'leave',
                     'title' => 'Leave Request: ' . $leave->user->name,
-                    'message' => $leave->leave_type . ' from ' . $leave->from_date . ' to ' . $leave->to_date,
+                    'message' => $leaveText,
                     'time' => $leave->created_at->diffForHumans(),
                     'link' => route('admin.leaves.index'),
                     'icon' => 'leave'

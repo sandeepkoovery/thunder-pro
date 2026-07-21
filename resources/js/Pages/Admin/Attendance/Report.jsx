@@ -1,138 +1,22 @@
+import React from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Head, router } from '@inertiajs/react';
-import { format } from 'date-fns';
+import { Head } from '@inertiajs/react';
+import { BarChart3 } from 'lucide-react';
 
-export default function Report({ auth, users, attendances, totalMonthlyMinutes, filters }) {
-    const handleUserChange = (e) => {
-        router.get(route('admin.attendance.report'), {
-            user_id: e.target.value,
-            month: filters.month
-        }, { preserveState: true });
-    };
-
-    const handleMonthChange = (e) => {
-        router.get(route('admin.attendance.report'), {
-            user_id: filters.user_id,
-            month: e.target.value
-        }, { preserveState: true });
-    };
-
-    const formatDuration = (minutes) => {
-        const hours = Math.floor(minutes / 60);
-        const mins = minutes % 60;
-        return `${hours}h ${mins}m`;
-    };
-
+export default function Report() {
     return (
-        <AdminLayout
-            title="Attendance Report"
-        >
-            <Head title="Attendance Report" />
-
-            <div className="py-12">
-                <div className="w-full">
-                    <div className="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                        <div className="p-6 text-gray-900">
-
-                            {/* Filters */}
-                            <div className="flex gap-4 mb-6 items-center flex-wrap">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select User</label>
-                                    <select
-                                        value={filters.user_id || ''}
-                                        onChange={handleUserChange}
-                                        className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    >
-                                        <option value="">Select a user...</option>
-                                        {users.map(user => (
-                                            <option key={user.id} value={user.id}>{user.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Select Month</label>
-                                    <input
-                                        type="month"
-                                        value={filters.month}
-                                        onChange={handleMonthChange}
-                                        className="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                                    />
-                                </div>
-
-                                {filters.user_id && (
-                                    <div className="ml-auto bg-indigo-50 px-4 py-2 rounded-lg border border-indigo-100">
-                                        <span className="text-sm text-indigo-600 font-medium">Monthly Total Hours:</span>
-                                        <span className="ml-2 text-xl font-bold text-indigo-800">{formatDuration(totalMonthlyMinutes)}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Report Table */}
-                            {filters.user_id ? (
-                                <div className="overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-200">
-                                        <thead className="bg-gray-50">
-                                            <tr>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punch In</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Punch Out</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Break Time</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Work Duration</th>
-                                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Daily Total</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-200">
-                                            {attendances.length > 0 ? (
-                                                attendances.map((day, dayIndex) => (
-                                                    day.sessions.map((session, sessionIndex) => (
-                                                        <tr key={session.id} className={sessionIndex === 0 ? "bg-gray-50" : ""}>
-                                                            {/* Date and Daily Total only on first row of the day */}
-                                                            {sessionIndex === 0 && (
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900" rowSpan={day.sessions.length}>
-                                                                    {format(new Date(day.date), 'EEE, MMM d, yyyy')}
-                                                                </td>
-                                                            )}
-
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                {session.punch_in ? format(new Date(session.punch_in), 'h:mm a') : '-'}
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                {session.punch_out ? format(new Date(session.punch_out), 'h:mm a') : (session.status === 'punched_in' ? <span className="text-green-600">Active</span> : '-')}
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                {session.total_break_minutes > 0 ? `${session.total_break_minutes}m` : '-'}
-                                                            </td>
-                                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                                {formatDuration(session.total_worked_minutes)}
-                                                            </td>
-
-                                                            {/* Daily Total only on first row of the day */}
-                                                            {sessionIndex === 0 && (
-                                                                <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900" rowSpan={day.sessions.length}>
-                                                                    {formatDuration(day.total_minutes)}
-                                                                </td>
-                                                            )}
-                                                        </tr>
-                                                    ))
-                                                ))
-                                            ) : (
-                                                <tr>
-                                                    <td colSpan="6" className="px-6 py-4 text-center text-sm text-gray-500">
-                                                        No attendance records found for this month.
-                                                    </td>
-                                                </tr>
-                                            )}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <div className="text-center py-12 text-gray-500">
-                                    Please select a user to view their attendance report.
-                                </div>
-                            )}
-
-                        </div>
+        <AdminLayout title="Reports">
+            <Head title="Reports" />
+            <div className="p-4 sm:p-6 w-full space-y-6 font-sans">
+                {/* Elegant Placeholder Screen */}
+                <div className="bg-white rounded-3xl border border-gray-100 shadow-sm p-12 text-center flex flex-col items-center justify-center max-w-xl mx-auto mt-20">
+                    <div className="w-16 h-16 bg-indigo-50 rounded-2xl flex items-center justify-center mb-6 text-indigo-600 shadow-sm">
+                        <BarChart3 size={32} />
                     </div>
+                    <h2 className="text-lg font-bold text-gray-900 mb-2">Reports Module Coming Soon</h2>
+                    <p className="text-xs text-gray-400 max-w-sm leading-relaxed">
+                        We are currently polishing the report metrics, analytic charts, and export actions. Please check back soon!
+                    </p>
                 </div>
             </div>
         </AdminLayout>

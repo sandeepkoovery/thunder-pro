@@ -123,7 +123,7 @@ export default function NotificationDropdown({ variant = 'topbar' }) {
                     </div>
 
                     <div className="p-3 border-t bg-mp-bg/50 text-center">
-                        <Link href="#" className="text-xs font-medium text-primary hover:underline">
+                        <Link href={route('notifications.index')} onClick={() => setIsOpen(false)} className="text-xs font-medium text-primary hover:underline">
                             See All Notifications
                         </Link>
                     </div>
