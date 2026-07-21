@@ -200,6 +200,11 @@ body:has(.mp-wrapper) {
   box-shadow: 0 2px 10px rgba(30, 136, 229, 0.35);
 }
 
+.mp-topbar img[src*="worknest_logo.png"],
+.mp-topbar-logo-area img[src*="worknest_logo.png"] {
+  filter: brightness(0) invert(1) !important;
+}
+
 .mp-topbar-logo-area {
   width: var(--theme-sidebar-width);
   min-width: var(--theme-sidebar-width);

@@ -509,6 +509,9 @@ export default function ThemeCustomizer({ isOpen: controlledIsOpen, setIsOpen: c
           --theme-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
           --theme-shadow-card: 0 1px 4px rgba(0, 0, 0, 0.25);
         }
+        .dark-theme img[src*="worknest_logo.png"] {
+          filter: brightness(0) invert(1);
+        }
 
         .dark-theme .mp-sidebar {
           background: #1e293b !important;
