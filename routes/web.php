@@ -294,7 +294,36 @@ Route::get('/manifest.webmanifest', function () {
     if (!file_exists($path)) {
         abort(404);
     }
-    return response()->file($path, [
-        'Content-Type' => 'application/manifest+json'
+    
+    $json = json_decode(file_get_contents($path), true);
+    
+    // Dynamically override start_url and scope using Laravel base path configurations
+    $appUrl = url('/');
+    $pathPrefix = parse_url($appUrl, PHP_URL_PATH) ?: '';
+    $pathPrefix = rtrim($pathPrefix, '/') . '/';
+    
+    $json['start_url'] = $appUrl . '/';
+    $json['scope'] = $pathPrefix;
+    
+    // Correct icon references to absolute paths to prevent subdirectory loading errors
+    if (isset($json['icons'])) {
+        foreach ($json['icons'] as &$icon) {
+            if (strpos($icon['src'], '../') === 0) {
+                $cleanSrc = substr($icon['src'], 3);
+                $icon['src'] = asset($cleanSrc);
+            }
+        }
+    }
+    if (isset($json['screenshots'])) {
+        foreach ($json['screenshots'] as &$screenshot) {
+            if (strpos($screenshot['src'], '../') === 0) {
+                $cleanSrc = substr($screenshot['src'], 3);
+                $screenshot['src'] = asset($cleanSrc);
+            }
+        }
+    }
+    
+    return response()->json($json, 200, [
+        'Content-Type' => 'application/manifest+json; charset=utf-8'
     ]);
 });
