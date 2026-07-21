@@ -127,7 +127,6 @@ export default function Welcome({ canLogin, canRegister }) {
                         </div>
 
                         {/* Right Side CTA with proper auth checks */}
-                        {/* Right Side CTA with proper auth checks */}
                         <div className="flex items-center gap-2 sm:gap-4">
                             {auth?.user ? (
                                 <Link 
@@ -138,24 +137,13 @@ export default function Welcome({ canLogin, canRegister }) {
                                     Dashboard
                                 </Link>
                             ) : (
-                                <>
-                                    <Link 
-                                        href={route('login')} 
-                                        className="px-3 py-2 sm:px-5 sm:py-2.5 text-[15px] sm:text-[17px] font-semibold text-slate-700 hover:text-[#00A8FF] transition-all flex items-center"
-                                        style={{ minHeight: '44px' }}
-                                    >
-                                        Login
-                                    </Link>
-                                    {canRegister && (
-                                        <Link 
-                                            href={route('register')} 
-                                            className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
-                                            style={{ minHeight: '44px' }}
-                                        >
-                                            Signup
-                                        </Link>
-                                    )}
-                                </>
+                                <Link 
+                                    href={route('login')} 
+                                    className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
+                                    style={{ minHeight: '44px' }}
+                                >
+                                    Login
+                                </Link>
                             )}
                         </div>
                     </div>
@@ -191,7 +179,7 @@ export default function Welcome({ canLogin, canRegister }) {
                             {/* Hero Signup Button */}
                             <div className="pt-4">
                                 <Link
-                                    href={auth?.user ? "/dashboard" : route('register')}
+                                    href={auth?.user ? "/dashboard" : route('login')}
                                     className="inline-flex items-center justify-center px-9 py-4 bg-[#00A8FF] hover:bg-[#0097e6] text-white font-extrabold rounded-2xl text-[14px] sm:text-[15px] uppercase tracking-wider transition-colors shadow-sm"
                                     style={{ minHeight: '44px' }}
                                 >

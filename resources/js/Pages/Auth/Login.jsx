@@ -98,14 +98,7 @@ export default function Login({ status, canResetPassword }) {
                     {processing ? 'Signing in...' : 'Sign In'}
                 </button>
 
-                <div className="text-center pt-4">
-                    <p className="text-mp-body font-light">
-                        Don't have an account?{' '}
-                        <Link href={route('register')} className="text-primary font-medium hover:underline">
-                            Sign Up
-                        </Link>
-                    </p>
-                </div>
+
             </form>
         </GuestLayout>
     );
