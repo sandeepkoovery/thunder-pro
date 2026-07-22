@@ -153,7 +153,7 @@ export default function AttendanceWidget() {
     if (status === 'loading') return <div className="text-sm text-gray-500">Loading...</div>;
 
     return (
-        <div className="flex flex-col sm:flex-row items-center sm:space-x-4 space-y-3 sm:space-y-0 bg-white p-3 sm:p-1.5 px-3 rounded-2xl sm:rounded-xl shadow-sm border border-gray-100 w-full sm:w-auto">
+        <div className="mp-attendance-capsule flex flex-col sm:flex-row items-center sm:space-x-4 space-y-3 sm:space-y-0 bg-white p-3 sm:p-1.5 px-3 rounded-2xl sm:rounded-xl shadow-sm border border-gray-100 w-full sm:w-auto">
             {/* Timer Display */}
             <div className="flex flex-col items-center sm:items-end min-w-[100px] sm:min-w-[80px]">
                 <div className="flex items-center text-gray-800 font-mono font-bold text-xl sm:text-lg">

@@ -1,219 +1,383 @@
 // resources/js/Pages/Dashboard.jsx
-import React from "react";
+import React, { useState } from "react";
 import { Head, Link, usePage } from "@inertiajs/react";
 import UserLayout from "@/Layouts/UserLayout";
 import AttendanceWidget from "@/Components/AttendanceWidget";
 import {
   TrendingUp,
-  Play,
   ArrowUpRight,
   ArrowDownRight,
   CheckCircle2,
   Calendar,
-  Layers,
-  Phone,
-  Video,
   ChevronRight,
-  Clock
+  Clock,
+  ChevronUp,
+  ChevronDown,
+  Plus,
+  Play,
+  Layers,
+  Activity
 } from "lucide-react";
 import {
   ResponsiveContainer,
-  AreaChart,
+  ComposedChart,
+  Bar,
   Area,
-  LineChart,
-  Line,
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip
+  Tooltip,
+  PieChart,
+  Pie,
+  Cell
 } from "recharts";
 
-// Mock data for user productivity
-const taskActivityData = [
-  { name: "Mon", tasks: 2 },
-  { name: "Tue", tasks: 5 },
-  { name: "Wed", tasks: 3 },
-  { name: "Thu", tasks: 8 },
-  { name: "Fri", tasks: 4 },
-  { name: "Sat", tasks: 6 }
-];
-
+// Mock data for task activity & productivity over time (matching Vuesy Jan-Jul layout)
 const productivityData = [
-  { name: "W1", assigned: 5, completed: 3 },
-  { name: "W2", assigned: 8, completed: 6 },
-  { name: "W3", assigned: 6, completed: 4 },
-  { name: "W4", assigned: 10, completed: 8 },
-  { name: "W5", assigned: 7, completed: 5 },
-  { name: "W6", assigned: 9, completed: 8 }
+  { name: "Jan", assigned: 8, completed: 4 },
+  { name: "Feb", assigned: 12, completed: 6 },
+  { name: "Mar", assigned: 18, completed: 11 },
+  { name: "Apr", assigned: 14, completed: 10 },
+  { name: "May", assigned: 22, completed: 16 },
+  { name: "Jun", assigned: 16, completed: 13 },
+  { name: "Jul", assigned: 25, completed: 21 }
 ];
 
-export default function Dashboard({ stats, todayAttendance }) {
+export default function Dashboard({ stats = {}, todayAttendance, recentTasks = [] }) {
   const { auth } = usePage().props;
+  const [statsExpanded, setStatsExpanded] = useState(true);
+  const [timeframe, setTimeframe] = useState("Yearly");
+  const [distributionTimeframe, setDistributionTimeframe] = useState("Monthly");
 
-  const highlights = [
-    { label: "Pending Leaves", value: stats.pending_leaves || "0", trend: "up", change: "New" },
-    { label: "In Progress Tasks", value: stats.in_progress_tasks || "0", trend: "up", change: "Active" },
-    { label: "Assigned Projects", value: "3", trend: "down", change: "0%" }
-  ];
+  // Safe checks for stats
+  const totalTasks = stats.total_tasks || 0;
+  const completedTasks = stats.completed_tasks || 0;
+  const inProgressTasks = stats.in_progress_tasks || 0;
+  const pendingTasks = stats.pending_tasks || 0;
+  const pendingLeaves = stats.pending_leaves || 0;
+  const approvedLeaves = stats.approved_leaves || 0;
+
+  // Donut chart logic & fallback
+  const hasDonutData = (completedTasks + inProgressTasks + pendingTasks) > 0;
+  const donutData = hasDonutData
+    ? [
+        { name: "Completed", value: completedTasks, color: "#7460ee" },
+        { name: "In Progress", value: inProgressTasks, color: "#26c6da" },
+        { name: "Pending", value: pendingTasks, color: "#ffb22b" }
+      ]
+    : [
+        { name: "No Tasks", value: 1, color: "#e2e8f0" }
+      ];
+
+  const successRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
     <div className="space-y-6">
       <Head title="User Dashboard" />
 
-      {/* TOP HEADER SECTION */}
-      <div className="flex flex-col gap-4 bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      {/* VUESY STYLE DEEP PURPLE HEADER BANNER */}
+      <div className="mp-vuesy-header bg-[#2b1440] text-white -mx-[28px] -mt-[24px] px-[28px] py-6 sm:py-8 shadow-sm transition-all duration-300 relative">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6 mb-6">
           <div>
-            <h1 className="text-lg sm:text-xl font-bold text-gray-800">My Dashboard</h1>
-            <p className="text-sm text-gray-400 mt-0.5">
-              <Link href="/" className="hover:text-[#26c6da]">Home</Link> &gt; <span className="text-gray-500">Dashboard</span>
+            <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">Dashboard</h1>
+            <p className="text-xs sm:text-sm text-purple-200 mt-1 mp-header-breadcrumb">
+              <Link href="/" className="hover:text-white transition-colors">Home</Link> &gt; <span className="text-white">Dashboard</span>
             </p>
           </div>
-
-          {/* Sparklines */}
-          <div className="mp-dash-header-chips flex items-center gap-4">
-            <div className="flex items-center gap-3 flex-1">
-              <div>
-                <div className="text-xs text-gray-400 font-medium">Work Hours</div>
-                <div className="text-sm font-bold text-gray-700">168 hrs</div>
-              </div>
-              <svg className="w-12 h-8 text-blue-500" viewBox="0 0 50 30" fill="currentColor">
-                <rect x="0" y="15" width="6" height="15" rx="2" />
-                <rect x="10" y="20" width="6" height="10" rx="2" />
-                <rect x="20" y="10" width="6" height="20" rx="2" />
-                <rect x="30" y="5" width="6" height="25" rx="2" />
-                <rect x="40" y="18" width="6" height="12" rx="2" />
-              </svg>
+          <div className="flex flex-col sm:flex-row items-center gap-4">
+            <div className="text-right hidden md:block">
+              <span className="text-xs text-purple-200 block">Welcome back,</span>
+              <strong className="text-white font-bold">{auth?.user?.name}</strong>
             </div>
-            <div className="h-8 w-px bg-gray-200"></div>
-            <div className="flex items-center gap-3 flex-1">
-              <div>
-                <div className="text-xs text-gray-400 font-medium">Leaves Left</div>
-                <div className="text-sm font-bold text-gray-700">14 Days</div>
-              </div>
-              <svg className="w-12 h-8 text-[#26c6da]" viewBox="0 0 50 30" fill="currentColor">
-                <rect x="0" y="5" width="6" height="25" rx="2" />
-                <rect x="10" y="10" width="6" height="20" rx="2" />
-                <rect x="20" y="18" width="6" height="12" rx="2" />
-                <rect x="30" y="22" width="6" height="8" rx="2" />
-                <rect x="40" y="15" width="6" height="15" rx="2" />
-              </svg>
-            </div>
+            <AttendanceWidget />
           </div>
         </div>
+
+        {/* Expandable/Collapsible Row of Stats (separated by vertical lines) */}
+        <div
+          className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-y-6 gap-x-4 transition-all duration-500 ease-in-out overflow-hidden ${
+            statsExpanded ? "max-h-[300px] opacity-100 mb-2" : "max-h-0 opacity-0 pointer-events-none mb-0 pb-0 border-none"
+          }`}
+        >
+          {/* Stat 1: Total Tasks */}
+          <div className="px-4 border-r border-white/10 last:border-none">
+            <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">Total Tasks</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-white">{totalTasks}</div>
+          </div>
+          {/* Stat 2: Completed */}
+          <div className="px-4 md:border-r border-white/10 last:border-none">
+            <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">Completed Tasks</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-green-400">{completedTasks}</div>
+          </div>
+          {/* Stat 3: In Progress */}
+          <div className="px-4 lg:border-r border-white/10 last:border-none">
+            <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">In Progress</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-yellow-300">{inProgressTasks}</div>
+          </div>
+          {/* Stat 4: Pending Tasks */}
+          <div className="px-4 md:border-r border-white/10 last:border-none">
+            <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">Pending Tasks</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-blue-300">{pendingTasks}</div>
+          </div>
+          {/* Stat 5: Pending Leaves */}
+          <div className="px-4 border-r border-white/10 last:border-none">
+            <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">Pending Leaves</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-pink-300">{pendingLeaves}</div>
+          </div>
+          {/* Stat 6: Approved Leaves */}
+          <div className="px-4 last:border-none">
+            <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">Approved Leaves</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-emerald-300">{approvedLeaves}</div>
+          </div>
+        </div>
+
+        {/* Collapse toggle button */}
+        <button
+          onClick={() => setStatsExpanded(!statsExpanded)}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-8 h-8 rounded-full bg-[#7460ee] hover:bg-[#5e45d6] text-white flex items-center justify-center shadow-lg border border-white/10 hover:scale-105 active:scale-95 transition-all z-10"
+          title={statsExpanded ? "Collapse Stats" : "Expand Stats"}
+        >
+          {statsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
       </div>
 
-      {/* FIRST ROW - 4 WIDGETS */}
-      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {/* Widget 1: Assigned Tasks */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between h-40">
-          <div>
-            <h3 className="text-sm font-semibold text-gray-400">Assigned Tasks</h3>
-            <p className="text-3xl font-black text-gray-800 mt-2">{stats.total_tasks || 0}</p>
-          </div>
-          <div className="flex items-center gap-2 text-xs font-bold text-[#26c6da] bg-[#26c6da]/10 border border-[#26c6da]/20 rounded-xl px-2.5 py-1 w-max">
-            <TrendingUp size={13} />
-            <span>+12.5% this month</span>
-          </div>
-        </div>
 
-        {/* Widget 2: Completed Tasks (Teal solid) */}
-        <div className="bg-[#26c6da] rounded-2xl shadow-sm p-6 text-white flex flex-col justify-between h-40 relative overflow-hidden group">
-          <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-white/10 rounded-full blur-xl group-hover:scale-125 transition-transform duration-500"></div>
-          <div>
-            <h3 className="text-sm font-medium text-white/80">Completed Tasks</h3>
-            <p className="text-4xl font-bold mt-2">{stats.completed_tasks || 0}</p>
-          </div>
-          <p className="text-xs text-white/70">Great job on finishing your work!</p>
-        </div>
 
-        {/* Widget 3: Task Link (Play card) */}
-        <div className="bg-gradient-to-br from-gray-100 to-gray-50 rounded-2xl shadow-sm border border-gray-100 p-5 flex items-center justify-between h-40">
-          <div className="space-y-2">
-            <Link href={route('tasks.index')} className="w-10 h-10 bg-white text-[#26c6da] shadow-md rounded-full flex items-center justify-center hover:scale-115 transition-transform">
-              <Play className="w-5 h-5 fill-current ml-0.5" />
-            </Link>
+      {/* DASHBOARD CHARTS ROW */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Card: Task Productivity Overview (Line + Bar Chart) */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-gray-50 pb-4 mb-4">
             <div>
-              <h3 className="text-sm font-bold text-gray-700 leading-none">My Tasks</h3>
-              <p className="text-xs text-gray-400 mt-1">Jump to workspace</p>
+              <h2 className="text-lg font-bold text-gray-800">Task Activity Overview</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Productivity breakdown for past months</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-gray-400 uppercase">Sort By:</span>
+              <select
+                value={timeframe}
+                onChange={(e) => setTimeframe(e.target.value)}
+                className="bg-gray-50 border border-gray-100 text-gray-600 text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#7460ee] cursor-pointer"
+              >
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Yearly">Yearly</option>
+              </select>
             </div>
           </div>
-          <svg className="w-20 h-20 text-[#26c6da]/25" viewBox="0 0 100 100" fill="currentColor">
-            <circle cx="50" cy="50" r="40" />
-            <path d="M50,10 A40,40 0 0,0 10,50 A40,40 0 0,0 50,90" fill="none" stroke="#26c6da" strokeWidth="6" strokeDasharray="5 5" />
-            <circle cx="50" cy="50" r="20" fill="#1e88e5" className="animate-pulse" />
-          </svg>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            {/* Legend Stats Column */}
+            <div className="space-y-4 pr-0 md:pr-4 md:border-r border-gray-50">
+              <div>
+                <span className="text-xs font-medium text-gray-400 block uppercase tracking-wider">Net Success Rate</span>
+                <div className="text-3xl font-black text-gray-800 mt-1">{successRate}%</div>
+                <p className="text-xs text-gray-400 mt-1">From current task status records</p>
+              </div>
+
+              <div className="flex items-center gap-2 bg-green-50 text-green-600 px-3 py-1.5 rounded-lg border border-green-100 w-max text-xs font-bold">
+                <TrendingUp size={13} />
+                <span>+16.3% growth</span>
+              </div>
+
+              <div className="pt-2 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-500 flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#7460ee]"></span>
+                    Assigned Tasks
+                  </span>
+                  <span className="font-bold text-gray-700">{totalTasks}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-500 flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#26c6da]"></span>
+                    Completed Tasks
+                  </span>
+                  <span className="font-bold text-gray-700">{completedTasks}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Chart Area */}
+            <div className="md:col-span-2 h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={productivityData} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#26c6da" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#26c6da" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "#ffffff",
+                      border: "none",
+                      boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
+                      borderRadius: "12px",
+                      fontSize: "12px",
+                      color: "#1e293b"
+                    }}
+                  />
+                  <Bar dataKey="assigned" barSize={14} fill="#7460ee" radius={[4, 4, 0, 0]} />
+                  <Area type="monotone" dataKey="completed" stroke="#26c6da" strokeWidth={3} fillOpacity={1} fill="url(#colorCompleted)" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
         </div>
 
-        {/* Widget 4: Highlights */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 flex flex-col justify-between h-40">
-          <h3 className="text-sm font-bold text-gray-800 border-b border-gray-100 pb-2">Overview</h3>
-          <div className="space-y-2">
-            {highlights.map((h, i) => (
-              <div key={i} className="flex justify-between items-center text-xs">
-                <span className="text-gray-500 font-medium">{h.label}</span>
-                <span className="font-bold text-gray-700 flex items-center gap-1">
-                  {h.value}
-                  {h.trend === "up" ? (
-                    <ArrowUpRight className="w-3.5 h-3.5 text-green-500" />
-                  ) : (
-                    <ArrowDownRight className="w-3.5 h-3.5 text-red-500" />
-                  )}
-                </span>
+        {/* Right Card: Task Status Distribution (Donut Chart) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-gray-50 pb-4 mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Task Distribution</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Task count breakdown by status</p>
+            </div>
+            <select
+              value={distributionTimeframe}
+              onChange={(e) => setDistributionTimeframe(e.target.value)}
+              className="bg-gray-50 border border-gray-100 text-gray-600 text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#7460ee] cursor-pointer"
+            >
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+            </select>
+          </div>
+
+          {/* Donut Chart Visual */}
+          <div className="flex justify-center items-center h-40 relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={donutData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={75}
+                  paddingAngle={hasDonutData ? 4 : 0}
+                  dataKey="value"
+                >
+                  {donutData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "#ffffff",
+                    border: "none",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                    borderRadius: "12px",
+                    fontSize: "12px"
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            {hasDonutData && (
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-2xl font-black text-gray-800">{totalTasks}</span>
+                <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Total Tasks</span>
               </div>
-            ))}
+            )}
+          </div>
+
+          {/* Legend Items with Badges */}
+          <div className="space-y-2.5 pt-4 border-t border-gray-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#7460ee]"></span>
+                Completed Tasks
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-gray-700">{completedTasks}</span>
+                <span className="text-[10px] font-bold text-green-500 bg-green-50 border border-green-100 rounded-md px-1.5 py-0.5">+12.5%</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#26c6da]"></span>
+                In Progress
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-gray-700">{inProgressTasks}</span>
+                <span className="text-[10px] font-bold text-yellow-500 bg-yellow-50 border border-yellow-100 rounded-md px-1.5 py-0.5">+8.3%</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#ffb22b]"></span>
+                Pending Tasks
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-gray-700">{pendingTasks}</span>
+                <span className="text-[10px] font-bold text-red-500 bg-red-50 border border-red-100 rounded-md px-1.5 py-0.5">-2.1%</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* SECOND ROW - BANNER CARDS */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Banner Card 1: Upgrade Plan */}
-        <div className="bg-[#1e88e5] rounded-2xl shadow-sm text-white p-5 sm:p-8 flex flex-col md:flex-row justify-between items-center relative overflow-hidden group">
-          <div className="absolute -bottom-8 -left-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
-          <div className="space-y-4 text-center md:text-left z-10">
-            <span className="text-xs font-bold bg-white/20 px-3 py-1 rounded-full uppercase tracking-wider">Leave Balance</span>
-            <h2 className="text-2xl md:text-3xl font-black leading-tight">Apply For Leave</h2>
-            <p className="text-sm text-white/90">Need time off? Easily request leaves online and track approval status.</p>
-            <Link href={route('leave.create')} className="inline-block px-6 py-2.5 bg-white text-[#1e88e5] font-bold rounded-xl shadow-lg hover:bg-gray-100 transition-colors">
-              Request Leave
+      {/* RECENT ACTIVITY / PRODUCT TRACKING TABLE */}
+      {recentTasks.length > 0 && (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center justify-between border-b border-gray-50 pb-4 mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Recent Assignments</h2>
+              <p className="text-xs text-gray-400 mt-0.5">List of recently created or assigned tasks</p>
+            </div>
+            <Link
+              href={route("tasks.index")}
+              className="text-xs font-semibold text-[#7460ee] hover:underline flex items-center gap-0.5"
+            >
+              View All Tasks <ChevronRight size={14} />
             </Link>
           </div>
-          {/* Custom Illustration SVG */}
-          <div className="mt-4 md:mt-0 z-10 shrink-0 hidden sm:block">
-            <svg width="150" height="150" viewBox="0 0 200 200" fill="none">
-              <circle cx="100" cy="100" r="80" fill="white" fillOpacity="0.1" />
-              <rect x="60" y="40" width="80" height="110" rx="10" fill="white" />
-              <circle cx="100" cy="70" r="20" fill="#26c6da" />
-              <rect x="75" y="105" width="50" height="8" rx="4" fill="#eef5f9" />
-              <rect x="85" y="120" width="30" height="8" rx="4" fill="#eef5f9" />
-              <path d="M125,50 L145,35 L145,65 Z" fill="#ffb22b" />
-            </svg>
-          </div>
-        </div>
 
-        {/* Banner Card 2: Attendance card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between relative overflow-hidden group">
-          <div className="flex justify-between items-start mb-4">
-            <div>
-              <h2 className="text-xl font-bold text-gray-800">My Attendance</h2>
-              <p className="text-gray-400 text-sm mt-1">Track check-in and check-out logs</p>
-            </div>
-            <Clock className="w-8 h-8 text-[#7460ee]" />
-          </div>
-          
-          <div className="space-y-4">
-            <div className="flex justify-center sm:justify-start">
-              <AttendanceWidget />
-            </div>
-            <div className="flex justify-end pt-2 border-t border-gray-50">
-              <Link href={route('attendance.index')} className="text-xs font-bold text-[#7460ee] hover:underline flex items-center gap-1">
-                Manage Attendance <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
+          <div className="overflow-x-auto mp-table-scroll">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="border-b border-gray-100 text-gray-400 font-semibold uppercase tracking-wider">
+                  <th className="pb-3 font-semibold">Task Title</th>
+                  <th className="pb-3 font-semibold">Project</th>
+                  <th className="pb-3 font-semibold">Status</th>
+                  <th className="pb-3 font-semibold">Due Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {recentTasks.map((task) => (
+                  <tr key={task.id} className="text-gray-600 hover:bg-gray-50/50 transition-colors">
+                    <td className="py-3.5 font-semibold text-gray-800">
+                      <Link href={route("tasks.index")} className="hover:text-[#7460ee]">
+                        {task.title}
+                      </Link>
+                    </td>
+                    <td className="py-3.5 text-gray-500">
+                      {task.project?.name || <span className="italic text-gray-400">No Project</span>}
+                    </td>
+                    <td className="py-3.5">
+                      <span
+                        className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
+                          task.status === "completed"
+                            ? "bg-green-50 border-green-150 text-green-600"
+                            : task.status === "in progress"
+                            ? "bg-yellow-50 border-yellow-150 text-yellow-600"
+                            : "bg-blue-50 border-blue-150 text-blue-600"
+                        }`}
+                      >
+                        {task.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 text-gray-400">
+                      {task.due_date ? new Date(task.due_date).toLocaleDateString() : "No Date"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

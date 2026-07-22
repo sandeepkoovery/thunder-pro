@@ -1,5 +1,5 @@
 // resources/js/Pages/Admin/Dashboard.jsx
-import React from "react";
+import React, { useState } from "react";
 import AdminLayout from "@/Layouts/AdminLayout";
 import { Head, Link, usePage } from "@inertiajs/react";
 import {
@@ -7,286 +7,311 @@ import {
   FolderKanban,
   ListTodo,
   AlertCircle,
-  CalendarCheck,
-  ChevronRight,
-  TrendingUp,
+  ChevronUp,
+  ChevronDown,
+  TrendingUp
 } from "lucide-react";
 import {
   ResponsiveContainer,
-  AreaChart,
-  Area,
-  BarChart,
+  ComposedChart,
   Bar,
-  LineChart,
-  Line,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   PieChart,
   Pie,
-  Cell,
-  Legend,
+  Cell
 } from "recharts";
 
-const sparkLine = [
-  { v: 20 }, { v: 35 }, { v: 25 }, { v: 45 }, { v: 30 }, { v: 55 }, { v: 40 },
+// Mock data for task activity & productivity over time (matching Vuesy Jan-Jul layout)
+const productivityData = [
+  { name: "Jan", assigned: 15, completed: 8 },
+  { name: "Feb", assigned: 25, completed: 15 },
+  { name: "Mar", assigned: 35, completed: 24 },
+  { name: "Apr", assigned: 30, completed: 22 },
+  { name: "May", assigned: 45, completed: 35 },
+  { name: "Jun", assigned: 35, completed: 28 },
+  { name: "Jul", assigned: 50, completed: 42 }
 ];
-const sparkBars = [
-  { v: 10 }, { v: 25 }, { v: 18 }, { v: 35 }, { v: 28 }, { v: 40 }, { v: 32 },
-  { v: 50 }, { v: 38 }, { v: 45 }, { v: 30 }, { v: 20 },
-];
-
-function MiniLine({ id = "spark-grad" }) {
-  return (
-    <ResponsiveContainer width={100} height={40}>
-      <AreaChart data={sparkLine} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="rgba(255,255,255,0.4)" stopOpacity={1} />
-            <stop offset="95%" stopColor="rgba(255,255,255,0)" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <Area type="monotone" dataKey="v" stroke="#ffffff" strokeWidth={2} fill={`url(#${id})`} dot={false} />
-      </AreaChart>
-    </ResponsiveContainer>
-  );
-}
-
-function MiniBar() {
-  return (
-    <ResponsiveContainer width={100} height={40}>
-      <BarChart data={sparkBars} margin={{ top: 2, right: 0, left: 0, bottom: 0 }} barSize={5} barGap={1}>
-        <Bar dataKey="v" fill="rgba(255,255,255,0.6)" radius={[2, 2, 0, 0]} />
-      </BarChart>
-    </ResponsiveContainer>
-  );
-}
-
-function MiniPureLine() {
-  return (
-    <ResponsiveContainer width={100} height={40}>
-      <LineChart data={sparkLine} margin={{ top: 2, right: 0, left: 0, bottom: 0 }}>
-        <Line type="monotone" dataKey="v" stroke="#ffffff" strokeWidth={2.5} dot={false} strokeDasharray="3 3" />
-      </LineChart>
-    </ResponsiveContainer>
-  );
-}
-
-function MiniTrend() {
-  return (
-    <div className="bg-white/15 border border-white/20 px-3 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1 shadow-sm backdrop-blur-sm self-center">
-      <TrendingUp size={14} className="text-white animate-pulse" />
-      <span>+8.2%</span>
-    </div>
-  );
-}
 
 export default function Dashboard({
-  stats,
+  stats = {},
   users = [],
   todayAttendance,
-  personalStats,
-  recentTasks = [],
+  personalStats
 }) {
   const { auth } = usePage().props;
   const user = auth.user;
-  const isAdmin = ["admin", "superadmin"].includes(user?.role);
-  const currentMonth = new Date().toLocaleString("default", { month: "long", year: "numeric" });
+  const [statsExpanded, setStatsExpanded] = useState(true);
+  const [timeframe, setTimeframe] = useState("Yearly");
+  const [distributionTimeframe, setDistributionTimeframe] = useState("Monthly");
 
-  const taskPieData = [
-    { name: "Completed", value: stats.completed_tasks || 0, color: "#26c6da" },
-    { name: "In Progress", value: stats.in_progress_tasks || 0, color: "#1e88e5" },
-    { name: "Pending", value: stats.pending_tasks || 0, color: "#ffb22b" },
-  ].filter((d) => d.value > 0);
+  // Stats calculation
+  const totalUsers = stats.total_users ?? 0;
+  const totalProjects = stats.total_projects ?? 0;
+  const totalTasks = stats.total_tasks ?? 0;
+  const pendingLeaves = stats.pending_leaves ?? 0;
+  const completedTasks = stats.completed_tasks ?? 0;
+  const inProgressTasks = stats.in_progress_tasks ?? 0;
+  const pendingTasks = stats.pending_tasks ?? 0;
 
-  const myTasksData = [
-    { name: "Total", value: personalStats?.total_tasks || 0 },
-    { name: "Pending", value: personalStats?.pending_tasks || 0 },
-    { name: "In Progress", value: personalStats?.in_progress_tasks || 0 },
-    { name: "Done", value: personalStats?.completed_tasks || 0 },
-  ];
+  // Donut chart logic & fallback
+  const hasDonutData = (completedTasks + inProgressTasks + pendingTasks) > 0;
+  const donutData = hasDonutData
+    ? [
+        { name: "Completed", value: completedTasks, color: "#7460ee" },
+        { name: "In Progress", value: inProgressTasks, color: "#26c6da" },
+        { name: "Pending", value: pendingTasks, color: "#ffb22b" }
+      ]
+    : [
+        { name: "No Tasks", value: 1, color: "#e2e8f0" }
+      ];
 
-  const statCards = [
-    isAdmin && {
-      label: "Total Users",
-      subtitle: currentMonth,
-      value: stats.total_users ?? 0,
-      icon: Users,
-      gradient: "linear-gradient(135deg, #7460ee 0%, #9b8cf2 100%)",
-      chart: "line",
-      link: route("admin.users.index"),
-    },
-    {
-      label: "Total Projects",
-      subtitle: currentMonth,
-      value: stats.total_projects ?? 0,
-      icon: FolderKanban,
-      gradient: "linear-gradient(135deg, #49d9a0 0%, #6ee7b7 100%)",
-      chart: "bar",
-      link: route("admin.projects.index"),
-    },
-    {
-      label: "Total Tasks",
-      subtitle: currentMonth,
-      value: stats.total_tasks ?? 0,
-      icon: ListTodo,
-      gradient: "linear-gradient(135deg, #1e88e5 0%, #42a5f5 100%)",
-      chart: "pure-line",
-      link: null,
-    },
-    isAdmin && {
-      label: "Pending Leaves",
-      subtitle: currentMonth,
-      value: stats.pending_leaves ?? 0,
-      icon: AlertCircle,
-      gradient: "linear-gradient(135deg, #ffb22b 0%, #ffd166 100%)",
-      chart: "trend",
-      link: route("admin.leaves.index"),
-    },
-  ].filter(Boolean);
-
-  const getStatusColor = (status) => {
-    if (status === "completed") return "text-mp-cyan bg-cyan-50";
-    if (status === "in progress") return "text-primary bg-blue-50";
-    return "text-mp-warning bg-amber-50";
-  };
+  const successRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
 
   return (
     <div className="space-y-6">
       <Head title="Admin Dashboard" />
 
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-4 sm:p-6 rounded-mp shadow-mp-card">
-        <div>
-          <h1 className="mp-page-title text-lg sm:text-xl">Dashboard</h1>
-          <p className="mp-breadcrumb text-sm mt-0.5">
-            <Link href="/">Home</Link> &gt;{" "}
-            <span>Dashboard</span>
-          </p>
-        </div>
-        <div className="mp-dash-header-chips flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-3 bg-mp-bg rounded-mp-sm px-4 py-2 flex-1" style={{minWidth:'160px'}}>
-            <CalendarCheck className="w-5 h-5 text-mp-cyan flex-shrink-0" />
-            <div>
-              <div className="text-xs mp-text-muted">Today's Attendance</div>
-              <div className="text-sm text-mp-heading">
-                {todayAttendance
-                  ? `${todayAttendance.check_in || "—"} – ${todayAttendance.check_out || "Active"}`
-                  : "Not Checked In"}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 bg-mp-bg rounded-mp-sm px-4 py-2 flex-1" style={{minWidth:'140px'}}>
-            <TrendingUp className="w-5 h-5 text-primary flex-shrink-0" />
-            <div>
-              <div className="text-xs mp-text-muted">My Tasks</div>
-              <div className="text-sm text-mp-heading">
-                {personalStats?.completed_tasks || 0} / {personalStats?.total_tasks || 0} Done
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 sm:grid-cols-2 xl:grid-cols-4 gap-4 sm:gap-6">
-        {statCards.map((card, i) => {
-          const Icon = card.icon;
-          const CardWrapper = card.link ? Link : "div";
-          return (
-            <CardWrapper
-              key={i}
-              href={card.link || undefined}
-              className="dashboard-stat-card group rounded-mp overflow-hidden shadow-mp-card hover:shadow-mp transition-shadow duration-300 flex flex-col p-6 cursor-pointer"
-              style={{ background: card.gradient }}
-            >
-              <div className="flex items-center gap-3.5">
-                <div className="w-12 h-12 rounded-full bg-white/15 border border-white/20 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-medium leading-tight text-white">{card.label}</h3>
-                  <p className="text-[11px] tracking-[0.08em] uppercase text-white/80 mt-1">{card.subtitle}</p>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-6 gap-2">
-                <h2 className="text-3xl md:text-4xl font-medium leading-none text-white">{card.value}</h2>
-                <div className="opacity-90 flex-shrink-0">
-                  {card.chart === "line" && <MiniLine id={`spark-grad-${i}`} />}
-                  {card.chart === "bar" && <MiniBar />}
-                  {card.chart === "pure-line" && <MiniPureLine />}
-                  {card.chart === "trend" && <MiniTrend />}
-                </div>
-              </div>
-            </CardWrapper>
-          );
-        })}
-      </div>
-
-
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 bg-white rounded-mp shadow-mp-card p-6">
-          <div className="border-b border-gray-100 pb-4 mb-4">
-            <h2 className="mp-card-title text-lg">Recent Tasks</h2>
-            <p className="mp-card-subtitle text-xs">Your latest assigned tasks</p>
-          </div>
-          {recentTasks.length > 0 ? (
-            <div className="space-y-3">
-              {recentTasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-3 bg-mp-bg rounded-mp-sm hover:bg-gray-100 transition-colors">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                      task.status === "completed" ? "bg-mp-cyan" :
-                      task.status === "in progress" ? "bg-primary" : "bg-mp-warning"
-                    }`} />
-                    <div className="min-w-0">
-                      <p className="text-sm text-mp-heading truncate">{task.title}</p>
-                      <p className="text-xs mp-text-muted truncate">
-                        {task.project?.name || "No Project"}
-                        {task.due_date && ` · Due ${task.due_date}`}
-                      </p>
-                    </div>
-                  </div>
-                  <span className={`text-xs font-medium px-3 py-1 rounded-full flex-shrink-0 capitalize ml-3 ${getStatusColor(task.status)}`}>
-                    {task.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-12 text-center text-mp-body text-sm">No recent tasks found</div>
-          )}
-        </div>
-
-        <div className="bg-white rounded-mp shadow-mp-card p-6 flex flex-col justify-between">
+      {/* VUESY STYLE DEEP PURPLE HEADER BANNER */}
+      <div className="mp-vuesy-header bg-[#2b1440] text-white -mx-[28px] -mt-[24px] px-[28px] py-6 sm:py-8 shadow-sm transition-all duration-300 relative">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6 mb-6">
           <div>
-            <h2 className="mp-card-title text-lg">Team Members</h2>
-            <p className="mp-card-subtitle text-xs mb-4">Active users in the system</p>
-            <div className="space-y-3">
-              {users.slice(0, 6).map((u) => (
-                <div key={u.id} className="flex items-center gap-3">
-                  {u.image ? (
-                    <img src={`/storage/${u.image}`} alt={u.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-9 h-9 rounded-full bg-blue-50 text-primary flex items-center justify-center text-sm flex-shrink-0">
-                      {u.name.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-sm text-mp-heading truncate">{u.name}</p>
-                    <p className="text-xs mp-text-muted capitalize truncate">{u.designation || u.role || "User"}</p>
-                  </div>
-                  <div className="ml-auto w-2 h-2 rounded-full bg-accent flex-shrink-0" title="Active" />
-                </div>
-              ))}
-            </div>
+            <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">Dashboard</h1>
+            <p className="text-xs sm:text-sm text-purple-200 mt-1 mp-header-breadcrumb">
+              <Link href="/" className="hover:text-white transition-colors">Home</Link> &gt; <span className="text-white">Dashboard</span>
+            </p>
           </div>
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-purple-200 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+            <span>Welcome back, <strong className="text-white font-semibold">{user?.name}</strong></span>
+          </div>
+        </div>
+
+        {/* Expandable/Collapsible Row of Stats (separated by vertical lines) */}
+        <div
+          className={`grid grid-cols-2 md:grid-cols-4 gap-y-6 gap-x-4 transition-all duration-500 ease-in-out overflow-hidden ${
+            statsExpanded ? "max-h-[300px] opacity-100 mb-2" : "max-h-0 opacity-0 pointer-events-none mb-0 pb-0 border-none"
+          }`}
+        >
+          {/* Stat 1: Total Users */}
           <Link
             href={route("admin.users.index")}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-mp-purple text-white text-sm font-medium rounded-mp-sm hover:opacity-90 transition-all mt-6 shadow-mp-card"
+            className="px-4 border-r border-white/10 hover:opacity-80 transition-opacity block last:border-none"
           >
-            View All Users <ChevronRight className="w-4 h-4" />
+            <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">Total Users</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-white">{totalUsers}</div>
           </Link>
+
+          {/* Stat 2: Total Projects */}
+          <Link
+            href={route("admin.projects.index")}
+            className="px-4 border-r border-white/10 hover:opacity-80 transition-opacity block last:border-none"
+          >
+            <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">Total Projects</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-green-400">{totalProjects}</div>
+          </Link>
+
+          {/* Stat 3: Total Tasks */}
+          <div className="px-4 border-r border-white/10 last:border-none">
+            <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">Total Tasks</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-blue-300">{totalTasks}</div>
+          </div>
+
+          {/* Stat 4: Pending Leaves */}
+          <Link
+            href={route("admin.leaves.index")}
+            className="px-4 last:border-none hover:opacity-80 transition-opacity block"
+          >
+            <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">Pending Leaves</div>
+            <div className="text-2xl sm:text-3xl font-bold mt-2 text-yellow-300">{pendingLeaves}</div>
+          </Link>
+        </div>
+
+        {/* Collapse toggle button */}
+        <button
+          onClick={() => setStatsExpanded(!statsExpanded)}
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-8 h-8 rounded-full bg-[#7460ee] hover:bg-[#5e45d6] text-white flex items-center justify-center shadow-lg border border-white/10 hover:scale-105 active:scale-95 transition-all z-10"
+          title={statsExpanded ? "Collapse Stats" : "Expand Stats"}
+        >
+          {statsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+        </button>
+      </div>
+
+      {/* DASHBOARD CHARTS ROW */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+        {/* Left Card: Task Productivity Overview (Line + Bar Chart) */}
+        <div className="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-gray-50 pb-4 mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">System Task Overview</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Task assignments vs completions across the platform</p>
+            </div>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs font-semibold text-gray-400 uppercase">Sort By:</span>
+              <select
+                value={timeframe}
+                onChange={(e) => setTimeframe(e.target.value)}
+                className="bg-gray-50 border border-gray-100 text-gray-600 text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#7460ee] cursor-pointer"
+              >
+                <option value="Weekly">Weekly</option>
+                <option value="Monthly">Monthly</option>
+                <option value="Yearly">Yearly</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+            {/* Legend Stats Column */}
+            <div className="space-y-4 pr-0 md:pr-4 md:border-r border-gray-50">
+              <div>
+                <span className="text-xs font-medium text-gray-400 block uppercase tracking-wider">Overall Success Rate</span>
+                <div className="text-3xl font-black text-gray-800 mt-1">{successRate}%</div>
+                <p className="text-xs text-gray-400 mt-1">Platform task completion efficiency</p>
+              </div>
+
+              <div className="flex items-center gap-2 bg-green-50 text-green-600 px-3 py-1.5 rounded-lg border border-green-100 w-max text-xs font-bold">
+                <TrendingUp size={13} />
+                <span>+12.4% this month</span>
+              </div>
+
+              <div className="pt-2 space-y-2">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-500 flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#7460ee]"></span>
+                    Total Tasks
+                  </span>
+                  <span className="font-bold text-gray-700">{totalTasks}</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-gray-500 flex items-center gap-1.5">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#26c6da]"></span>
+                    Completed Tasks
+                  </span>
+                  <span className="font-bold text-gray-700">{completedTasks}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Chart Area */}
+            <div className="md:col-span-2 h-64">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={productivityData} margin={{ top: 10, right: 5, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorCompleted" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#26c6da" stopOpacity={0.2} />
+                      <stop offset="95%" stopColor="#26c6da" stopOpacity={0.0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} axisLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      background: "#ffffff",
+                      border: "none",
+                      boxShadow: "0 4px 20px rgba(0, 0, 0, 0.08)",
+                      borderRadius: "12px",
+                      fontSize: "12px",
+                      color: "#1e293b"
+                    }}
+                  />
+                  <Bar dataKey="assigned" barSize={14} fill="#7460ee" radius={[4, 4, 0, 0]} />
+                  <Area type="monotone" dataKey="completed" stroke="#26c6da" strokeWidth={3} fillOpacity={1} fill="url(#colorCompleted)" />
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Card: Task Status Distribution (Donut Chart) */}
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 flex flex-col justify-between">
+          <div className="flex items-center justify-between border-b border-gray-50 pb-4 mb-4">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800">Platform Distribution</h2>
+              <p className="text-xs text-gray-400 mt-0.5">Task distribution across statuses</p>
+            </div>
+            <select
+              value={distributionTimeframe}
+              onChange={(e) => setDistributionTimeframe(e.target.value)}
+              className="bg-gray-50 border border-gray-100 text-gray-600 text-xs rounded-lg px-2.5 py-1 focus:outline-none focus:ring-1 focus:ring-[#7460ee] cursor-pointer"
+            >
+              <option value="Weekly">Weekly</option>
+              <option value="Monthly">Monthly</option>
+            </select>
+          </div>
+
+          {/* Donut Chart Visual */}
+          <div className="flex justify-center items-center h-40 relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={donutData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={55}
+                  outerRadius={75}
+                  paddingAngle={hasDonutData ? 4 : 0}
+                  dataKey="value"
+                >
+                  {donutData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  contentStyle={{
+                    background: "#ffffff",
+                    border: "none",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                    borderRadius: "12px",
+                    fontSize: "12px"
+                  }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            {hasDonutData && (
+              <div className="absolute flex flex-col items-center justify-center">
+                <span className="text-2xl font-black text-gray-800">{totalTasks}</span>
+                <span className="text-[10px] text-gray-400 font-semibold uppercase tracking-wider">Total Tasks</span>
+              </div>
+            )}
+          </div>
+
+          {/* Legend Items with Badges */}
+          <div className="space-y-2.5 pt-4 border-t border-gray-50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#7460ee]"></span>
+                Completed Tasks
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-gray-700">{completedTasks}</span>
+                <span className="text-[10px] font-bold text-green-500 bg-green-50 border border-green-100 rounded-md px-1.5 py-0.5">+12.5%</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#26c6da]"></span>
+                In Progress
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-gray-700">{inProgressTasks}</span>
+                <span className="text-[10px] font-bold text-yellow-500 bg-yellow-50 border border-yellow-100 rounded-md px-1.5 py-0.5">+8.3%</span>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-medium text-gray-600">
+                <span className="w-2.5 h-2.5 rounded-full bg-[#ffb22b]"></span>
+                Pending Tasks
+              </div>
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-bold text-gray-700">{pendingTasks}</span>
+                <span className="text-[10px] font-bold text-red-500 bg-red-50 border border-red-100 rounded-md px-1.5 py-0.5">-2.1%</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

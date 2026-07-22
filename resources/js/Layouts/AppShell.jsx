@@ -128,12 +128,14 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
       <div className="mp-wrapper">
         {/* Blue topbar — full width */}
         <header className="mp-topbar">
-          <div className="mp-topbar-logo-area hidden md:flex" style={{ width: logoWidth, minWidth: logoWidth }}>
-            <Link href="/" className="mp-topbar-brand" style={{ display: collapsed && !isMobileOpen ? "none" : "flex" }}>
-              <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest Logo" className="w-12 h-12 rounded-lg object-contain" />
-              <span className="mp-topbar-brand-text">
-                Work<span>Nest</span>
-              </span>
+          <div className="mp-topbar-logo-area hidden md:flex" style={{ width: logoWidth, minWidth: logoWidth, paddingLeft: collapsed && !isMobileOpen ? '0px' : '20px' }}>
+            <Link href="/" className="mp-topbar-brand flex items-center justify-center w-full">
+              <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest Logo" className="w-10 h-10 rounded-lg object-contain" />
+              {(!collapsed || isMobileOpen) && (
+                <span className="mp-topbar-brand-text ml-2">
+                  Work<span>Nest</span>
+                </span>
+              )}
             </Link>
           </div>
 

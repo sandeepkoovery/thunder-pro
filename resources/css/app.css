@@ -196,12 +196,12 @@ body:has(.mp-wrapper) {
   align-items: center;
   justify-content: space-between;
   padding: 0;
-  background: var(--theme-primary);
-  box-shadow: 0 2px 10px rgba(30, 136, 229, 0.35);
+  background: #2b1440;
+  box-shadow: 0 2px 10px rgba(43, 20, 64, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.mp-topbar img[src*="worknest_logo.png"],
-.mp-topbar-logo-area img[src*="worknest_logo.png"] {
+.mp-topbar-center img[src*="worknest_logo.png"] {
   filter: brightness(0) invert(1) !important;
 }
 
@@ -212,7 +212,9 @@ body:has(.mp-wrapper) {
   display: flex;
   align-items: center;
   padding-left: 20px;
-  background: var(--theme-primary);
+  background: #ffffff;
+  border-right: 1px solid var(--theme-border);
+  border-bottom: 1px solid var(--theme-border);
   transition: width 0.2s ease, min-width 0.2s ease;
 }
 
@@ -224,16 +226,16 @@ body:has(.mp-wrapper) {
 }
 
 .mp-topbar-brand-text {
-  color: #ffffff !important;
+  color: #1e293b !important;
   font-weight: 600 !important;
-  font-size: 18px !important;
+  font-size: 19px !important;
   letter-spacing: 0.3px;
   white-space: nowrap;
 }
 
 .mp-topbar-brand-text span {
-  font-weight: 300 !important;
-  opacity: 0.9;
+  color: #7460ee !important;
+  font-weight: 600 !important;
 }
 
 .mp-topbar-center {
@@ -438,11 +440,11 @@ body:has(.mp-wrapper) {
 }
 
 .mp-nav-link.active {
-  background-color: var(--theme-primary) !important;
-  color: #ffffff !important;
-  font-weight: 400 !important;
+  background-color: #efeafc !important;
+  color: #7460ee !important;
+  font-weight: 500 !important;
   opacity: 1 !important;
-  box-shadow: 0 4px 14px rgba(30, 136, 229, 0.35) !important;
+  box-shadow: none !important;
 }
 
 .mp-nav-icon {
@@ -456,20 +458,20 @@ body:has(.mp-wrapper) {
 }
 
 .mp-nav-link.active .mp-nav-icon {
-  color: #ffffff !important;
+  color: #7460ee !important;
 }
 
 .mp-nav-link:hover .mp-nav-icon {
-  color: var(--theme-primary) !important;
+  color: #7460ee !important;
 }
 
 .mp-nav-link.active:hover {
-  background-color: var(--theme-primary-dark) !important;
-  color: #ffffff !important;
+  background-color: #e5defa !important;
+  color: #7460ee !important;
 }
 
 .mp-nav-link.active:hover .mp-nav-icon {
-  color: #ffffff !important;
+  color: #7460ee !important;
 }
 
 .mp-nav-text {
@@ -1264,4 +1266,78 @@ body:has(.mp-wrapper) {
   .mp-topbar-brand-text { font-size: 15px !important; }
   .mp-main { padding: 10px 10px calc(70px + var(--safe-bottom)) !important; }
   .mp-bottom-nav { height: 56px; }
+}
+
+/* Force white text for header breadcrumbs inside purple banner */
+.mp-header-breadcrumb,
+.mp-header-breadcrumb a,
+.mp-header-breadcrumb span {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-weight: 400 !important;
+  text-decoration: none !important;
+  transition: color 0.15s ease;
+}
+
+.mp-header-breadcrumb a:hover {
+  color: #ffffff !important;
+}
+
+/* Specific overrides for the deep purple Vuesy header banner */
+.mp-vuesy-header,
+.mp-vuesy-header h1,
+.mp-vuesy-header p,
+.mp-vuesy-header span,
+.mp-vuesy-header strong,
+.mp-vuesy-header a,
+.mp-vuesy-header div {
+  color: #ffffff !important;
+}
+
+.mp-vuesy-header .text-purple-200,
+.mp-vuesy-header .text-purple-300 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.mp-vuesy-header .text-green-400 {
+  color: #4ade80 !important; /* light green */
+}
+
+.mp-vuesy-header .text-yellow-300 {
+  color: #fde047 !important; /* light yellow */
+}
+
+.mp-vuesy-header .text-blue-300 {
+  color: #93c5fd !important; /* light blue */
+}
+
+.mp-vuesy-header .text-pink-300 {
+  color: #f9a8d4 !important; /* light pink */
+}
+
+.mp-vuesy-header .text-emerald-300 {
+  color: #6ee7b7 !important; /* light emerald */
+}
+
+.mp-vuesy-header a:hover {
+  color: #ffffff !important;
+  opacity: 1 !important;
+}
+
+/* Prevent white text overrides inside the attendance capsule */
+.mp-vuesy-header .mp-attendance-capsule,
+.mp-vuesy-header .mp-attendance-capsule * {
+  color: revert !important;
+}
+
+.mp-vuesy-header .mp-attendance-capsule .text-gray-800,
+.mp-vuesy-header .mp-attendance-capsule .text-gray-500 {
+  color: #1f2937 !important; /* dark slate/gray text */
+}
+
+.mp-vuesy-header .mp-attendance-capsule .text-orange-600 {
+  color: #ea580c !important; /* break timer text */
+}
+
+.mp-vuesy-header .mp-attendance-capsule button {
+  color: #ffffff !important; /* white text for buttons */
 }

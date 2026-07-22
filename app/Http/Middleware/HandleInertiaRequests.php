@@ -8,6 +8,21 @@ use Inertia\Middleware;
 class HandleInertiaRequests extends Middleware
 {
     /**
+     * Handle the incoming request.
+     */
+    public function handle(Request $request, \Closure $next)
+    {
+        $response = parent::handle($request, $next);
+
+        if ($request->header('X-Inertia')) {
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            $response->headers->set('Vary', 'X-Inertia');
+        }
+
+        return $response;
+    }
+
+    /**
      * The root template that is loaded on the first page visit.
      *
      * @var string

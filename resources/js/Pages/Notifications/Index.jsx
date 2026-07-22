@@ -109,40 +109,38 @@ export default function NotificationsIndex({ initialNotifications = [] }) {
   const renderGroup = (title, list) => {
     if (list.length === 0) return null;
     return (
-      <div key={title} className="space-y-3 pt-6 first:pt-0">
+      <div key={title} className="space-y-1">
         {/* UPPERCASE gray tiny header */}
-        <h2 className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">{title}</h2>
+        <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-4 pt-6 pb-2">{title}</div>
         
-        <div className="divide-y divide-gray-100/60 bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="bg-white border-y border-gray-100 divide-y divide-gray-100">
           {list.map(notif => (
             <div
               key={notif.id}
-              className={`p-4 flex items-start gap-4 transition-colors relative hover:bg-slate-50/30 ${
-                notif.is_read ? 'opacity-85' : 'bg-blue-50/10'
-              }`}
+              className="p-4 sm:py-5 sm:px-6 flex items-start gap-4 transition-colors relative hover:bg-slate-50/50"
             >
               {/* Left Side Avatar */}
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 mt-0.5">
                 {getAvatar(notif)}
               </div>
 
               {/* Middle Content */}
               <div className="flex-1 min-w-0 pr-6">
-                <h3 className={`text-sm text-gray-900 leading-snug ${notif.is_read ? 'font-semibold text-gray-700' : 'font-bold'}`}>
+                <div className={`text-[13px] sm:text-sm text-slate-800 leading-snug font-semibold`}>
                   {notif.title}
-                </h3>
-                <p className="text-xs text-gray-500 mt-1 leading-relaxed">{notif.message}</p>
-                <div className="flex items-center gap-1 text-[10px] text-gray-400 font-semibold mt-2">
-                  <Clock size={11} />
+                </div>
+                <p className="text-xs text-slate-500 mt-1 leading-relaxed">{notif.message}</p>
+                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium mt-1.5">
+                  <Clock size={12} className="text-slate-300" />
                   <span>{notif.time}</span>
                 </div>
               </div>
 
               {/* Right Side Options & Unread status dot */}
-              <div className="flex items-center gap-2 flex-shrink-0 self-center">
+              <div className="flex items-center gap-4 flex-shrink-0 self-center">
                 {/* Unread indicator dot */}
                 {!notif.is_read && (
-                  <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse flex-shrink-0" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-blue-600 flex-shrink-0" />
                 )}
 
                 {/* Dropdown triggers */}
@@ -152,8 +150,7 @@ export default function NotificationsIndex({ initialNotifications = [] }) {
                       e.stopPropagation();
                       setActiveMenuId(activeMenuId === notif.id ? null : notif.id);
                     }}
-                    className="p-1 hover:bg-gray-150 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
-                    style={{ minHeight: '32px' }}
+                    className="p-1.5 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
                   >
                     <MoreVertical size={16} />
                   </button>
@@ -196,7 +193,7 @@ export default function NotificationsIndex({ initialNotifications = [] }) {
         {/* Header Panel */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Notification Center</h1>
+            <div className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">Notification Center</div>
             <p className="text-sm text-gray-400 mt-0.5">Manage and track your latest system events and alerts</p>
           </div>
           {notifications.some(n => !n.is_read) && (

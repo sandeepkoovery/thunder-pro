@@ -512,7 +512,21 @@ export default function ThemeCustomizer({ isOpen: controlledIsOpen, setIsOpen: c
         .dark-theme img[src*="worknest_logo.png"] {
           filter: brightness(0) invert(1);
         }
-
+        .dark-theme .mp-topbar-logo-area {
+          background: #1e293b !important;
+          border-right-color: #334155 !important;
+          border-bottom-color: #334155 !important;
+        }
+        .dark-theme .mp-topbar-brand-text {
+          color: #f1f5f9 !important;
+        }
+        .dark-theme .mp-nav-link.active {
+          background-color: rgba(116, 96, 238, 0.15) !important;
+          color: #b4a2ff !important;
+        }
+        .dark-theme .mp-nav-link.active .mp-nav-icon {
+          color: #b4a2ff !important;
+        }
         .dark-theme .mp-sidebar {
           background: #1e293b !important;
         }
