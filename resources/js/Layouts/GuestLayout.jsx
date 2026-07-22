@@ -29,7 +29,7 @@ export default function GuestLayout({ children }) {
             <div className="relative z-10 w-full max-w-md">
                 <div className="flex justify-center mb-8">
                     <Link href="/" className="flex flex-col items-center gap-3 group">
-                        <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest Logo" className="w-20 h-20 rounded-2xl shadow-md object-contain" />
+                        <img src={getAssetUrl('images/worknest_logo.png?v=4')} alt="WorkNest Logo" className="w-20 h-20 rounded-2xl shadow-md object-contain" />
                         <span className="text-2xl font-bold tracking-tight text-mp-heading">
                             Work<span className="text-emerald-600">Nest</span>
                         </span>

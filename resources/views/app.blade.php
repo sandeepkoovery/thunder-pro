@@ -12,8 +12,8 @@
         <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
         <!-- PWA Meta Tags -->
         <meta name="theme-color" content="#00A8FF">
-        <link rel="manifest" href="{{ url('/manifest.webmanifest') }}">
-        <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png') }}">
+        <link rel="manifest" href="{{ url('/manifest.webmanifest?v=4') }}">
+        <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png?v=4') }}">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <meta name="apple-mobile-web-app-title" content="WorkNest">

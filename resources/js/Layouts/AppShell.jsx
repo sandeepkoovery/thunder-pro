@@ -130,7 +130,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
         <header className="mp-topbar">
           <div className="mp-topbar-logo-area hidden md:flex" style={{ width: logoWidth, minWidth: logoWidth, paddingLeft: collapsed && !isMobileOpen ? '0px' : '20px' }}>
             <Link href="/" className="mp-topbar-brand flex items-center justify-center w-full">
-              <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest Logo" className="w-10 h-10 rounded-lg object-contain" />
+              <img src={getAssetUrl('images/worknest_logo.png?v=4')} alt="WorkNest Logo" className="w-10 h-10 rounded-lg object-contain" />
               {(!collapsed || isMobileOpen) && (
                 <span className="mp-topbar-brand-text ml-2">
                   Work<span>Nest</span>
@@ -154,7 +154,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
               <Menu size={22} />
             </button>
             <div className="md:hidden flex items-center gap-2">
-              <img src={getAssetUrl('images/worknest_logo.png?v=3')} alt="WorkNest" className="w-8 h-8 rounded-lg object-contain" />
+              <img src={getAssetUrl('images/worknest_logo.png?v=4')} alt="WorkNest" className="w-8 h-8 rounded-lg object-contain" />
               <span className="text-white font-black text-sm tracking-wider uppercase">WorkNest</span>
             </div>
             <div className="mp-topbar-search-wrap">
