@@ -1,3 +1,4 @@
+// resources/js/Pages/Welcome.jsx
 import { Head, Link } from "@inertiajs/react";
 import { usePage } from "@inertiajs/react";
 import { useState, useEffect } from "react";
@@ -53,7 +54,6 @@ export default function Welcome({ canLogin, canRegister }) {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-
     const modules = [
         {
             icon: FolderKanban,
@@ -92,7 +92,7 @@ export default function Welcome({ canLogin, canRegister }) {
         },
         {
             icon: BarChart3,
-            title: "Reports",
+            title: "Reports & Analytics",
             description: "Generate deep analytic charts on task output, worker efficiency, shifts, and export raw data summaries to CSV/PDF."
         },
         {
@@ -111,29 +111,29 @@ export default function Welcome({ canLogin, canRegister }) {
         <>
             <Head title="WorkNest - Unified Project & Workforce Management" />
 
-            <div className="min-h-screen bg-white relative overflow-hidden font-sans selection:bg-[#00A8FF]/10 selection:text-[#00A8FF]">
+            <div className="min-h-screen bg-white relative overflow-hidden font-sans selection:bg-[#7460ee]/10 selection:text-[#7460ee]">
                 
                 {/* Background Grid Pattern & Radial Gradients */}
                 <div className="absolute inset-0 grid-lines-bg z-0 pointer-events-none opacity-[0.4]"></div>
-                <div className="absolute top-[-10%] left-[20%] w-[55%] h-[55%] bg-[#00A8FF]/5 rounded-full blur-[140px] opacity-70 pointer-events-none"></div>
+                <div className="absolute top-[-10%] left-[20%] w-[55%] h-[55%] bg-[#7460ee]/5 rounded-full blur-[140px] opacity-70 pointer-events-none"></div>
 
                 {/* Sticky Header Navbar */}
                 <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? "bg-white/80 backdrop-blur-md border-b border-slate-100 shadow-sm py-4" : "bg-transparent py-6"}`}>
                     <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 flex justify-between items-center">
-                        {/* Logo left side styled in sky-blue */}
+                        {/* Logo left side styled in violet/purple */}
                         <div className="flex items-center gap-3 sm:gap-5">
                             <img src={getAssetUrl('images/worknest_logo.png?v=4')} alt="WorkNest" className="w-16 h-16 sm:w-32 sm:h-32 rounded-3xl object-contain" />
-                            <span className="text-2xl sm:text-4xl font-black tracking-widest text-[#00A8FF] uppercase">
+                            <span className="text-2xl sm:text-4xl font-black tracking-widest text-[#7460ee] uppercase">
                                 WorkNest
                             </span>
                         </div>
 
                         {/* Navigation links */}
                         <div className="hidden md:flex items-center gap-10">
-                            <a href="#" className="text-slate-500 hover:text-[#00A8FF] text-[15px] font-semibold transition-colors">Home</a>
-                            <a href="#features" className="text-slate-500 hover:text-[#00A8FF] text-[15px] font-semibold transition-colors">Features</a>
-                            <a href="#" className="text-slate-500 hover:text-[#00A8FF] text-[15px] font-semibold transition-colors">Pricing</a>
-                            <a href="#" className="text-slate-500 hover:text-[#00A8FF] text-[15px] font-semibold transition-colors">Contact</a>
+                            <a href="#" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Home</a>
+                            <a href="#features" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Features</a>
+                            <a href="#" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Pricing</a>
+                            <a href="#" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Contact</a>
                         </div>
 
                         {/* Right Side CTA with proper auth checks */}
@@ -141,7 +141,7 @@ export default function Welcome({ canLogin, canRegister }) {
                             {auth?.user ? (
                                 <Link 
                                     href="/dashboard" 
-                                    className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
+                                    className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#7460ee] hover:bg-[#5e45d6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
                                     style={{ minHeight: '44px' }}
                                 >
                                     Dashboard
@@ -149,7 +149,7 @@ export default function Welcome({ canLogin, canRegister }) {
                             ) : (
                                 <Link 
                                     href={route('login')} 
-                                    className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#00A8FF] hover:bg-[#0097e6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
+                                    className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#7460ee] hover:bg-[#5e45d6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
                                     style={{ minHeight: '44px' }}
                                 >
                                     Login
@@ -162,11 +162,11 @@ export default function Welcome({ canLogin, canRegister }) {
                 {/* Hero Section - Full Width layout container */}
                 <main className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-32 pb-12">
                     
-                    <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center mb-12">
+                    <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center mb-20">
                         
                         {/* Hero Left Content Column */}
                         <div className="lg:col-span-5 flex flex-col justify-center space-y-7">
-                            <h1 className="text-4xl sm:text-5xl md:text-[62px] font-black text-[#0B132B] leading-[1.08] tracking-tight">
+                            <h1 className="text-4xl sm:text-5xl md:text-[62px] font-black text-[#2b1440] leading-[1.08] tracking-tight">
                                 Workforce & Project Management
                             </h1>
                             
@@ -174,14 +174,14 @@ export default function Welcome({ canLogin, canRegister }) {
                                 Streamline your operations with a unified workspace. Manage projects, tasks, attendance tracking, leave requests, employee profiles, and team collaboration in one secure system.
                             </p>
  
-                            {/* Bullet points with blue dots exactly like screenshot */}
+                            {/* Bullet points with purple dots matching custom theme */}
                             <div className="space-y-3.5 pt-2">
                                 <div className="flex items-center gap-3.5 text-[15px] font-bold text-slate-600">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-[#00A8FF] flex-shrink-0"></span>
+                                    <span className="w-2.5 h-2.5 rounded-full bg-[#7460ee] flex-shrink-0"></span>
                                     Track daily attendance logs and shift schedules.
                                 </div>
                                 <div className="flex items-center gap-3.5 text-[15px] font-bold text-slate-600">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-[#00A8FF] flex-shrink-0"></span>
+                                    <span className="w-2.5 h-2.5 rounded-full bg-[#7460ee] flex-shrink-0"></span>
                                     Manage projects, tasks, and leave requests effortlessly.
                                 </div>
                             </div>
@@ -190,7 +190,7 @@ export default function Welcome({ canLogin, canRegister }) {
                             <div className="pt-4">
                                 <Link
                                     href={auth?.user ? "/dashboard" : route('login')}
-                                    className="inline-flex items-center justify-center px-9 py-4 bg-[#00A8FF] hover:bg-[#0097e6] text-white font-extrabold rounded-2xl text-[14px] sm:text-[15px] uppercase tracking-wider transition-colors shadow-sm"
+                                    className="inline-flex items-center justify-center px-9 py-4 bg-[#7460ee] hover:bg-[#5e45d6] text-white font-extrabold rounded-2xl text-[14px] sm:text-[15px] uppercase tracking-wider transition-colors shadow-sm"
                                     style={{ minHeight: '44px' }}
                                 >
                                     {auth?.user ? "Dashboard" : "Get Started"}
@@ -210,38 +210,43 @@ export default function Welcome({ canLogin, canRegister }) {
                         </div>
 
                     </div>
+                </main>
 
+                {/* Features Section - STYLED EXACTLY LIKE THE GRADIENT DARK VIOLET SYSTEM SCREENSHOT */}
+                <div id="features" className="bg-gradient-to-br from-[#1d0d2b] via-[#2b1440] to-[#150a20] py-24 relative overflow-hidden">
+                    {/* Background Grid Pattern inside gradient */}
+                    <div className="absolute inset-0 grid-lines-bg z-0 pointer-events-none opacity-[0.06]"></div>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] h-[70%] bg-[#7460ee]/10 rounded-full blur-[160px] opacity-60 pointer-events-none"></div>
 
-                    {/* Features Section (10 Modules responsive cards grid styled for this theme) */}
-                    <div id="features" className="pt-12 border-t border-slate-100 mb-12">
+                    <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
                         
                         <div className="text-center max-w-2xl mx-auto mb-16">
-                            <span className="inline-flex items-center gap-1 bg-[#00A8FF]/5 text-[#00A8FF] px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-[#00A8FF]/10 mb-4">
+                            <span className="inline-flex items-center gap-1 bg-white/10 text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-white/10 mb-4">
                                 + WorkNest Modules
                             </span>
-                            <h2 className="text-3xl sm:text-[42px] font-black text-[#0B132B] tracking-tight leading-[1.1] mb-5">
+                            <h2 className="text-4xl sm:text-5xl md:text-[54px] font-black text-white tracking-tight leading-[1.1] mb-5">
                                 Everything You Need to Succeed with WorkNest
                             </h2>
-                            <p className="text-base sm:text-[17px] text-slate-500 font-medium leading-relaxed">
+                            <p className="text-base sm:text-[17px] text-purple-200/70 font-medium leading-relaxed">
                                 From custom workflows to deep employee metrics, WorkNest gives you everything you need to run your workforce.
                             </p>
                         </div>
 
-                        {/* Features Responsive 4-Column Grid with reduced spacing gap */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto px-4">
+                        {/* Glassmorphic 3-Column / 4-Column Grid exactly like screenshot */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {modules.map((m, i) => {
                                 const Icon = m.icon;
                                 return (
-                                    <div key={i} className="bg-white rounded-[24px] p-7 border border-slate-100/80 hover:border-[#00A8FF]/30 hover:shadow-[0_12px_40px_rgba(59,130,246,0.08)] hover:-translate-y-1 transition-all duration-300 shadow-[0_8px_30px_rgba(0,0,0,0.015)] flex flex-col justify-between">
+                                    <div key={i} className="bg-black/35 backdrop-blur-md rounded-[24px] p-7 border border-white/10 hover:border-white/20 hover:bg-black/45 transition-all duration-300 shadow-2xl flex flex-col justify-between">
                                         <div>
                                             {/* Glowing soft icon badge */}
-                                            <div className="w-12 h-12 rounded-2xl bg-[#00A8FF]/10 text-[#00A8FF] flex items-center justify-center shadow-[0_4px_14px_rgba(0,168,255,0.15)] mb-5">
-                                                <Icon size={20} />
+                                            <div className="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center shadow-[0_4px_14px_rgba(255,255,255,0.08)] mb-5">
+                                                <Icon size={20} className="text-purple-300" />
                                             </div>
-                                            <h3 className="text-[18px] font-extrabold text-[#0B132B] mb-3 tracking-tight">
+                                            <h3 className="text-[18px] font-extrabold text-white mb-3 tracking-tight">
                                                 {m.title}
                                             </h3>
-                                            <p className="text-[13.5px] text-slate-500 leading-relaxed font-medium">
+                                            <p className="text-[13.5px] text-purple-200/70 leading-relaxed font-medium">
                                                 {m.description}
                                             </p>
                                         </div>
@@ -250,8 +255,7 @@ export default function Welcome({ canLogin, canRegister }) {
                             })}
                         </div>
                     </div>
-
-                </main>
+                </div>
 
                 {/* Footer Section */}
                 <footer className="border-t border-slate-100 bg-white py-10 relative z-50 text-slate-500">
@@ -260,7 +264,7 @@ export default function Welcome({ canLogin, canRegister }) {
                         <div className="space-y-4 col-span-2 md:col-span-1">
                             <div className="flex items-center gap-3">
                                 <img src={getAssetUrl('images/worknest_logo.png?v=4')} alt="WorkNest" className="w-10 h-10 rounded-xl object-contain" />
-                                <span className="text-lg font-black tracking-tight text-[#0B132B]">
+                                <span className="text-lg font-black tracking-tight text-[#2b1440]">
                                     WorkNest
                                 </span>
                             </div>
@@ -269,31 +273,31 @@ export default function Welcome({ canLogin, canRegister }) {
 
                         {/* Box */}
                         <div className="space-y-4">
-                            <h4 className="text-xs font-bold text-[#0B132B] uppercase tracking-wider">Quick Links</h4>
+                            <h4 className="text-xs font-bold text-[#2b1440] uppercase tracking-wider">Quick Links</h4>
                             <ul className="space-y-2.5 text-xs text-[#6B7280]">
-                                <li><a href="#" className="hover:text-[#00A8FF] transition-colors">Home</a></li>
-                                <li><a href="#features" className="hover:text-[#00A8FF] transition-colors">Features</a></li>
-                                <li><a href="#" className="hover:text-[#00A8FF] transition-colors">Pricing</a></li>
-                                <li><a href="#" className="hover:text-[#00A8FF] transition-colors">Contact</a></li>
+                                <li><a href="#" className="hover:text-[#7460ee] transition-colors">Home</a></li>
+                                <li><a href="#features" className="hover:text-[#7460ee] transition-colors">Features</a></li>
+                                <li><a href="#" className="hover:text-[#7460ee] transition-colors">Pricing</a></li>
+                                <li><a href="#" className="hover:text-[#7460ee] transition-colors">Contact</a></li>
                             </ul>
                         </div>
 
                         {/* Box */}
                         <div className="space-y-4">
-                            <h4 className="text-xs font-bold text-[#0B132B] uppercase tracking-wider">Resources</h4>
+                            <h4 className="text-xs font-bold text-[#2b1440] uppercase tracking-wider">Resources</h4>
                             <ul className="space-y-2.5 text-xs text-[#6B7280]">
-                                <li><a href="#" className="hover:text-[#00A8FF] transition-colors">Help Center</a></li>
-                                <li><a href="#" className="hover:text-[#00A8FF] transition-colors">Security</a></li>
-                                <li><a href="#" className="hover:text-[#00A8FF] transition-colors">API Docs</a></li>
+                                <li><a href="#" className="hover:text-[#7460ee] transition-colors">Help Center</a></li>
+                                <li><a href="#" className="hover:text-[#7460ee] transition-colors">Security</a></li>
+                                <li><a href="#" className="hover:text-[#7460ee] transition-colors">API Docs</a></li>
                             </ul>
                         </div>
 
                         {/* Box */}
                         <div className="space-y-4">
-                            <h4 className="text-xs font-bold text-[#0B132B] uppercase tracking-wider">Legal</h4>
+                            <h4 className="text-xs font-bold text-[#2b1440] uppercase tracking-wider">Legal</h4>
                             <ul className="space-y-2.5 text-xs text-[#6B7280]">
-                                <li><a href="#" className="hover:text-[#00A8FF] transition-colors">Privacy Policy</a></li>
-                                <li><a href="#" className="hover:text-[#00A8FF] transition-colors">Terms of Service</a></li>
+                                <li><a href="#" className="hover:text-[#7460ee] transition-colors">Privacy Policy</a></li>
+                                <li><a href="#" className="hover:text-[#7460ee] transition-colors">Terms of Service</a></li>
                             </ul>
                         </div>
 
@@ -302,9 +306,9 @@ export default function Welcome({ canLogin, canRegister }) {
                     <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 border-t border-slate-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
                         <p className="text-xs text-[#6B7280]">© {new Date().getFullYear()} WorkNest. All rights reserved.</p>
                         <div className="flex items-center gap-5 text-xs font-semibold">
-                            <a href="#" className="hover:text-[#00A8FF]">Twitter</a>
-                            <a href="#" className="hover:text-[#00A8FF]">LinkedIn</a>
-                            <a href="#" className="hover:text-[#00A8FF]">GitHub</a>
+                            <a href="#" className="hover:text-[#7460ee]">Twitter</a>
+                            <a href="#" className="hover:text-[#7460ee]">LinkedIn</a>
+                            <a href="#" className="hover:text-[#7460ee]">GitHub</a>
                         </div>
                     </div>
                 </footer>
@@ -315,7 +319,7 @@ export default function Welcome({ canLogin, canRegister }) {
                 __html: `
                 .grid-lines-bg {
                     background-image: 
-                        radial-gradient(rgba(0, 168, 255, 0.06) 1.25px, transparent 1.25px);
+                        radial-gradient(rgba(116, 96, 238, 0.06) 1.25px, transparent 1.25px);
                     background-size: 28px 28px;
                 }
             `}} />
