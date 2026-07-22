@@ -58,7 +58,7 @@ export default function Welcome({ canLogin, canRegister }) {
         {
             icon: FolderKanban,
             title: "Project Management",
-            description: "Organize tasks, track progress on interactive Kanban boards, set milestones, and meet project deadlines effortlessly."
+            description: "Organize tasks, track progress on interactive project logs, set milestones, and meet project deadlines effortlessly."
         },
         {
             icon: CheckSquare,
@@ -81,29 +81,9 @@ export default function Welcome({ canLogin, canRegister }) {
             description: "Submit leave requests, track approvals through manager hierarchies, and check individual balances instantly."
         },
         {
-            icon: Calendar,
-            title: "Event Calendar",
-            description: "Schedule company meetings, coordinate major events, set visual deadline reminders, and sync with external tools."
-        },
-        {
-            icon: MessageSquare,
-            title: "Team Chat",
-            description: "Foster seamless collaboration with instant messaging channels, group chats, notifications, and company announcements."
-        },
-        {
             icon: BarChart3,
             title: "Reports & Analytics",
             description: "Generate deep analytic charts on task output, worker efficiency, shifts, and export raw data summaries to CSV/PDF."
-        },
-        {
-            icon: Bell,
-            title: "Notifications",
-            description: "Receive instant push alerts and customizable email reminders for task updates, shift changes, and approvals."
-        },
-        {
-            icon: Download,
-            title: "Progressive Web App",
-            description: "Install the dashboard on your desktop or mobile device (Android/iOS) for a native app experience with offline capability."
         }
     ];
 
@@ -116,10 +96,12 @@ export default function Welcome({ canLogin, canRegister }) {
                 {/* Background Grid Pattern & Radial Gradients */}
                 <div className="absolute inset-0 grid-lines-bg z-0 pointer-events-none opacity-[0.4]"></div>
                 <div className="absolute top-[-10%] left-[20%] w-[55%] h-[55%] bg-[#7460ee]/5 rounded-full blur-[140px] opacity-70 pointer-events-none"></div>
+                {/* Wavy background organic curve behind text similar to screenshot */}
+                <div className="absolute top-0 left-0 w-[55%] h-[780px] bg-gradient-to-br from-[#7460ee]/8 via-[#7460ee]/3 to-transparent rounded-br-[250px] lg:rounded-br-[450px] pointer-events-none z-0"></div>
 
                 {/* Sticky Header Navbar */}
                 <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled ? "bg-white/80 backdrop-blur-md border-b border-slate-100 shadow-sm py-4" : "bg-transparent py-6"}`}>
-                    <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 flex justify-between items-center">
+                    <div className="max-w-[1512px] mx-auto px-4 sm:px-5 lg:px-6 flex justify-between items-center">
                         {/* Logo left side styled in violet/purple */}
                         <div className="flex items-center gap-3 sm:gap-5">
                             <img src={getAssetUrl('images/worknest_logo.png?v=4')} alt="WorkNest" className="w-16 h-16 sm:w-32 sm:h-32 rounded-3xl object-contain" />
@@ -160,53 +142,77 @@ export default function Welcome({ canLogin, canRegister }) {
                 </nav>
  
                 {/* Hero Section - Full Width layout container */}
-                <main className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 pt-32 pb-12">
+                <main className="relative z-10 max-w-[1512px] mx-auto px-4 sm:px-5 lg:px-6 pt-[180px] pb-0">
                     
                     <div className="grid lg:grid-cols-12 gap-12 lg:gap-16 items-center mb-20">
                         
                         {/* Hero Left Content Column */}
-                        <div className="lg:col-span-5 flex flex-col justify-center space-y-7">
-                            <h1 className="text-4xl sm:text-5xl md:text-[62px] font-black text-[#2b1440] leading-[1.08] tracking-tight">
-                                Workforce & Project Management
+                        <div className="lg:col-span-7 flex flex-col justify-center space-y-7">
+                            <h1 className="text-4xl sm:text-5xl md:text-[62px] lg:text-[56px] xl:text-[68px] font-black text-[#2b1440] leading-[1.08] tracking-tight lg:whitespace-nowrap">
+                                Modern Workspace & Project Logger
                             </h1>
                             
                             <p className="text-base text-slate-500 font-medium leading-relaxed">
-                                Streamline your operations with a unified workspace. Manage projects, tasks, attendance tracking, leave requests, employee profiles, and team collaboration in one secure system.
+                                Take control of your organization with WorkNest ERP. Our all-in-one platform connects task assignments, worker schedules, visual project boards, multi-level leave approvals, and live attendance metrics into a unified, responsive interface designed for growth. Boost your team's productivity, automate repetitive approval flows, and track real-time analytics from any desktop or mobile device seamlessly. Empower managers with visual timeline projections and interactive employee scheduling tools that keep project delivery aligned with company objectives.
                             </p>
  
-                            {/* Bullet points with purple dots matching custom theme */}
-                            <div className="space-y-3.5 pt-2">
-                                <div className="flex items-center gap-3.5 text-[15px] font-bold text-slate-600">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-[#7460ee] flex-shrink-0"></span>
-                                    Track daily attendance logs and shift schedules.
+                            {/* Bullet points styled as responsive cards with check icons */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
+                                <div className="flex items-center gap-3 text-[14px] font-bold text-slate-700 bg-slate-50/50 hover:bg-white hover:border-[#7460ee]/30 hover:shadow-sm p-3 rounded-2xl border border-slate-100/60 transition-all">
+                                    <span className="w-8 h-8 rounded-lg bg-[#7460ee]/10 text-[#7460ee] flex items-center justify-center flex-shrink-0">
+                                        <Check size={16} />
+                                    </span>
+                                    <span>Project logs & task timelines</span>
                                 </div>
-                                <div className="flex items-center gap-3.5 text-[15px] font-bold text-slate-600">
-                                    <span className="w-2.5 h-2.5 rounded-full bg-[#7460ee] flex-shrink-0"></span>
-                                    Manage projects, tasks, and leave requests effortlessly.
+                                <div className="flex items-center gap-3 text-[14px] font-bold text-slate-700 bg-slate-50/50 hover:bg-white hover:border-[#7460ee]/30 hover:shadow-sm p-3 rounded-2xl border border-slate-100/60 transition-all">
+                                    <span className="w-8 h-8 rounded-lg bg-[#7460ee]/10 text-[#7460ee] flex items-center justify-center flex-shrink-0">
+                                        <Check size={16} />
+                                    </span>
+                                    <span>Employee schedules & shifts</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[14px] font-bold text-slate-700 bg-slate-50/50 hover:bg-white hover:border-[#7460ee]/30 hover:shadow-sm p-3 rounded-2xl border border-slate-100/60 transition-all">
+                                    <span className="w-8 h-8 rounded-lg bg-[#7460ee]/10 text-[#7460ee] flex items-center justify-center flex-shrink-0">
+                                        <Check size={16} />
+                                    </span>
+                                    <span>Daily attendance logger</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[14px] font-bold text-slate-700 bg-slate-50/50 hover:bg-white hover:border-[#7460ee]/30 hover:shadow-sm p-3 rounded-2xl border border-slate-100/60 transition-all">
+                                    <span className="w-8 h-8 rounded-lg bg-[#7460ee]/10 text-[#7460ee] flex items-center justify-center flex-shrink-0">
+                                        <Check size={16} />
+                                    </span>
+                                    <span>Leave approvals & balance sheets</span>
+                                </div>
+                                <div className="flex items-center gap-3 text-[14px] font-bold text-slate-700 bg-slate-50/50 hover:bg-white hover:border-[#7460ee]/30 hover:shadow-sm p-3 rounded-2xl border border-slate-100/60 transition-all sm:col-span-2">
+                                    <span className="w-8 h-8 rounded-lg bg-[#7460ee]/10 text-[#7460ee] flex items-center justify-center flex-shrink-0">
+                                        <Check size={16} />
+                                    </span>
+                                    <span>Deep analytics on workforce output & project completion</span>
                                 </div>
                             </div>
  
                             {/* Hero Signup Button */}
-                            <div className="pt-4">
-                                <Link
-                                    href={auth?.user ? "/dashboard" : route('login')}
-                                    className="inline-flex items-center justify-center px-9 py-4 bg-[#7460ee] hover:bg-[#5e45d6] text-white font-extrabold rounded-2xl text-[14px] sm:text-[15px] uppercase tracking-wider transition-colors shadow-sm"
-                                    style={{ minHeight: '44px' }}
-                                >
-                                    {auth?.user ? "Dashboard" : "Get Started"}
-                                </Link>
-                            </div>
+                             <div className="pt-4">
+                                 <a
+                                     href="#features"
+                                     onClick={(e) => {
+                                        e.preventDefault();
+                                        document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+                                     }}
+                                     className="inline-flex items-center justify-center px-9 py-4 bg-[#7460ee] hover:bg-[#5e45d6] text-white font-extrabold rounded-2xl text-[14px] sm:text-[15px] uppercase tracking-wider transition-colors shadow-sm cursor-pointer"
+                                     style={{ minHeight: '44px' }}
+                                 >
+                                     Know More
+                                 </a>
+                             </div>
                         </div>
 
                         {/* Hero Right Illustration Column */}
-                        <div className="lg:col-span-7 flex justify-center items-center">
-                            <div className="w-full max-w-[620px] p-2">
-                                <img 
-                                    src={getAssetUrl('images/framer_hero.png')} 
-                                    alt="Project Management Rocket Launch Illustration" 
-                                    className="w-full h-auto rounded-3xl"
-                                />
-                            </div>
+                        <div className="lg:col-span-5 flex justify-center items-center">
+                            <img 
+                                src={getAssetUrl('images/framer_hero.png')} 
+                                alt="Project Management Rocket Launch Illustration" 
+                                className="w-full max-w-[620px] h-auto object-contain"
+                            />
                         </div>
 
                     </div>
@@ -218,22 +224,19 @@ export default function Welcome({ canLogin, canRegister }) {
                     <div className="absolute inset-0 grid-lines-bg z-0 pointer-events-none opacity-[0.06]"></div>
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[70%] h-[70%] bg-[#7460ee]/10 rounded-full blur-[160px] opacity-60 pointer-events-none"></div>
 
-                    <div className="relative z-10 max-w-7xl mx-auto px-6 sm:px-8 lg:px-12">
+                    <div className="relative z-10 max-w-[1512px] mx-auto px-4 sm:px-5 lg:px-6">
                         
-                        <div className="text-center max-w-2xl mx-auto mb-16">
-                            <span className="inline-flex items-center gap-1 bg-white/10 text-white px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border border-white/10 mb-4">
-                                + WorkNest Modules
-                            </span>
-                            <h2 className="text-4xl sm:text-5xl md:text-[54px] font-black text-white tracking-tight leading-[1.1] mb-5">
-                                Everything You Need to Succeed with WorkNest
-                            </h2>
-                            <p className="text-base sm:text-[17px] text-purple-200/70 font-medium leading-relaxed">
+                        <div className="text-center max-w-5xl mx-auto mb-16">
+                            <h1 className="text-5xl sm:text-6xl md:text-[80px] lg:text-[96px] font-black text-white tracking-tight leading-[0.98] mb-6" style={{ color: '#ffffff' }}>
+                                Everything You Need to Succeed
+                            </h1>
+                            <p className="text-base sm:text-[18px] text-purple-200/70 font-medium leading-relaxed max-w-3xl mx-auto">
                                 From custom workflows to deep employee metrics, WorkNest gives you everything you need to run your workforce.
                             </p>
                         </div>
 
-                        {/* Glassmorphic 3-Column / 4-Column Grid exactly like screenshot */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {/* Glassmorphic 3-Column Grid exactly like screenshot */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-[1240px] mx-auto">
                             {modules.map((m, i) => {
                                 const Icon = m.icon;
                                 return (
@@ -243,7 +246,7 @@ export default function Welcome({ canLogin, canRegister }) {
                                             <div className="w-12 h-12 rounded-2xl bg-white/10 text-white flex items-center justify-center shadow-[0_4px_14px_rgba(255,255,255,0.08)] mb-5">
                                                 <Icon size={20} className="text-purple-300" />
                                             </div>
-                                            <h3 className="text-[18px] font-extrabold text-white mb-3 tracking-tight">
+                                            <h3 className="text-[19px] font-black text-white mb-3 tracking-tight" style={{ color: '#ffffff' }}>
                                                 {m.title}
                                             </h3>
                                             <p className="text-[13.5px] text-purple-200/70 leading-relaxed font-medium">
@@ -259,7 +262,7 @@ export default function Welcome({ canLogin, canRegister }) {
 
                 {/* Footer Section */}
                 <footer className="border-t border-slate-100 bg-white py-10 relative z-50 text-slate-500">
-                    <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
+                    <div className="max-w-[1512px] mx-auto px-4 sm:px-5 lg:px-6 grid grid-cols-2 md:grid-cols-4 gap-10 mb-12">
                         {/* Box */}
                         <div className="space-y-4 col-span-2 md:col-span-1">
                             <div className="flex items-center gap-3">
@@ -303,7 +306,7 @@ export default function Welcome({ canLogin, canRegister }) {
 
                     </div>
 
-                    <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 border-t border-slate-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="max-w-[1512px] mx-auto px-4 sm:px-5 lg:px-6 border-t border-slate-100 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
                         <p className="text-xs text-[#6B7280]">© {new Date().getFullYear()} WorkNest. All rights reserved.</p>
                         <div className="flex items-center gap-5 text-xs font-semibold">
                             <a href="#" className="hover:text-[#7460ee]">Twitter</a>
@@ -321,6 +324,33 @@ export default function Welcome({ canLogin, canRegister }) {
                     background-image: 
                         radial-gradient(rgba(116, 96, 238, 0.06) 1.25px, transparent 1.25px);
                     background-size: 28px 28px;
+                }
+                #features h1 {
+                    font-size: 50px !important;
+                    font-weight: 900 !important;
+                    color: #ffffff !important;
+                    line-height: 1.1 !important;
+                }
+                #features h3 {
+                    font-size: 19px !important;
+                    font-weight: 900 !important;
+                    color: #ffffff !important;
+                }
+                @media (min-width: 1024px) {
+                    #features h1 {
+                        font-size: 50px !important;
+                        white-space: nowrap !important;
+                    }
+                }
+                @media (max-width: 768px) {
+                    #features h1 {
+                        font-size: 36px !important;
+                    }
+                }
+                @media (max-width: 640px) {
+                    #features h1 {
+                        font-size: 28px !important;
+                    }
                 }
             `}} />
         </>
