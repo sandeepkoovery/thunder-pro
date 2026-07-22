@@ -15,7 +15,9 @@ import {
   Download,
   BarChart3,
   Play,
-  Check
+  Check,
+  Menu,
+  X
 } from "lucide-react";
 
 const getAssetUrl = (path) => {
@@ -41,6 +43,7 @@ const getAssetUrl = (path) => {
 export default function Welcome({ canLogin, canRegister }) {
     const { auth } = usePage().props;
     const [scrolled, setScrolled] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -110,7 +113,7 @@ export default function Welcome({ canLogin, canRegister }) {
                             </span>
                         </div>
 
-                        {/* Navigation links */}
+                        {/* Navigation links (Desktop) */}
                         <div className="hidden md:flex items-center gap-10">
                             <a href="#" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Home</a>
                             <a href="#features" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Features</a>
@@ -118,25 +121,90 @@ export default function Welcome({ canLogin, canRegister }) {
                             <a href="#" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Contact</a>
                         </div>
 
-                        {/* Right Side CTA with proper auth checks */}
+                        {/* Right Side CTA with proper auth checks & Burger Button */}
                         <div className="flex items-center gap-2 sm:gap-4">
-                            {auth?.user ? (
-                                <Link 
-                                    href="/dashboard" 
-                                    className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#7460ee] hover:bg-[#5e45d6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
-                                    style={{ minHeight: '44px' }}
-                                >
-                                    Dashboard
-                                </Link>
-                            ) : (
-                                <Link 
-                                    href={route('login')} 
-                                    className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#7460ee] hover:bg-[#5e45d6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
-                                    style={{ minHeight: '44px' }}
-                                >
-                                    Login
-                                </Link>
-                            )}
+                            <div className="hidden md:flex items-center gap-2">
+                                {auth?.user ? (
+                                    <Link 
+                                        href="/dashboard" 
+                                        className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#7460ee] hover:bg-[#5e45d6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
+                                        style={{ minHeight: '44px' }}
+                                    >
+                                        Dashboard
+                                    </Link>
+                                ) : (
+                                    <Link 
+                                        href={route('login')} 
+                                        className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#7460ee] hover:bg-[#5e45d6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
+                                        style={{ minHeight: '44px' }}
+                                    >
+                                        Login
+                                    </Link>
+                                )}
+                            </div>
+
+                            {/* Mobile Burger Toggle Button (visible on mobile / MD) */}
+                            <button
+                                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                                className="md:hidden p-2 rounded-xl bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors border border-slate-100 cursor-pointer"
+                                aria-label="Toggle menu"
+                            >
+                                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                            </button>
+                        </div>
+                    </div>
+
+                    {/* Mobile Navigation Dropdown Menu Panel (animated height/opacity) */}
+                    <div className={`md:hidden overflow-hidden transition-all duration-300 bg-white border-b border-slate-100 ${mobileMenuOpen ? "max-h-[350px] opacity-100 py-4 px-6" : "max-h-0 opacity-0 py-0"}`}>
+                        <div className="flex flex-col gap-4">
+                            <a 
+                                href="#" 
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="text-slate-600 hover:text-[#7460ee] text-[16px] font-bold py-2 border-b border-slate-50 transition-colors"
+                            >
+                                Home
+                            </a>
+                            <a 
+                                href="#features" 
+                                onClick={() => {
+                                    setMobileMenuOpen(false);
+                                    document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+                                }}
+                                className="text-slate-600 hover:text-[#7460ee] text-[16px] font-bold py-2 border-b border-slate-50 transition-colors"
+                            >
+                                Features
+                            </a>
+                            <a 
+                                href="#" 
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="text-slate-600 hover:text-[#7460ee] text-[16px] font-bold py-2 border-b border-slate-50 transition-colors"
+                            >
+                                Pricing
+                            </a>
+                            <a 
+                                href="#" 
+                                onClick={() => setMobileMenuOpen(false)}
+                                className="text-slate-600 hover:text-[#7460ee] text-[16px] font-bold py-2 border-b border-slate-50 transition-colors"
+                            >
+                                Contact
+                            </a>
+                            <div className="pt-2 flex flex-col gap-3">
+                                {auth?.user ? (
+                                    <Link 
+                                        href="/dashboard" 
+                                        className="w-full text-center px-4 py-3 text-[16px] font-bold text-white bg-[#7460ee] hover:bg-[#5e45d6] rounded-xl transition-all"
+                                    >
+                                        Dashboard
+                                    </Link>
+                                ) : (
+                                    <Link 
+                                        href={route('login')} 
+                                        className="w-full text-center px-4 py-3 text-[16px] font-bold text-white bg-[#7460ee] hover:bg-[#5e45d6] rounded-xl transition-all"
+                                    >
+                                        Login
+                                    </Link>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </nav>
