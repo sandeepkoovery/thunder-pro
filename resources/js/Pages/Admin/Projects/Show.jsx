@@ -358,29 +358,68 @@ export default function Show() {
                 </div>
               </div>
 
-              {/* Right task status distribution (1/3 width) */}
-              <div className="bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm space-y-5">
-                <h2 className="text-[15px] font-bold text-gray-900 border-b border-gray-50 pb-3">Task Status</h2>
-                
-                <div className="space-y-5">
-                  {statusOrder.map(statusKey => {
-                    const count = getStatusCount(statusKey);
-                    const percent = totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0;
-                    return (
-                      <div key={statusKey} className="space-y-2">
-                        <div className="flex justify-between items-center text-xs font-bold">
-                          <span className="text-gray-600">{columns[statusKey]}</span>
-                          <span className="text-gray-400">{String(count).padStart(2, '0')}/{String(totalTasks).padStart(2, '0')}</span>
+              {/* Right Sidebar Column (1/3 width) */}
+              <div className="space-y-6">
+                {/* Task Status */}
+                <div className="bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm space-y-5">
+                  <h2 className="text-[15px] font-bold text-gray-900 border-b border-gray-50 pb-3">Task Status</h2>
+                  
+                  <div className="space-y-5">
+                    {statusOrder.map(statusKey => {
+                      const count = getStatusCount(statusKey);
+                      const percent = totalTasks > 0 ? Math.round((count / totalTasks) * 100) : 0;
+                      return (
+                        <div key={statusKey} className="space-y-2">
+                          <div className="flex justify-between items-center text-xs font-bold">
+                            <span className="text-gray-600">{columns[statusKey]}</span>
+                            <span className="text-gray-400">{String(count).padStart(2, '0')}/{String(totalTasks).padStart(2, '0')}</span>
+                          </div>
+                          <div className="w-full bg-gray-50 rounded-full h-2 overflow-hidden border border-gray-100/50">
+                            <div 
+                              className={`h-full rounded-full transition-all duration-500 ${statusColors[statusKey] || 'bg-gray-400'}`} 
+                              style={{ width: `${percent}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="w-full bg-gray-50 rounded-full h-2 overflow-hidden border border-gray-100/50">
-                          <div 
-                            className={`h-full rounded-full transition-all duration-500 ${statusColors[statusKey] || 'bg-gray-400'}`} 
-                            style={{ width: `${percent}%` }}
-                          />
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Project Team Card */}
+                <div className="bg-white border border-gray-100 rounded-[32px] p-6 shadow-sm space-y-5">
+                  <h2 className="text-[15px] font-bold text-gray-900 border-b border-gray-50 pb-3">Project Team</h2>
+                  
+                  {Object.keys(uniqueMembers).length > 0 ? (
+                    <div className="space-y-4">
+                      {Object.values(uniqueMembers).map((member) => (
+                        <div key={member.id} className="flex items-center gap-3">
+                          {member.image ? (
+                            <img 
+                              src={member.image.startsWith('http') ? member.image : `/storage/${member.image}`} 
+                              alt={member.name} 
+                              className="w-10 h-10 rounded-full object-cover border border-slate-100 shadow-sm"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-indigo-500 flex items-center justify-center text-[13px] font-bold text-white uppercase border border-slate-100 shadow-sm">
+                              {member.name.charAt(0)}
+                            </div>
+                          )}
+                          <div>
+                            <div className="text-sm font-bold text-gray-900">{member.name}</div>
+                            <div className="text-[11px] text-gray-400 font-medium capitalize">{member.designation || 'Team Member'}</div>
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-6">
+                      <p className="text-xs text-gray-400 font-medium leading-relaxed">
+                        No team members assigned yet.<br/>
+                        <span className="text-[10px] text-slate-300 block mt-1">Assign tasks to users to automatically add them to the project team.</span>
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

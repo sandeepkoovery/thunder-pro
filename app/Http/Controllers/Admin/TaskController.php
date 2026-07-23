@@ -70,8 +70,8 @@ class TaskController extends Controller
             'assignee_ids.*' => 'exists:users,id',
         ]);
 
-        // Create the task
-        $task = Task::create($request->only([
+        // Create the task with current authenticated user as owner
+        $taskData = $request->only([
             'name',
             'caption',
             'thumb_text',
@@ -81,7 +81,10 @@ class TaskController extends Controller
             'end_date',
             'status',
             'priority',
-        ]));
+        ]);
+        $taskData['user_id'] = auth()->id();
+
+        $task = Task::create($taskData);
 
         // Detach and sync assignees
         if (!empty($validated['assignee_ids'])) {
@@ -92,14 +95,8 @@ class TaskController extends Controller
             return redirect()->route('calendar.index')->with('success', 'Task created successfully.');
         }
 
-        $updatedTasks = Task::where('project_id', $validated['project_id'])
-            ->with('assignees')
-            ->get();
-
-        return Inertia::location(route('admin.projects.show', [
-            'project' => $validated['project_id'],
-            'tasks' => $updatedTasks,
-        ]));
+        return redirect()->route('admin.projects.show', $validated['project_id'])
+            ->with('success', 'Task created successfully.');
 
         // Alternatively, use Inertia::render if the original page is the Project Show page:
         // return Inertia::render('Admin/Projects/Show', [ 
@@ -149,47 +146,8 @@ class TaskController extends Controller
             return redirect()->route('calendar.index')->with('success', 'Task updated successfully.');
         }
 
-        // --- 💡 KEY CHANGE: Return the updated task list ---
-        // Fetch all tasks for the project again, with the assignees loaded
-        $updatedTasks = Task::where('project_id', $validated['project_id'])
-            ->with('assignees') // Eager load the assignees
-            ->get();
-
-        // Send the updated tasks back to the frontend to refresh the Kanban board
-        return Inertia::location(route('admin.projects.show', [
-            'project' => $validated['project_id'],
-            'tasks' => $updatedTasks,
-        ]));
-
-        // Using Inertia::location with a full URL parameter is sometimes necessary 
-        // when submitting a form, but a simple redirect()->back() with a flash 
-        // message and a full page Inertia reload is often the simplest fix. 
-        // Let's stick with the simplest fix for form submission:
-
-        /* return redirect()->route('admin.projects.show', $validated['project_id'])
-                         ->with('success', 'Task updated successfully.');
-        // And ensure the ProjectController@show is used by Inertia to fully refresh the data.
-        */
-
-        // Based on your JS using 'onSuccess' and checking page.props.tasks, 
-        // the cleanest solution is to use Inertia::location with the updated tasks:
-
-        // return redirect()->route('admin.projects.show', $validated['project_id'])
-        //                  ->with('success', 'Task updated successfully.');
-        // Let's assume the client-side `router.post` with `preserveScroll: true` 
-        // expects the full data back if it's not redirecting.
-
-        // FINAL SUGGESTION: Change your JS request to simply use `router.reload()` on success
-        // OR ensure the ProjectController@show is correctly loading tasks/assignees.
-        // However, if you must return data, this is the way:
-        return redirect()->route('admin.projects.show', $validated['project_id'])->with([
-            'success' => 'Task updated successfully.',
-            'tasks' => $updatedTasks->toArray(),
-        ]);
-
-        // Due to the complexity of Inertia props, a simple `redirect()->back()` 
-        // forcing a full reload of the `ProjectController@show` is usually best 
-        // for `store`/`update` actions that affect a major view list.
+        return redirect()->route('admin.projects.show', $validated['project_id'])
+            ->with('success', 'Task updated successfully.');
     }
 
     /**
