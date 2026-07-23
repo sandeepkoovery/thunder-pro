@@ -311,7 +311,7 @@ Route::get('/manifest.webmanifest', function () {
         foreach ($json['icons'] as &$icon) {
             if (strpos($icon['src'], '../') === 0) {
                 $cleanSrc = substr($icon['src'], 3);
-                $icon['src'] = asset($cleanSrc) . '?v=4';
+                $icon['src'] = asset($cleanSrc) . '?v=5';
             }
         }
     }
@@ -319,7 +319,7 @@ Route::get('/manifest.webmanifest', function () {
         foreach ($json['screenshots'] as &$screenshot) {
             if (strpos($screenshot['src'], '../') === 0) {
                 $cleanSrc = substr($screenshot['src'], 3);
-                $screenshot['src'] = asset($cleanSrc) . '?v=4';
+                $screenshot['src'] = asset($cleanSrc) . '?v=5';
             }
         }
     }
