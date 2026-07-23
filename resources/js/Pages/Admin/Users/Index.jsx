@@ -188,7 +188,7 @@ export default function Index() {
       })
       .catch(error => {
         console.error("Error toggling user status:", error);
-        toast.error("Failed to update user status.");
+        toast.error(error.response?.data?.error || "Failed to update user status.");
       });
   };
 

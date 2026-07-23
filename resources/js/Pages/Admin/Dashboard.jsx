@@ -9,7 +9,9 @@ import {
   AlertCircle,
   ChevronUp,
   ChevronDown,
-  TrendingUp
+  TrendingUp,
+  CreditCard,
+  Settings,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -44,6 +46,101 @@ export default function Dashboard({
 }) {
   const { auth } = usePage().props;
   const user = auth.user;
+  const isSuperAdmin = user?.role === 'superadmin';
+
+  if (isSuperAdmin) {
+    return (
+      <div className="space-y-6">
+        <Head title="Super Admin Dashboard" />
+
+        {/* VUESY STYLE DEEP PURPLE HEADER BANNER */}
+        <div className="mp-vuesy-header bg-[#2b1440] text-white -mx-[28px] -mt-[24px] px-[28px] py-8 shadow-sm transition-all duration-300 relative rounded-b-2xl">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6 mb-6">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">Super Admin Control Panel</h1>
+              <p className="text-xs sm:text-sm text-purple-200 mt-1">
+                Manage global application workspaces, subscription plans, and general systems settings.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-purple-200 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+              <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+              <span>Logged in as <strong className="text-white font-semibold">Super Admin</strong></span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-6">
+            <div>
+              <div className="text-xs text-purple-300 font-medium uppercase tracking-wider">Total Registered Admins</div>
+              <div className="text-2xl sm:text-3xl font-bold mt-2 text-white">{stats.total_admins ?? 0}</div>
+            </div>
+          </div>
+        </div>
+
+        {/* SaaS Management Panel */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-4">
+          {/* Pricing Config Card */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div>
+              <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl w-max mb-4">
+                <CreditCard size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800">Plan Pricing & Modules</h3>
+              <p className="text-sm text-gray-500 mt-1.5">
+                Update subscription plan amounts (e.g. ₹999/month, ₹2999/month) and customize which specific modules are included in each tier.
+              </p>
+            </div>
+            <Link 
+              href={route("admin.pricing.index")}
+              className="mt-6 w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl text-center transition-colors shadow-sm shadow-emerald-600/10"
+            >
+              Configure Plans
+            </Link>
+          </div>
+
+          {/* Subscriptions Card */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div>
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-max mb-4">
+                <Users size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800">Workspace Subscriptions</h3>
+              <p className="text-sm text-gray-500 mt-1.5">
+                Check registered administrators, review active plan statuses, and manually switch plans (Basic/Premium) for clients.
+              </p>
+            </div>
+            <button 
+              onClick={() => {
+                window.location.href = route("admin.pricing.index") + "?tab=admins";
+              }}
+              className="mt-6 w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl text-center transition-colors shadow-sm shadow-blue-600/10 animate-none cursor-pointer"
+            >
+              Manage Subscriptions
+            </button>
+          </div>
+
+          {/* Site Settings Card */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col justify-between shadow-sm hover:shadow-md transition-shadow">
+            <div>
+              <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl w-max mb-4">
+                <Settings size={24} />
+              </div>
+              <h3 className="text-lg font-bold text-gray-800">General Settings</h3>
+              <p className="text-sm text-gray-500 mt-1.5">
+                Configure global settings, monthly working days calculator parameters, and handle hidden modules/beta-menu releases.
+              </p>
+            </div>
+            <Link 
+              href={route("admin.settings.index")}
+              className="mt-6 w-full py-2.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl text-center transition-colors shadow-sm shadow-purple-600/10"
+            >
+              Configure Settings
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const [statsExpanded, setStatsExpanded] = useState(true);
   const [timeframe, setTimeframe] = useState("Yearly");
   const [distributionTimeframe, setDistributionTimeframe] = useState("Monthly");

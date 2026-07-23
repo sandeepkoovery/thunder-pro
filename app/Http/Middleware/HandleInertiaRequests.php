@@ -44,6 +44,49 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $user = $request->user();
+        $plan = 'basic';
+        if ($user) {
+            if ($user->role === 'superadmin') {
+                $plan = 'premium';
+            } elseif ($user->role === 'admin') {
+                $plan = $user->plan ?? 'basic';
+            } else {
+                $admin = \App\Models\User::where('role', 'admin')->first();
+                $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
+            }
+        }
+
+        // Basic Plan active modules
+        $basicFeaturesJson = \App\Models\Setting::where('key', 'basic_plan_features')->value('value');
+        if ($basicFeaturesJson) {
+            $basicFeatures = json_decode($basicFeaturesJson, true);
+            $basicModules = [];
+            foreach ($basicFeatures as $feat) {
+                if (($feat['included'] ?? true) === true) {
+                    $basicModules[] = $feat['key'];
+                }
+            }
+        } else {
+            $basicModules = json_decode(\App\Models\Setting::where('key', 'basic_plan_modules')->value('value') ?? '[]', true);
+        }
+
+        // Premium Plan active modules
+        $premiumFeaturesJson = \App\Models\Setting::where('key', 'premium_plan_features')->value('value');
+        if ($premiumFeaturesJson) {
+            $premiumFeatures = json_decode($premiumFeaturesJson, true);
+            $premiumModules = [];
+            foreach ($premiumFeatures as $feat) {
+                if (($feat['included'] ?? true) === true) {
+                    $premiumModules[] = $feat['key'];
+                }
+            }
+        } else {
+            $premiumModules = json_decode(\App\Models\Setting::where('key', 'premium_plan_modules')->value('value') ?? '[]', true);
+        }
+
+        $allowedModules = ($plan === 'premium' || ($user && $user->role === 'superadmin')) ? $premiumModules : $basicModules;
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -54,6 +97,14 @@ class HandleInertiaRequests extends Middleware
                 'success' => $request->session()->get('success'),
                 'error' => $request->session()->get('error'),
                 'timestamp' => ($request->session()->has('success') || $request->session()->has('error')) ? microtime(true) : null,
+            ],
+            'userPlan' => $plan,
+            'allowedModules' => $allowedModules,
+            'pricingSettings' => [
+                'basic_plan_price' => \App\Models\Setting::where('key', 'basic_plan_price')->value('value') ?? '999',
+                'premium_plan_price' => \App\Models\Setting::where('key', 'premium_plan_price')->value('value') ?? '2999',
+                'basic_plan_modules' => $basicModules,
+                'premium_plan_modules' => $premiumModules,
             ],
             'sharedSettings' => [
                 'beta_menu_items' => json_decode(\App\Models\Setting::where('key', 'beta_menu_items')->value('value') ?? '[]', true),

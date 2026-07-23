@@ -14,12 +14,16 @@ import AppShell, { NavItem } from "@/Layouts/AppShell";
 import BottomNav from "@/Components/BottomNav";
 
 export default function UserLayout({ children, title = "Dashboard" }) {
-  const { auth, flash, sharedSettings } = usePage().props;
+  const { auth, flash, sharedSettings, allowedModules } = usePage().props;
   const betaMenuItems = Array.isArray(sharedSettings?.beta_menu_items) ? sharedSettings.beta_menu_items : [];
   const hiddenMenuItems = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
   const isSuperAdmin = auth?.user?.role === "superadmin";
 
-  const isVisible = (module) => isSuperAdmin || !hiddenMenuItems.includes(module);
+  const isVisible = (module) => {
+    if (isSuperAdmin) return true;
+    if (hiddenMenuItems.includes(module)) return false;
+    return Array.isArray(allowedModules) && allowedModules.includes(module);
+  };
   const [sidebarCounts, setSidebarCounts] = useState({ unread_chats: 0, pending_leaves: 0 });
 
   const fetchSidebarCounts = async () => {

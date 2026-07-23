@@ -89,7 +89,7 @@ export default function Dashboard({ stats = {}, todayAttendance, recentTasks = [
               <span className="text-xs text-purple-200 block">Welcome back,</span>
               <strong className="text-white font-bold">{auth?.user?.name}</strong>
             </div>
-            <AttendanceWidget />
+            <AttendanceWidget isDarkHeader={true} />
           </div>
         </div>
 

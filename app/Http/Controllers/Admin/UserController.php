@@ -72,6 +72,21 @@ class UserController extends Controller
         $validated['password'] = Hash::make($validated['password']);
         // Role is now validated and included in $validated
 
+        // Check user limit for Basic Plan
+        $role = $validated['role'];
+        if (in_array($role, ['user', 'manager', 'editor'])) {
+            $admin = User::where('role', 'admin')->first();
+            $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
+            if ($plan === 'basic') {
+                $activeEmployees = User::whereIn('role', ['user', 'manager', 'editor'])->where('is_active', true)->count();
+                if ($activeEmployees >= 10) {
+                    return back()->withErrors([
+                        'role' => 'You have reached the limit of 10 active employees for the Basic Plan. Upgrade to the Premium Plan to add more.'
+                    ])->withInput();
+                }
+            }
+        }
+
         User::create($validated);
 
         return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
@@ -122,6 +137,24 @@ class UserController extends Controller
             unset($validated['password']);
         }
 
+        // Check user limit for Basic Plan on update
+        $role = $validated['role'];
+        if (in_array($role, ['user', 'manager', 'editor']) && $user->role === 'admin') {
+            $admin = User::where('role', 'admin')->first();
+            $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
+            if ($plan === 'basic') {
+                $activeEmployees = User::whereIn('role', ['user', 'manager', 'editor'])
+                    ->where('is_active', true)
+                    ->where('id', '!=', $user->id)
+                    ->count();
+                if ($activeEmployees >= 10) {
+                    return back()->withErrors([
+                        'role' => 'You have reached the limit of 10 active employees for the Basic Plan. Upgrade to the Premium Plan to add more.'
+                    ])->withInput();
+                }
+            }
+        }
+
         $user->update($validated);
 
         return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');
@@ -150,6 +183,22 @@ class UserController extends Controller
 
     public function toggle(User $user)
     {
+        if (!$user->is_active) {
+            // Toggling active from false to true: check limit
+            if (in_array($user->role, ['user', 'manager', 'editor'])) {
+                $admin = User::where('role', 'admin')->first();
+                $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
+                if ($plan === 'basic') {
+                    $activeEmployees = User::whereIn('role', ['user', 'manager', 'editor'])->where('is_active', true)->count();
+                    if ($activeEmployees >= 10) {
+                        return response()->json([
+                            'error' => 'You have reached the limit of 10 active employees for the Basic Plan. Upgrade to the Premium Plan to activate this user.'
+                        ], 422);
+                    }
+                }
+            }
+        }
+
         $user->is_active = !$user->is_active;
         $user->save();
 

@@ -164,6 +164,14 @@ Route::middleware(['auth', 'is_admin'])
             // -------------------------
             Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
             Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+
+            // -------------------------
+            // ✅ PRICING ROUTES
+            // -------------------------
+            Route::get('pricing', [\App\Http\Controllers\Admin\PricingController::class, 'index'])->name('pricing.index');
+            Route::post('pricing/subscribe', [\App\Http\Controllers\Admin\PricingController::class, 'subscribe'])->name('pricing.subscribe');
+            Route::post('pricing/settings', [\App\Http\Controllers\Admin\PricingController::class, 'updateSettings'])->name('pricing.settings');
+            Route::post('pricing/admin-plan/{user}', [\App\Http\Controllers\Admin\PricingController::class, 'updateAdminPlan'])->name('pricing.admin-plan');
         });
 
         Route::resource('projects', AdminProjectController::class);

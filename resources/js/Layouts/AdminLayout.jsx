@@ -13,17 +13,22 @@ import {
   Globe,
   BarChart3,
   Bell,
+  CreditCard,
 } from "lucide-react";
 import AppShell, { NavItem } from "@/Layouts/AppShell";
 
 export default function AdminLayout({ children, title = "Dashboard" }) {
-  const { auth, flash, sharedSettings, expiringWebsitesCount } = usePage().props;
+  const { auth, flash, sharedSettings, expiringWebsitesCount, allowedModules } = usePage().props;
   const betaMenuItems = Array.isArray(sharedSettings?.beta_menu_items) ? sharedSettings.beta_menu_items : [];
   const hiddenMenuItems = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
   const isSuperAdmin = auth?.user?.role === "superadmin";
   const isAdmin = auth?.user?.role === "admin" || isSuperAdmin;
 
-  const isVisible = (module) => isSuperAdmin || !hiddenMenuItems.includes(module);
+  const isVisible = (module) => {
+    if (isSuperAdmin) return true;
+    if (hiddenMenuItems.includes(module)) return false;
+    return Array.isArray(allowedModules) && allowedModules.includes(module);
+  };
   const [sidebarCounts, setSidebarCounts] = useState({ unread_chats: 0, pending_leaves: 0 });
 
   const fetchSidebarCounts = async () => {
@@ -59,9 +64,10 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
           <NavItem href={route("chat.index")} icon={MessageSquare} label="Chat" routeName="chat" visible={isVisible("chat")} beta={betaMenuItems.includes("chat")} badge={sidebarCounts.unread_chats} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           <NavItem href={route("notifications.index")} icon={Bell} label="Notifications" routeName="notifications" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           {isAdmin && <NavItem href={route("admin.websites.index")} icon={Globe} label="Websites" routeName="admin.websites" visible={isVisible("websites")} badge={expiringWebsitesCount} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
-          {isAdmin && <NavItem href={route("admin.attendance.report")} icon={BarChart3} label="Reports" routeName="admin.attendance.report" visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
+          {isAdmin && <NavItem href={route("admin.attendance.report")} icon={BarChart3} label="Reports" routeName="admin.attendance.report" visible={isVisible("reports")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
         </>
       )}
+      {isAdmin && <NavItem href={route("admin.pricing.index")} icon={CreditCard} label="Pricing" routeName="admin.pricing" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
       {isAdmin && <NavItem href={route("admin.settings.index")} icon={SettingsIcon} label="Settings" routeName="admin.settings" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
     </>
   );

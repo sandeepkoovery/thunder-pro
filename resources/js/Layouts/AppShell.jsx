@@ -238,48 +238,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
                       <span>My Profile</span>
                     </Link>
 
-                    <button
-                      onClick={() => {
-                        setIsProfileOpen(false);
-                        setCustomizerOpen(true);
-                      }}
-                      className="mp-profile-dropdown-item w-full text-left"
-                    >
-                      <Settings size={18} className="mp-profile-dropdown-icon" />
-                      <span>Settings</span>
-                    </button>
 
-                    <Link
-                      href="#"
-                      onClick={() => setIsProfileOpen(false)}
-                      className="mp-profile-dropdown-item"
-                    >
-                      <div className="flex items-center justify-between w-full">
-                        <div className="flex items-center gap-3">
-                          <CreditCard size={18} className="mp-profile-dropdown-icon" />
-                          <span>Billing Plan</span>
-                        </div>
-                        <span className="mp-badge-red">4</span>
-                      </div>
-                    </Link>
-
-                    <Link
-                      href="#"
-                      onClick={() => setIsProfileOpen(false)}
-                      className="mp-profile-dropdown-item"
-                    >
-                      <DollarSign size={18} className="mp-profile-dropdown-icon" />
-                      <span>Pricing</span>
-                    </Link>
-
-                    <Link
-                      href="#"
-                      onClick={() => setIsProfileOpen(false)}
-                      className="mp-profile-dropdown-item"
-                    >
-                      <HelpCircle size={18} className="mp-profile-dropdown-icon" />
-                      <span>FAQ</span>
-                    </Link>
                   </div>
 
                   <div className="mp-profile-dropdown-divider" />

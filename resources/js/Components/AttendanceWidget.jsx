@@ -5,7 +5,7 @@ import { Play, Square, Coffee, Clock, Loader2 } from 'lucide-react';
 
 import { getFreshLocation, getGeoErrorMessage } from '@/lib/geo';
 
-export default function AttendanceWidget() {
+export default function AttendanceWidget({ isDarkHeader = false }) {
     // Version: 1.2 (Mac Location Fix)
     const [status, setStatus] = useState('loading'); // loading, not_started, punched_in, on_break, punched_out
     const [attendance, setAttendance] = useState(null);
@@ -150,18 +150,36 @@ export default function AttendanceWidget() {
         }
     };
 
-    if (status === 'loading') return <div className="text-sm text-gray-500">Loading...</div>;
+    if (status === 'loading') {
+        return <div className={`text-sm ${isDarkHeader ? "text-purple-200" : "text-gray-500"}`}>Loading...</div>;
+    }
 
     return (
-        <div className="mp-attendance-capsule flex flex-col sm:flex-row items-center sm:space-x-4 space-y-3 sm:space-y-0 bg-white p-3 sm:p-1.5 px-3 rounded-2xl sm:rounded-xl shadow-sm border border-gray-100 w-full sm:w-auto">
+        <div className={`mp-attendance-capsule flex ${
+            isDarkHeader 
+                ? "flex-col items-center justify-center space-y-3" 
+                : "flex-col sm:flex-row items-center sm:space-x-4 space-y-3 sm:space-y-0"
+        } p-3 sm:p-1.5 px-3 rounded-2xl sm:rounded-xl transition-all ${
+            isDarkHeader 
+                ? "bg-transparent border-none shadow-none" 
+                : "bg-white shadow-sm border border-gray-100"
+        } w-full sm:w-auto`}>
             {/* Timer Display */}
-            <div className="flex flex-col items-center sm:items-end min-w-[100px] sm:min-w-[80px]">
-                <div className="flex items-center text-gray-800 font-mono font-bold text-xl sm:text-lg">
-                    <Clock className="w-5 h-5 sm:w-4 sm:h-4 mr-2 sm:mr-1 text-blue-600" />
+            <div className={`flex flex-col items-center ${
+                isDarkHeader ? "justify-center min-w-full" : "sm:items-end min-w-[100px] sm:min-w-[80px]"
+            }`}>
+                <div className={`flex items-center font-mono font-bold ${
+                    isDarkHeader ? "text-3xl sm:text-4xl text-white tracking-tight" : "text-xl sm:text-lg text-gray-800"
+                }`}>
+                    <Clock className={`${
+                        isDarkHeader ? "w-7 h-7 sm:w-6 sm:h-6 mr-3 text-purple-300" : "w-5 h-5 sm:w-4 sm:h-4 mr-2 sm:mr-1 text-blue-600"
+                    }`} />
                     {formatTime(timer)}
                 </div>
                 {status === 'on_break' && (
-                    <div className="text-xs text-orange-600 font-bold uppercase tracking-wider">
+                    <div className={`text-xs font-bold uppercase tracking-wider mt-1 ${
+                        isDarkHeader ? "text-orange-300" : "text-orange-600"
+                    }`}>
                         Break: {formatTime(breakTimer)}
                     </div>
                 )}
@@ -173,7 +191,7 @@ export default function AttendanceWidget() {
                     <button
                         onClick={() => handleAction('punch-in')}
                         disabled={processing}
-                        className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2 fill-current" />}
                         {processing ? '...' : 'Punch In'}
@@ -194,7 +212,7 @@ export default function AttendanceWidget() {
                                 onClick={() => handleAction('break-start')}
                                 disabled={processing || isEarlySession}
                                 title={isEarlySession ? "You must work at least 5 minutes before taking a break" : ""}
-                                className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-orange-500 text-white text-sm font-bold rounded-xl hover:bg-orange-600 transition-all shadow-lg shadow-orange-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-orange-500 text-white text-sm font-bold rounded-xl hover:bg-orange-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Coffee className="w-4 h-4 mr-2" />}
                                 Break
@@ -203,7 +221,7 @@ export default function AttendanceWidget() {
                                 onClick={() => handleAction('punch-out')}
                                 disabled={processing || isEarlySession}
                                 title={isEarlySession ? "You must work at least 5 minutes before punching out" : ""}
-                                className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-all shadow-lg shadow-emerald-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-emerald-500 text-white text-sm font-bold rounded-xl hover:bg-emerald-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Square className="w-4 h-4 mr-2 fill-current" />}
                                 Punch Out
@@ -216,7 +234,7 @@ export default function AttendanceWidget() {
                     <button
                         onClick={() => handleAction('break-end')}
                         disabled={processing}
-                        className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all shadow-lg shadow-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2 fill-current" />}
                         Resume
