@@ -258,10 +258,10 @@ export default function Show() {
   };
 
   const tableStatusBadges = {
-    "not started": "bg-sky-50 text-sky-600 border border-sky-100",
+    "not started": "bg-sky-50 text-sky-600 border border-sky-100/50",
     "in progress": "bg-amber-50/70 text-amber-600 border border-amber-100/50",
-    "on hold": "bg-rose-50 text-rose-600 border border-rose-100",
-    completed: "bg-green-50 text-green-600 border border-green-100",
+    "on hold": "bg-rose-50 text-rose-600 border border-rose-100/50",
+    completed: "bg-emerald-50 text-emerald-600 border border-emerald-100/50",
   };
 
   return (
@@ -432,7 +432,7 @@ export default function Show() {
               <h2 className="text-base font-bold text-gray-900">Tasks</h2>
               <button
                 onClick={() => openModal()}
-                className="px-5 py-2.5 bg-indigo-600 text-white text-xs font-bold rounded-xl hover:bg-indigo-700 transition shadow-sm"
+                className="px-6 py-3 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white font-bold uppercase tracking-widest text-[11px] transition-all shadow-md shadow-blue-600/25 flex items-center gap-1.5"
                 style={{ minHeight: '40px' }}
               >
                 + Add Task
@@ -441,34 +441,34 @@ export default function Show() {
 
             {/* Tasks Table */}
             <div className="overflow-x-auto min-h-[220px]">
-              <table className="w-full border-collapse">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-gray-50 text-[11px] font-black text-gray-400 uppercase tracking-wider text-left bg-gray-50/50">
-                    <th className="p-4 w-12 text-center">
-                      <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" disabled />
+                  <tr className="border-b border-gray-100 text-[13px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50">
+                    <th className="py-4 px-6 w-12 text-center">
+                      <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/25" disabled />
                     </th>
-                    <th className="p-4">Task ID</th>
-                    <th className="p-4">Task</th>
-                    <th className="p-4">Assignee</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4 text-center">Action</th>
+                    <th className="py-4 px-6">Task ID</th>
+                    <th className="py-4 px-6">Task</th>
+                    <th className="py-4 px-6">Assignee</th>
+                    <th className="py-4 px-6">Status</th>
+                    <th className="py-4 px-6 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
                   {tasks.length > 0 ? (
                     tasks.map((task) => (
-                      <tr key={task.id} className="text-gray-700 hover:bg-gray-50/40 transition-colors">
-                        <td className="p-4 text-center">
-                          <input type="checkbox" className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                      <tr key={task.id} className="hover:bg-gray-50/50 transition-colors">
+                        <td className="py-4 px-6 text-center">
+                          <input type="checkbox" className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500/25" />
                         </td>
-                        <td className="p-4 text-sm font-semibold text-indigo-600">
+                        <td className="py-4 px-6 text-[15px] text-gray-700 font-medium">
                           {`TS-${String(task.id).padStart(3, '0')}`}
                         </td>
-                        <td className="p-4">
-                          <div className="font-bold text-[15px] text-gray-900">{task.name}</div>
-                          <div className="text-xs text-gray-400 mt-0.5 font-medium">{formatDate(task.start_date) || "-"}</div>
+                        <td className="py-4 px-6">
+                          <div className="font-bold text-gray-800 text-[15px] hover:text-[#1e88e5] transition-colors leading-snug">{task.name}</div>
+                          <div className="text-sm text-gray-400 font-medium mt-0.5">{formatDate(task.start_date) || "-"}</div>
                         </td>
-                        <td className="p-4">
+                        <td className="py-4 px-6">
                           <div className="flex -space-x-1.5 overflow-hidden">
                             {Array.isArray(task.assignees) && task.assignees.map((user, i) => (
                               user.image ? (
@@ -476,13 +476,13 @@ export default function Show() {
                                   key={i} 
                                   src={getAvatarUrl(user)} 
                                   alt={user.name} 
-                                  className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover shadow-sm" 
+                                  className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-sm" 
                                   title={user.name} 
                                 />
                               ) : (
                                 <div 
                                   key={i} 
-                                  className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-indigo-500 flex items-center justify-center text-[8px] font-bold text-white uppercase shadow-sm"
+                                  className="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-indigo-500 flex items-center justify-center text-[10px] font-bold text-white uppercase shadow-sm"
                                   title={user.name}
                                 >
                                   {user.name.charAt(0)}
@@ -491,35 +491,35 @@ export default function Show() {
                             ))}
                           </div>
                         </td>
-                        <td className="p-4">
-                          <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${tableStatusBadges[task.status] || 'bg-gray-100 text-gray-600'}`}>
+                        <td className="py-4 px-6">
+                          <span className={`inline-flex items-center px-3.5 py-1.5 rounded-full text-sm font-bold transition-all hover:opacity-80 capitalize ${tableStatusBadges[task.status] || 'bg-gray-100 text-gray-600 border border-gray-200/50'}`}>
                             {columns[task.status] || task.status}
                           </span>
                         </td>
-                        <td className="p-4 text-center relative">
-                          <button 
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenRowMenuId(openRowMenuId === task.id ? null : task.id);
-                            }}
-                            className="p-1.5 hover:bg-gray-50 rounded-full text-gray-400 hover:text-gray-600 transition-colors"
-                            style={{ minHeight: '32px' }}
-                          >
-                            <MoreHorizontal size={18} />
-                          </button>
-                          {openRowMenuId === task.id && (
-                            <div className="absolute right-4 top-12 w-32 bg-white border border-gray-100 rounded-xl shadow-lg py-1 z-30 text-left">
-                              <Link href={route('admin.tasks.show', task.id)} className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                                <Eye size={12} /> View Details
-                              </Link>
-                              <button onClick={() => openModal(task)} className="flex items-center gap-2 w-full text-left px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                                <Edit size={12} /> Edit
-                              </button>
-                              <button onClick={() => setDeleteTaskId(task.id)} className="flex items-center gap-2 w-full text-left px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50 transition-colors">
-                                <Trash2 size={12} /> Delete
-                              </button>
-                            </div>
-                          )}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center justify-center gap-2.5 text-gray-400">
+                            <button
+                              onClick={() => setDeleteTaskId(task.id)}
+                              className="hover:text-red-500 transition-colors p-1.5 hover:bg-red-50 rounded-lg"
+                              title="Delete Task"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                            <Link
+                              href={route("admin.tasks.show", task.id)}
+                              className="hover:text-blue-500 transition-colors p-1.5 hover:bg-blue-50 rounded-lg"
+                              title="View Details"
+                            >
+                              <Eye size={16} />
+                            </Link>
+                            <button
+                              onClick={() => openModal(task)}
+                              className="hover:text-gray-700 transition-colors p-1.5 hover:bg-gray-100 rounded-lg"
+                              title="Edit Task"
+                            >
+                              <Edit size={16} />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))

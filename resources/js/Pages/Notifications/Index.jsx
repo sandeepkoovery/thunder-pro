@@ -109,15 +109,15 @@ export default function NotificationsIndex({ initialNotifications = [] }) {
   const renderGroup = (title, list) => {
     if (list.length === 0) return null;
     return (
-      <div key={title} className="space-y-1">
+      <div key={title} className="space-y-2">
         {/* UPPERCASE gray tiny header */}
-        <div className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider px-4 pt-6 pb-2">{title}</div>
+        <div className="text-[12px] font-bold text-gray-400 uppercase tracking-widest px-4 pt-4 pb-1">{title}</div>
         
-        <div className="bg-white border-y border-gray-100 divide-y divide-gray-100">
+        <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden divide-y divide-gray-100">
           {list.map(notif => (
             <div
               key={notif.id}
-              className="p-4 sm:py-5 sm:px-6 flex items-start gap-4 transition-colors relative hover:bg-slate-50/50"
+              className="p-5 flex items-start gap-4 transition-colors relative hover:bg-gray-50/50"
             >
               {/* Left Side Avatar */}
               <div className="flex-shrink-0 mt-0.5">
@@ -126,12 +126,12 @@ export default function NotificationsIndex({ initialNotifications = [] }) {
 
               {/* Middle Content */}
               <div className="flex-1 min-w-0 pr-6">
-                <div className={`text-[13px] sm:text-sm text-slate-800 leading-snug font-semibold`}>
+                <div className="font-bold text-gray-800 text-[15px] hover:text-[#1e88e5] transition-colors leading-snug">
                   {notif.title}
                 </div>
-                <p className="text-xs text-slate-500 mt-1 leading-relaxed">{notif.message}</p>
-                <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-medium mt-1.5">
-                  <Clock size={12} className="text-slate-300" />
+                <p className="text-sm text-gray-400 font-medium mt-0.5 leading-relaxed">{notif.message}</p>
+                <div className="flex items-center gap-1.5 text-xs text-gray-400 font-medium mt-2">
+                  <Clock size={14} className="text-gray-300" />
                   <span>{notif.time}</span>
                 </div>
               </div>

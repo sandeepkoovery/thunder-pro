@@ -8,7 +8,10 @@ import { Toaster, toast } from "react-hot-toast";
 
 export function NavItem({ href, icon: Icon, label, visible, badge, beta, routeName, collapsed, isMobileOpen }) {
   if (!visible) return null;
-  const active = route().current(routeName) || route().current(routeName + ".*");
+  let active = route().current(routeName) || route().current(routeName + ".*");
+  if (routeName === "admin.attendance" && route().current("admin.attendance.report")) {
+    active = false;
+  }
   return (
     <Link href={href} className={`mp-nav-link${active ? " active" : ""}`} title={collapsed && !isMobileOpen ? label : undefined}>
       <span className="mp-nav-icon">

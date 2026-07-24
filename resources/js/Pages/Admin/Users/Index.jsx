@@ -13,7 +13,8 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
-  ShieldAlert
+  ShieldAlert,
+  X
 } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
@@ -145,26 +146,33 @@ export default function Index() {
   // Save user (create or update)
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error("Please fill all required fields correctly.");
+      return;
+    }
 
-    const data = new FormData();
-    Object.keys(form).forEach((key) => {
-      if (form[key] !== null && form[key] !== "") {
-        data.append(key, form[key]);
+    const options = {
+      forceFormData: true,
+      onSuccess: () => {
+        toast.success(editingUser ? "Employee updated successfully!" : "Employee created successfully!");
+        closeModal();
+      },
+      onError: (err) => {
+        setErrors(err);
+        const errMsg = Object.values(err)[0] || "Failed to save employee details.";
+        toast.error(errMsg);
       }
-    });
+    };
 
     if (editingUser) {
       router.post(
         route("admin.users.update", editingUser.id),
         { _method: "PUT", ...form },
-        { forceFormData: true }
+        options
       );
     } else {
-      router.post(route("admin.users.store"), form, { forceFormData: true });
+      router.post(route("admin.users.store"), form, options);
     }
-
-    closeModal();
   };
 
   // Delete user
@@ -660,13 +668,22 @@ export default function Index() {
         {/* Create/Edit Modal */}
         {isOpen && (
           <div className="fixed inset-0 bg-black/45 backdrop-blur-xs flex items-start justify-center overflow-y-auto z-50 py-6 sm:py-10 px-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-4xl p-6 sm:p-8 rounded-[28px] shadow-2xl border border-gray-100 space-y-4 my-auto">
-              <div>
-                <h2 className="text-xl font-bold text-gray-900">
+            <div className="bg-white w-full max-w-4xl p-8 sm:p-10 rounded-[32px] shadow-2xl border border-gray-100 space-y-4 my-auto relative">
+              {/* Close Button */}
+              <button
+                onClick={closeModal}
+                className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition p-1.5 hover:bg-gray-100 rounded-full"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Centered Header */}
+              <div className="text-center mb-6">
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
                   {editingUser ? "Edit Employee Details" : "Add New Employee"}
                 </h2>
-                <p className="text-sm text-gray-400 font-medium mt-0.5">
-                  {editingUser ? "Modify employee login information and role permissions" : "Create a new employee with custom dashboard login credentials"}
+                <p className="text-sm text-gray-500 mt-2 font-medium">
+                  {editingUser ? "Modify employee login information and role permissions." : "Create a new employee with custom dashboard login credentials."}
                 </p>
               </div>
 
@@ -868,19 +885,19 @@ export default function Index() {
                 </div>
 
                 {/* Buttons */}
-                <div className="flex justify-end gap-3 pt-3 md:col-span-2">
+                <div className="flex justify-center gap-4 pt-4 mt-6 border-t border-gray-100 md:col-span-2 bg-white">
+                  <button
+                    type="submit"
+                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 duration-150"
+                  >
+                    {editingUser ? "Save Changes" : "Submit"}
+                  </button>
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-2xl font-bold uppercase tracking-wider text-[11px] transition-colors"
+                    className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 duration-150"
                   >
                     Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-8 py-3 bg-[#1e88e5] hover:bg-[#1565c0] text-white rounded-2xl font-bold uppercase tracking-wider text-[11px] transition-colors shadow-lg shadow-[#1e88e5]/25"
-                  >
-                    {editingUser ? "Save Changes" : "Create Employee"}
                   </button>
                 </div>
               </form>

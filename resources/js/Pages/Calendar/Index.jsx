@@ -222,6 +222,7 @@ export default function Index({ events: initialEvents, users }) {
 
     // Dropdown state
     const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
+    const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
     const dropdownRef = useRef(null);
 
     const [form, setForm] = useState({
@@ -352,6 +353,7 @@ export default function Index({ events: initialEvents, users }) {
         setSelectedEvent(null);
         setIsEditing(false);
         setIsAssigneeDropdownOpen(false);
+        setIsCategoryDropdownOpen(false);
     };
 
     const handleSubmit = (e) => {
@@ -728,27 +730,35 @@ export default function Index({ events: initialEvents, users }) {
                 </div>
             </div>
 
-            {/* Slide-out Panel on Right */}
+            {/* Modal Dialog */}
             {isOpen && (
-                <div className="fixed inset-0 z-[150] flex justify-end bg-black bg-opacity-40 backdrop-blur-sm transition-opacity duration-300">
+                <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm transition-opacity duration-300 animate-fade-in">
                     <div className="absolute inset-0" onClick={closeModal}></div>
                     
-                    <div className="relative w-full max-w-[400px] h-full bg-white shadow-2xl flex flex-col justify-between transform translate-x-0 transition-transform duration-300 ease-out z-10 font-sans text-sm">
-                        {/* Header */}
-                        <div className="flex justify-between items-center px-6 py-4.5 border-b border-gray-100">
-                            <h2 className="text-lg font-bold text-gray-800">
-                                {isEditing ? "Edit Event" : (selectedEvent ? "Event Details" : "Add Event")}
+                    <div className="relative w-full max-w-2xl bg-white rounded-[32px] shadow-2xl flex flex-col p-8 sm:p-10 z-10 font-sans text-sm outline-none overflow-hidden max-h-[90vh]">
+                        {/* Close button */}
+                        <button
+                            onClick={closeModal}
+                            className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition p-1.5 hover:bg-gray-100 rounded-full"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+
+                        {/* Centered Header */}
+                        <div className="text-center mb-6">
+                            <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
+                                {isEditing ? "Edit Event Details" : (selectedEvent ? "Event Details" : "Create New Event")}
                             </h2>
-                            <button
-                                onClick={closeModal}
-                                className="text-gray-400 hover:text-gray-600 transition"
-                            >
-                                <X className="w-5 h-5" />
-                            </button>
+                            <p className="text-sm text-gray-500 mt-2 font-medium">
+                                {isEditing 
+                                    ? "Updating event details will sync with all invited guests." 
+                                    : (selectedEvent ? "View complete scheduled details for this calendar entry." : "Fill out the fields below to schedule a new event.")
+                                }
+                            </p>
                         </div>
 
                         {/* Body content */}
-                        <div className="flex-1 overflow-y-auto px-6 py-5 space-y-4">
+                        <div className="flex-1 overflow-y-auto pr-1">
                             {selectedEvent && !isEditing ? (
                                 <div className="space-y-6">
                                     <div className="flex justify-between items-start gap-4">
@@ -817,16 +827,16 @@ export default function Index({ events: initialEvents, users }) {
                                     )}
                                 </div>
                             ) : (
-                                <form onSubmit={handleSubmit} id="eventForm" className="space-y-4">
+                                <form onSubmit={handleSubmit} id="eventForm" className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5 py-1">
                                     {/* Title */}
-                                    <div>
-                                        <label className="block text-gray-600 font-semibold mb-1 text-[13px]">Title</label>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-gray-600 font-semibold mb-1.5 text-[13px]">Title</label>
                                         <input
                                             type="text"
                                             name="title"
                                             value={form.title}
                                             onChange={handleChange}
-                                            className="w-full border border-gray-200 rounded-lg px-3.5 py-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
+                                            className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
                                             placeholder="Event Title"
                                             required
                                         />
@@ -837,56 +847,80 @@ export default function Index({ events: initialEvents, users }) {
 
                                     {/* Label (Category with Colored Dot indicator) */}
                                     <div>
-                                        <label className="block text-gray-600 font-semibold mb-1 text-[13px]">Label</label>
+                                        <label className="block text-gray-600 font-semibold mb-1.5 text-[13px]">Label</label>
                                         <div className="relative">
-                                            <span className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full ${categoryColors[form.category]}`}></span>
-                                            <select
-                                                name="category"
-                                                value={form.category}
-                                                onChange={handleChange}
-                                                className="w-full border border-gray-200 rounded-lg pl-8 pr-4 py-2 bg-white text-sm text-gray-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition appearance-none cursor-pointer"
+                                            <button
+                                                type="button"
+                                                onClick={() => setIsCategoryDropdownOpen(prev => !prev)}
+                                                className="w-full flex items-center bg-white border border-gray-200 rounded-xl pl-4 pr-10 py-2.5 text-left focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
                                             >
-                                                {/* Admin/HR Role options */}
-                                                {['admin', 'superadmin', 'editor'].includes(auth.user.role) && (
-                                                    <>
-                                                        <option value="holiday">Holidays</option>
-                                                        <option value="leave">Leave</option>
-                                                        <option value="meeting">Meetings</option>
-                                                        <option value="training">Training</option>
-                                                        <option value="project">Projects</option>
-                                                        <option value="personal">Personal Reminders</option>
-                                                        <option value="company_event">Company Event</option>
-                                                    </>
-                                                )}
-                                                {/* Manager Role options */}
-                                                {auth.user.role === 'manager' && (
-                                                    <>
-                                                        <option value="meeting">Team Meeting</option>
-                                                        <option value="project">Project Deadline</option>
-                                                        <option value="personal">Personal Reminder</option>
-                                                    </>
-                                                )}
-                                                {/* Employee Role options */}
-                                                {auth.user.role === 'user' && (
-                                                    <>
-                                                        <option value="personal">Personal Reminder</option>
-                                                    </>
-                                                )}
-                                            </select>
-                                            <ChevronDownIcon className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                                <span className={`w-2.5 h-2.5 rounded-full mr-2.5 ${categoryColors[form.category] || 'bg-red-500'}`}></span>
+                                                <span className="capitalize">{form.category?.replace('_', ' ')}</span>
+                                                <ChevronDownIcon className="absolute right-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+                                            </button>
+
+                                            {isCategoryDropdownOpen && (
+                                                <>
+                                                    <div className="fixed inset-0 z-[155]" onClick={() => setIsCategoryDropdownOpen(false)}></div>
+                                                    <div className="absolute z-[160] w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl py-1 max-h-60 overflow-y-auto">
+                                                        {Object.keys(categoryColors).map((cat) => {
+                                                            let isAllowed = false;
+                                                            if (['admin', 'superadmin', 'editor'].includes(auth.user.role)) {
+                                                                isAllowed = true;
+                                                            } else if (auth.user.role === 'manager' && ['meeting', 'project', 'personal'].includes(cat)) {
+                                                                isAllowed = true;
+                                                            } else if (auth.user.role === 'user' && cat === 'personal') {
+                                                                isAllowed = true;
+                                                            }
+
+                                                            if (!isAllowed) return null;
+
+                                                            return (
+                                                                <button
+                                                                    key={cat}
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        setForm(prev => ({ ...prev, category: cat }));
+                                                                        setIsCategoryDropdownOpen(false);
+                                                                    }}
+                                                                    className={`w-full flex items-center px-4 py-2 text-left text-sm transition-colors hover:bg-slate-50 ${
+                                                                        form.category === cat 
+                                                                            ? 'bg-blue-50/50 text-blue-600 font-semibold' 
+                                                                            : 'text-gray-700 font-medium'
+                                                                    }`}
+                                                                >
+                                                                    <span className={`w-2 h-2 rounded-full mr-2.5 ${categoryColors[cat]}`}></span>
+                                                                    <span className="capitalize">{cat.replace('_', ' ')}</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
+                                    </div>
+
+                                    {/* All Day Event switch */}
+                                    <div className="flex items-center gap-3.5 py-1 px-1 mt-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => setForm(prev => ({ ...prev, all_day: !prev.all_day }))}
+                                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${form.all_day ? 'bg-blue-500' : 'bg-gray-200'}`}
+                                        >
+                                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${form.all_day ? 'translate-x-5' : 'translate-x-0'}`} />
+                                        </button>
+                                        <span className="text-[13px] font-semibold text-gray-700 select-none">All Day Event</span>
                                     </div>
 
                                     {/* Start Date */}
                                     <div>
-                                        <label className="block text-gray-600 font-semibold mb-1 text-[13px]">Start Date</label>
+                                        <label className="block text-gray-600 font-semibold mb-1.5 text-[13px]">Start Date</label>
                                         <input
                                             type={form.all_day ? "date" : "datetime-local"}
                                             name="start_date"
                                             value={form.start_date}
                                             onChange={handleChange}
-                                            className="w-full border border-gray-200 rounded-lg px-3.5 py-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
-                                            placeholder="YYYY-MM-DD HH:MM"
+                                            className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
                                             required
                                         />
                                         {errors.start_date && (
@@ -896,14 +930,13 @@ export default function Index({ events: initialEvents, users }) {
 
                                     {/* End Date */}
                                     <div>
-                                        <label className="block text-gray-600 font-semibold mb-1 text-[13px]">End Date</label>
+                                        <label className="block text-gray-600 font-semibold mb-1.5 text-[13px]">End Date</label>
                                         <input
                                             type={form.all_day ? "date" : "datetime-local"}
                                             name="end_date"
                                             value={form.end_date}
                                             onChange={handleChange}
-                                            className="w-full border border-gray-200 rounded-lg px-3.5 py-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
-                                            placeholder="YYYY-MM-DD HH:MM"
+                                            className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
                                             required
                                         />
                                         {errors.end_date && (
@@ -911,27 +944,28 @@ export default function Index({ events: initialEvents, users }) {
                                         )}
                                     </div>
 
-                                    {/* All Day Event switch */}
-                                    <div className="flex items-center gap-3 py-1">
-                                        <button
-                                            type="button"
-                                            onClick={() => setForm(prev => ({ ...prev, all_day: !prev.all_day }))}
-                                            className={`relative inline-flex h-5 w-10 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${form.all_day ? 'bg-blue-500' : 'bg-gray-200'}`}
-                                        >
-                                            <span className={`pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${form.all_day ? 'translate-x-5' : 'translate-x-0'}`} />
-                                        </button>
-                                        <span className="text-[13px] font-semibold text-gray-700 select-none">All Day</span>
+                                    {/* Location */}
+                                    <div>
+                                        <label className="block text-gray-600 font-semibold mb-1.5 text-[13px]">Location</label>
+                                        <input
+                                            type="text"
+                                            name="location"
+                                            value={form.location}
+                                            onChange={handleChange}
+                                            className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
+                                            placeholder="Enter Location"
+                                        />
                                     </div>
 
                                     {/* Event URL */}
                                     <div>
-                                        <label className="block text-gray-600 font-semibold mb-1 text-[13px]">Event URL</label>
+                                        <label className="block text-gray-600 font-semibold mb-1.5 text-[13px]">Event URL</label>
                                         <input
                                             type="url"
                                             name="event_url"
                                             value={form.event_url}
                                             onChange={handleChange}
-                                            className="w-full border border-gray-200 rounded-lg px-3.5 py-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
+                                            className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
                                             placeholder="https://www.google.com"
                                         />
                                         {errors.event_url && (
@@ -939,14 +973,14 @@ export default function Index({ events: initialEvents, users }) {
                                         )}
                                     </div>
 
-                                    {/* Add Guests (Filtered to exclude super admin & admin) */}
-                                    <div>
-                                        <label className="block text-gray-600 font-semibold mb-1 text-[13px]">Add Guests</label>
+                                    {/* Add Guests */}
+                                    <div className="md:col-span-2">
+                                        <label className="block text-gray-600 font-semibold mb-1.5 text-[13px]">Add Guests</label>
                                         <div ref={dropdownRef} className="relative">
                                             <button
                                                 type="button"
                                                 onClick={toggleAssigneeDropdown}
-                                                className="w-full flex justify-between items-center bg-white border border-gray-200 rounded-lg px-3.5 py-2 text-left focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
+                                                className="w-full flex justify-between items-center bg-white border border-gray-200 rounded-xl px-3.5 py-2.5 text-left focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
                                             >
                                                 <span className="truncate pr-4 text-gray-500">
                                                     {getSelectedAssigneeNames()}
@@ -955,7 +989,7 @@ export default function Index({ events: initialEvents, users }) {
                                             </button>
 
                                             {isAssigneeDropdownOpen && (
-                                                <div className="absolute z-10 w-full mt-1 bg-white border border-gray-100 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                                <div className="absolute z-[160] w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl max-h-48 overflow-y-auto">
                                                     {guestUsers?.map((user) => (
                                                         <div
                                                             key={user.id}
@@ -968,7 +1002,7 @@ export default function Index({ events: initialEvents, users }) {
                                                             <input
                                                                 type="checkbox"
                                                                 checked={form.guest_ids.map(id => String(id)).includes(String(user.id))}
-                                                                onChange={() => { }} // Handled by parent div click
+                                                                onChange={() => { }}
                                                                 className="w-4 h-4 text-[var(--theme-primary)] border-gray-300 rounded focus:ring-[var(--theme-primary)] cursor-pointer"
                                                             />
                                                             <div className="ml-3 flex items-center">
@@ -986,28 +1020,15 @@ export default function Index({ events: initialEvents, users }) {
                                         </div>
                                     </div>
 
-                                    {/* Location */}
-                                    <div>
-                                        <label className="block text-gray-600 font-semibold mb-1 text-[13px]">Location</label>
-                                        <input
-                                            type="text"
-                                            name="location"
-                                            value={form.location}
-                                            onChange={handleChange}
-                                            className="w-full border border-gray-200 rounded-lg px-3.5 py-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800"
-                                            placeholder="Enter Location"
-                                        />
-                                    </div>
-
                                     {/* Description */}
-                                    <div>
-                                        <label className="block text-gray-600 font-semibold mb-1 text-[13px]">Description</label>
+                                    <div className="md:col-span-2">
+                                        <label className="block text-gray-600 font-semibold mb-1.5 text-[13px]">Description</label>
                                         <textarea
                                             name="description"
                                             value={form.description}
                                             onChange={handleChange}
                                             rows="3"
-                                            className="w-full border border-gray-200 rounded-lg px-3.5 py-2 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800 resize-none"
+                                            className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm text-gray-800 resize-none"
                                             placeholder="Description"
                                         ></textarea>
                                     </div>
@@ -1015,21 +1036,21 @@ export default function Index({ events: initialEvents, users }) {
                             )}
                         </div>
 
-                        {/* Footer Actions Panel */}
-                        <div className="px-6 py-4.5 border-t border-gray-100 bg-gray-50/50 flex gap-3.5">
+                        {/* Centered Actions Buttons */}
+                        <div className="flex justify-center gap-4 mt-8 pt-4 border-t border-gray-100 bg-white">
                             {selectedEvent && !isEditing ? (
                                 <>
                                     {canManageEvent(selectedEvent) && (
                                         <>
                                             <button
                                                 onClick={handleEditClick}
-                                                className="px-5 py-2 bg-blue-500 text-white font-medium rounded-lg text-sm hover:bg-blue-600 shadow-sm transition-colors duration-150"
+                                                className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 duration-150"
                                             >
                                                 Edit
                                             </button>
                                             <button
                                                 onClick={handleDelete}
-                                                className="px-5 py-2 bg-red-500 text-white font-medium rounded-lg text-sm hover:bg-red-600 shadow-sm transition-colors duration-150"
+                                                className="px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 duration-150"
                                             >
                                                 Delete
                                             </button>
@@ -1037,7 +1058,7 @@ export default function Index({ events: initialEvents, users }) {
                                     )}
                                     <button
                                         onClick={closeModal}
-                                        className="px-5 py-2 bg-gray-100 text-gray-600 font-medium rounded-lg text-sm hover:bg-gray-200 transition-colors duration-150 ml-auto"
+                                        className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 duration-150"
                                     >
                                         Close
                                     </button>
@@ -1047,14 +1068,14 @@ export default function Index({ events: initialEvents, users }) {
                                     <button
                                         type="submit"
                                         form="eventForm"
-                                        className="px-5 py-2 bg-blue-500 text-white font-medium rounded-lg text-sm hover:bg-blue-600 shadow-sm transition-colors duration-150"
+                                        className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 duration-150"
                                     >
-                                        {isEditing ? "Update" : "Add"}
+                                        Submit
                                     </button>
                                     <button
                                         type="button"
                                         onClick={closeModal}
-                                        className="px-5 py-2 bg-gray-100 text-gray-600 font-medium rounded-lg text-sm hover:bg-gray-200 transition-colors duration-150"
+                                        className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 duration-150"
                                     >
                                         Cancel
                                     </button>

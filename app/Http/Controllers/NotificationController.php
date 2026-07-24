@@ -61,8 +61,8 @@ class NotificationController extends Controller
                 $notifId = 'leave_' . $leave->id;
                 $isRead = in_array($notifId, $seenIds) || $leave->status !== 'pending';
 
-                $fromStr = \Carbon\Carbon::parse($leave->from_date)->format('Y-m-d');
-                $toStr = \Carbon\Carbon::parse($leave->to_date)->format('Y-m-d');
+                $fromStr = \Carbon\Carbon::parse($leave->from_date)->format('j M Y');
+                $toStr = \Carbon\Carbon::parse($leave->to_date)->format('j M Y');
                 $leaveText = ($fromStr === $toStr) 
                     ? "{$leave->leave_type} on {$fromStr}"
                     : "{$leave->leave_type} from {$fromStr} to {$toStr}";
@@ -169,8 +169,8 @@ class NotificationController extends Controller
                 if (in_array($notifId, $seenIds))
                     continue;
 
-                $fromStr = \Carbon\Carbon::parse($leave->from_date)->format('Y-m-d');
-                $toStr = \Carbon\Carbon::parse($leave->to_date)->format('Y-m-d');
+                $fromStr = \Carbon\Carbon::parse($leave->from_date)->format('j M Y');
+                $toStr = \Carbon\Carbon::parse($leave->to_date)->format('j M Y');
                 $leaveText = ($fromStr === $toStr) 
                     ? "{$leave->leave_type} on {$fromStr}"
                     : "{$leave->leave_type} from {$fromStr} to {$toStr}";
