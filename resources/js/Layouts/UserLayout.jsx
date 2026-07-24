@@ -43,7 +43,7 @@ export default function UserLayout({ children, title = "Dashboard" }) {
 
   const renderNav = ({ collapsed, isMobileOpen }) => (
     <>
-      <NavItem href={route("dashboard")} icon={LayoutDashboard} label="Dashboard" routeName="dashboard" visible={isVisible("dashboard")} beta={betaMenuItems.includes("dashboard")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      <NavItem href={route("dashboard")} icon={LayoutDashboard} label="Dashboard" routeName="dashboard" visible={true} beta={betaMenuItems.includes("dashboard")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("attendance.index")} icon={Clock} label="Attendance" routeName="attendance" visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("projects.index")} icon={FolderKanban} label="Projects" routeName="projects" visible={isVisible("projects")} beta={betaMenuItems.includes("projects")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("leave.index")} icon={FileText} label="Leaves" routeName="leave" visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} />

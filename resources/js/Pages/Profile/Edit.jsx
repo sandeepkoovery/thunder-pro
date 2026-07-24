@@ -43,22 +43,25 @@ export default function Edit({ mustVerifyEmail, status }) {
     };
 
     const content = (
-        <div className="bg-[#f4f7f6] min-h-screen -m-6 p-6 space-y-6">
-            <Head title="Profile" />
+        <div className="w-full space-y-6 font-sans pb-10">
+            <Head title="Profile Details" />
 
             {/* Profile Header & Identity Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden relative">
-                {/* Banner with stripes */}
+            <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden relative">
+                {/* Banner with gradient overlay and background ambient shapes */}
                 <div 
-                    className="h-40 w-full"
+                    className="h-48 w-full relative overflow-hidden"
                     style={{
-                        background: 'linear-gradient(135deg, #009688 0%, #009688 35%, #80cbdc 35%, #80cbdc 60%, #ffc5bf 60%, #ffc5bf 100%)',
+                        background: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 50%, #6366f1 100%)',
                     }}
-                />
+                >
+                    <div className="absolute inset-0 opacity-10 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-yellow-300 via-pink-500 to-purple-800"></div>
+                </div>
                 
                 {/* Identity Profile Info Overlap */}
-                <div className="px-8 pb-6 relative flex flex-col md:flex-row items-center md:items-end gap-6 -mt-16">
-                    <div className="w-32 h-32 rounded-2xl border-4 border-white shadow-lg overflow-hidden bg-gray-50 relative z-10">
+                <div className="px-8 pb-6 relative flex flex-col md:flex-row items-center md:items-end gap-6">
+                    {/* Avatar overlapping bottom boundary of banner */}
+                    <div className="w-32 h-32 -mt-16 rounded-full border-4 border-white shadow-xl overflow-hidden bg-white relative z-10 transition-transform duration-300 hover:scale-[1.02] flex-shrink-0">
                         <img
                             src={user.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=f3f4f6&color=444&size=256`}
                             alt="Profile"
@@ -66,148 +69,169 @@ export default function Edit({ mustVerifyEmail, status }) {
                         />
                     </div>
                     
-                    <div className="text-center md:text-left mb-2 flex-1">
-                        <h2 className="text-2xl font-bold text-gray-800">{user.name}</h2>
-                        <div className="mt-2 flex flex-wrap justify-center md:justify-start gap-x-6 gap-y-2 text-gray-500 text-sm font-medium">
-                            <span className="flex items-center gap-1.5">
-                                <Briefcase className="w-4 h-4 text-gray-400" />
-                                {user.designation || 'Developer'}
+                    {/* Name and details placed below the banner in the white area */}
+                    <div className="text-center md:text-left mb-2 flex-1 space-y-2.5 relative z-10">
+                        <h2 className="text-3xl font-black text-slate-800 tracking-tight leading-tight">{user.name}</h2>
+                        <div className="flex flex-wrap justify-center md:justify-start gap-2.5">
+                            <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-blue-50 text-blue-600 border border-blue-100/50 capitalize">
+                                <Briefcase className="w-3.5 h-3.5" />
+                                {['admin', 'superadmin'].includes(user.role) 
+                                    ? (user.role === 'superadmin' ? 'Super Administrator' : 'Administrator') 
+                                    : (user.designation || 'Team Member')}
                             </span>
-                            <span className="flex items-center gap-1.5">
-                                <CalendarDays className="w-4 h-4 text-gray-400" />
-                                Joined {formatJoinedMonthYear(user.joining_date || user.created_at || '2026-04-01')}
-                            </span>
+                            {!['admin', 'superadmin'].includes(user.role) && (
+                                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-slate-50 text-slate-500 border border-slate-150">
+                                    <CalendarDays className="w-3.5 h-3.5" />
+                                    Joined {formatJoinedMonthYear(user.joining_date || user.created_at || '2026-04-01')}
+                                </span>
+                            )}
                         </div>
                     </div>
                 </div>
                 
-                {/* Tab Switcher */}
-                <div className="flex border-b border-gray-100 px-8 gap-4 bg-gray-50/50">
+                {/* Modern Pill-Style Tab Switcher */}
+                <div className="flex p-1.5 bg-slate-50 border border-slate-100 rounded-2xl gap-1 max-w-lg mx-8 mb-6">
                     {[
                         { id: 'Overview', label: 'Profile Overview' },
                         { id: 'Edit Details', label: 'Edit Details' },
                         { id: 'Change Password', label: 'Change Password' }
-                    ].map(tab => (
-                        <button
-                            key={tab.id}
-                            onClick={() => setActiveTab(tab.id)}
-                            className={`py-4.5 px-2 text-sm font-semibold transition-all relative ${
-                                activeTab === tab.id 
-                                    ? 'text-[var(--theme-primary)]' 
-                                    : 'text-gray-400 hover:text-gray-600'
-                            }`}
-                        >
-                            {tab.label}
-                            {activeTab === tab.id && (
-                                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[var(--theme-primary)]"></div>
-                            )}
-                        </button>
-                    ))}
+                    ].map(tab => {
+                        const isActive = activeTab === tab.id;
+                        return (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-bold tracking-wider uppercase text-center transition-all ${
+                                    isActive 
+                                        ? 'bg-white text-blue-600 shadow-sm border border-slate-100/50' 
+                                        : 'text-gray-400 hover:text-gray-600 hover:bg-slate-100/30'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        );
+                    })}
                 </div>
             </div>
 
             {/* Profile Overview Tab */}
             {activeTab === 'Overview' && (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className={`grid grid-cols-1 gap-6 ${
+                    ['admin', 'superadmin'].includes(user.role) ? 'md:grid-cols-2' : 'md:grid-cols-3'
+                }`}>
                     {/* Personal Information Card */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                        <h3 className="text-sm font-bold text-gray-800 border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
-                            <UserIcon className="w-4.5 h-4.5 text-[var(--theme-primary)]" />
-                            Personal Information
-                        </h3>
-                        <div className="space-y-4">
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">First Name</span>
-                                <span className="font-semibold text-gray-800">{user.first_name || 'N/A'}</span>
+                    <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-8 hover:shadow-md transition-shadow duration-300">
+                        <div className="flex items-center gap-3 border-b border-gray-50 pb-4 mb-6">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-blue-50 text-blue-600">
+                                <UserIcon className="w-5 h-5" />
                             </div>
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Last Name</span>
-                                <span className="font-semibold text-gray-800">{user.last_name || 'N/A'}</span>
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight">
+                                Personal Information
+                            </h3>
+                        </div>
+                        <div className="space-y-5">
+                            <div className="flex flex-col">
+                                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">First Name</span>
+                                <span className="font-semibold text-slate-800 text-[15px] mt-0.5">{user.first_name || 'N/A'}</span>
                             </div>
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Gender</span>
-                                <span className="font-semibold text-gray-800 capitalize">{user.gender || 'N/A'}</span>
+                            <div className="flex flex-col">
+                                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Last Name</span>
+                                <span className="font-semibold text-slate-800 text-[15px] mt-0.5">{user.last_name || 'N/A'}</span>
                             </div>
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Date of Birth</span>
-                                <span className="font-semibold text-gray-800">
+                            <div className="flex flex-col">
+                                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Gender</span>
+                                <span className="font-semibold text-slate-800 text-[15px] mt-0.5 capitalize">{user.gender || 'N/A'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Date of Birth</span>
+                                <span className="font-semibold text-slate-800 text-[15px] mt-0.5">
                                     {formatDate(user.date_of_birth)}
                                 </span>
                             </div>
-                            <div className="flex flex-col text-sm pb-1">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Blood Group</span>
-                                <span className="font-semibold text-gray-800 uppercase">{user.blood_group || 'N/A'}</span>
+                            <div className="flex flex-col">
+                                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Blood Group</span>
+                                <span className="font-semibold text-slate-800 text-[15px] mt-0.5 uppercase">{user.blood_group || 'N/A'}</span>
                             </div>
                         </div>
                     </div>
 
                     {/* Contact Information Card */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                        <h3 className="text-sm font-bold text-gray-800 border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
-                            <Phone className="w-4.5 h-4.5 text-[var(--theme-primary)]" />
-                            Contact Information
-                        </h3>
-                        <div className="space-y-4">
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Mobile Number</span>
-                                <span className="font-semibold text-gray-800">{user.mobile || 'N/A'}</span>
+                    <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-8 hover:shadow-md transition-shadow duration-300">
+                        <div className="flex items-center gap-3 border-b border-gray-50 pb-4 mb-6">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-50 text-emerald-600">
+                                <Phone className="w-5 h-5" />
                             </div>
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Email</span>
-                                <span className="font-semibold text-gray-800">{user.email || 'N/A'}</span>
+                            <h3 className="text-lg font-black text-slate-800 tracking-tight">
+                                Contact Information
+                            </h3>
+                        </div>
+                        <div className="space-y-5">
+                            <div className="flex flex-col">
+                                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Mobile Number</span>
+                                <span className="font-semibold text-slate-800 text-[15px] mt-0.5">{user.mobile || 'N/A'}</span>
                             </div>
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Address</span>
-                                <span className="font-semibold text-gray-800 whitespace-pre-wrap">{user.address || 'N/A'}</span>
+                            <div className="flex flex-col">
+                                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Email</span>
+                                <span className="font-semibold text-slate-800 text-[15px] mt-0.5">{user.email || 'N/A'}</span>
                             </div>
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Emergency Contact Name</span>
-                                <span className="font-semibold text-gray-800">{user.emergency_contact_name || 'N/A'}</span>
+                            <div className="flex flex-col">
+                                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Address</span>
+                                <span className="font-semibold text-slate-800 text-[15px] mt-0.5 whitespace-pre-wrap">{user.address || 'N/A'}</span>
                             </div>
-                            <div className="flex flex-col text-sm pb-1">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Emergency Contact Number</span>
-                                <span className="font-semibold text-gray-800">{user.emergency_contact_number || 'N/A'}</span>
+                            <div className="flex flex-col">
+                                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Emergency Contact</span>
+                                <span className="font-semibold text-slate-800 text-[15px] mt-0.5">{user.emergency_contact_name || 'N/A'}</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Emergency Contact Number</span>
+                                <span className="font-semibold text-slate-800 text-[15px] mt-0.5">{user.emergency_contact_number || 'N/A'}</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Company Information Card */}
-                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                        <h3 className="text-sm font-bold text-gray-800 border-b border-gray-100 pb-3 mb-4 flex items-center gap-2">
-                            <Briefcase className="w-4.5 h-4.5 text-[var(--theme-primary)]" />
-                            Company Information
-                        </h3>
-                        <div className="space-y-4">
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Employee ID</span>
-                                <span className="font-semibold text-gray-800">{user.employee_id || 'N/A'}</span>
+                    {/* Company Information Card (Hidden for Admin/Superadmin roles) */}
+                    {!['admin', 'superadmin'].includes(user.role) && (
+                        <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-8 hover:shadow-md transition-shadow duration-300">
+                            <div className="flex items-center gap-3 border-b border-gray-50 pb-4 mb-6">
+                                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-50 text-purple-600">
+                                    <Briefcase className="w-5 h-5" />
+                                </div>
+                                <h3 className="text-lg font-black text-slate-800 tracking-tight">
+                                    Company Information
+                                </h3>
                             </div>
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Department</span>
-                                <span className="font-semibold text-gray-800">{user.department?.name || 'N/A'}</span>
-                            </div>
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Designation</span>
-                                <span className="font-semibold text-gray-800">{user.designation || 'N/A'}</span>
-                            </div>
-                            <div className="flex flex-col text-sm border-b border-gray-50 pb-2">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Joining Date</span>
-                                <span className="font-semibold text-gray-800">
-                                    {formatDate(user.joining_date)}
-                                </span>
-                            </div>
-                            <div className="flex flex-col text-sm pb-1">
-                                <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider mb-0.5">Employment Type</span>
-                                <span className="font-semibold text-gray-800 capitalize">{user.employment_type || 'N/A'}</span>
+                            <div className="space-y-5">
+                                <div className="flex flex-col">
+                                    <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Employee ID</span>
+                                    <span className="font-semibold text-slate-800 text-[15px] mt-0.5">{user.employee_id || 'N/A'}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Department</span>
+                                    <span className="font-semibold text-slate-800 text-[15px] mt-0.5">{user.department?.name || 'N/A'}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Designation</span>
+                                    <span className="font-semibold text-slate-800 text-[15px] mt-0.5">{user.designation || 'N/A'}</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Joining Date</span>
+                                    <span className="font-semibold text-slate-800 text-[15px] mt-0.5">
+                                        {formatDate(user.joining_date)}
+                                    </span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <span className="text-slate-400 text-[11px] font-bold uppercase tracking-widest">Employment Type</span>
+                                    <span className="font-semibold text-slate-800 text-[15px] mt-0.5 capitalize">{user.employment_type || 'N/A'}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
 
             {/* Edit Details Tab */}
             {activeTab === 'Edit Details' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-8">
                     <UpdateProfileInformationForm
                         mustVerifyEmail={mustVerifyEmail}
                         status={status}
@@ -217,7 +241,7 @@ export default function Edit({ mustVerifyEmail, status }) {
 
             {/* Change Password Tab */}
             {activeTab === 'Change Password' && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+                <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-8">
                     <UpdatePasswordForm />
                 </div>
             )}
