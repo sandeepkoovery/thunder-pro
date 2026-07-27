@@ -7,11 +7,26 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Project extends Model
 {
-  use SoftDeletes;
+    use SoftDeletes;
 
-  protected $fillable = ['name', 'client_name', 'budget', 'description', 'status', 'start_date', 'end_date'];
-  public function tasks()
-  {
-    return $this->hasMany(Task::class);
-  }
+    protected $fillable = [
+        'admin_id',
+        'name',
+        'client_name',
+        'budget',
+        'description',
+        'status',
+        'start_date',
+        'end_date',
+    ];
+
+    public function tasks()
+    {
+        return $this->hasMany(Task::class);
+    }
+
+    public function tenantAdmin()
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
+    }
 }

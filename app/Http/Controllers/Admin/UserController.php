@@ -23,14 +23,33 @@ class UserController extends Controller
 
     public function index()
     {
-        $users = User::with(['department', 'reportingManager'])
-            ->whereIn('role', ['user', 'manager', 'editor'])
-            ->get();
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+
+        $query = User::with(['department', 'reportingManager'])
+            ->whereIn('role', ['user', 'manager', 'editor']);
+
+        if (!$isSuperAdmin) {
+            $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+            $query->where('admin_id', $tenantAdminId);
+        }
+
+        $users = $query->get();
         $departments = Department::orderBy('name')->get();
+
+        $admins = [];
+        if ($isSuperAdmin) {
+            $admins = \App\Models\Admin::where('role', 'admin')
+                ->withCount('users')
+                ->orderBy('name')
+                ->get();
+        }
 
         return inertia('Admin/Users/Index', [
             'users' => $users,
             'departments' => $departments,
+            'admins' => $admins,
+            'isSuperAdmin' => $isSuperAdmin,
         ]);
     }
 
@@ -43,6 +62,9 @@ class UserController extends Controller
 
     public function store(Request $request)
     {
+        $authUser = auth()->user();
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
@@ -70,15 +92,18 @@ class UserController extends Controller
         }
 
         $validated['password'] = Hash::make($validated['password']);
-        // Role is now validated and included in $validated
+        $validated['admin_id'] = $tenantAdminId;
 
         // Check user limit for Basic Plan
         $role = $validated['role'];
         if (in_array($role, ['user', 'manager', 'editor'])) {
-            $admin = User::where('role', 'admin')->first();
-            $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
+            $tenantAdmin = $authUser->role === 'admin' ? $authUser : User::find($tenantAdminId);
+            $plan = $tenantAdmin ? ($tenantAdmin->plan ?? 'basic') : 'basic';
             if ($plan === 'basic') {
-                $activeEmployees = User::whereIn('role', ['user', 'manager', 'editor'])->where('is_active', true)->count();
+                $activeEmployees = User::where('admin_id', $tenantAdminId)
+                    ->whereIn('role', ['user', 'manager', 'editor'])
+                    ->where('is_active', true)
+                    ->count();
                 if ($activeEmployees >= 10) {
                     return back()->withErrors([
                         'role' => 'You have reached the limit of 10 active employees for the Basic Plan. Upgrade to the Premium Plan to add more.'
@@ -140,10 +165,13 @@ class UserController extends Controller
         // Check user limit for Basic Plan on update
         $role = $validated['role'];
         if (in_array($role, ['user', 'manager', 'editor']) && $user->role === 'admin') {
-            $admin = User::where('role', 'admin')->first();
-            $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
+            $authUser = auth()->user();
+            $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+            $tenantAdmin = $authUser->role === 'admin' ? $authUser : User::find($tenantAdminId);
+            $plan = $tenantAdmin ? ($tenantAdmin->plan ?? 'basic') : 'basic';
             if ($plan === 'basic') {
-                $activeEmployees = User::whereIn('role', ['user', 'manager', 'editor'])
+                $activeEmployees = User::where('admin_id', $tenantAdminId)
+                    ->whereIn('role', ['user', 'manager', 'editor'])
                     ->where('is_active', true)
                     ->where('id', '!=', $user->id)
                     ->count();
@@ -186,10 +214,15 @@ class UserController extends Controller
         if (!$user->is_active) {
             // Toggling active from false to true: check limit
             if (in_array($user->role, ['user', 'manager', 'editor'])) {
-                $admin = User::where('role', 'admin')->first();
-                $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
+                $authUser = auth()->user();
+                $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+                $tenantAdmin = $authUser->role === 'admin' ? $authUser : User::find($tenantAdminId);
+                $plan = $tenantAdmin ? ($tenantAdmin->plan ?? 'basic') : 'basic';
                 if ($plan === 'basic') {
-                    $activeEmployees = User::whereIn('role', ['user', 'manager', 'editor'])->where('is_active', true)->count();
+                    $activeEmployees = User::where('admin_id', $tenantAdminId)
+                        ->whereIn('role', ['user', 'manager', 'editor'])
+                        ->where('is_active', true)
+                        ->count();
                     if ($activeEmployees >= 10) {
                         return response()->json([
                             'error' => 'You have reached the limit of 10 active employees for the Basic Plan. Upgrade to the Premium Plan to activate this user.'

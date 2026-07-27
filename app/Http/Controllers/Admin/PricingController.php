@@ -13,6 +13,9 @@ class PricingController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
+            if ($request->routeIs('pricing.public')) {
+                return $next($request);
+            }
             if (auth()->check() && !in_array(auth()->user()->role, ['superadmin', 'admin'])) {
                 abort(403, 'Unauthorized action.');
             }
@@ -20,11 +23,8 @@ class PricingController extends Controller
         });
     }
 
-    public function index()
+    public function getPricingSettings()
     {
-        $user = auth()->user();
-        $isSuperAdmin = $user->role === 'superadmin';
-
         $basicFeaturesJson = Setting::where('key', 'basic_plan_features')->value('value');
         if ($basicFeaturesJson) {
             $basicFeatures = json_decode($basicFeaturesJson, true);
@@ -110,18 +110,37 @@ class PricingController extends Controller
             }
         }
 
-        $settings = [
+        return [
             'basic_plan_price' => Setting::where('key', 'basic_plan_price')->value('value') ?? '999',
             'premium_plan_price' => Setting::where('key', 'premium_plan_price')->value('value') ?? '2999',
             'basic_plan_features' => $basicFeatures,
             'premium_plan_features' => $premiumFeatures,
         ];
+    }
+
+    public function showPricing()
+    {
+        $settings = $this->getPricingSettings();
+        $user = auth()->user();
+
+        return Inertia::render('Pricing', [
+            'settings' => $settings,
+            'currentPlan' => $user?->plan ?? null,
+            'razorpayKey' => config('services.razorpay.key_id', env('RAZORPAY_KEY_ID', 'rzp_test_worknest_key')),
+        ]);
+    }
+
+    public function index()
+    {
+        $user = auth()->user();
+        $isSuperAdmin = $user->role === 'superadmin';
+        $settings = $this->getPricingSettings();
 
         $admins = [];
         if ($isSuperAdmin) {
-            $admins = User::where('role', 'admin')
+            $admins = \App\Models\Admin::where('role', 'admin')
                 ->orderBy('name')
-                ->get(['id', 'name', 'email', 'plan', 'is_active']);
+                ->get(['id', 'name', 'email', 'plan', 'company_name', 'phone', 'is_active']);
         }
 
         return Inertia::render('Admin/Pricing/Index', [
@@ -186,7 +205,7 @@ class PricingController extends Controller
         return back()->with('success', 'Pricing settings updated successfully.');
     }
 
-    public function updateAdminPlan(Request $request, User $user)
+    public function updateAdminPlan(Request $request, $id)
     {
         if (auth()->user()->role !== 'superadmin') {
             abort(403, 'Unauthorized.');
@@ -196,12 +215,9 @@ class PricingController extends Controller
             'plan' => 'required|in:basic,premium',
         ]);
 
-        if ($user->role !== 'admin') {
-            return back()->with('error', 'Plan can only be updated for admin users.');
-        }
+        $admin = \App\Models\Admin::findOrFail($id);
+        $admin->update(['plan' => $request->plan]);
 
-        $user->update(['plan' => $request->plan]);
-
-        return back()->with('success', 'Plan updated successfully for ' . $user->name . '.');
+        return back()->with('success', 'Plan updated successfully for ' . $admin->name . '.');
     }
 }

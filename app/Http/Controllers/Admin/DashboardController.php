@@ -23,25 +23,34 @@ class DashboardController extends Controller
         $isAdminOrSuperAdmin = in_array($user->role, ['admin', 'superadmin']);
         $userId = $isAdminOrSuperAdmin ? request('user_id') : auth()->id();
 
+        $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+        $tenantUserIds = User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+        $tenantUserIds[] = $tenantAdminId;
+
         $stats = [
-            'total_users' => !$isSuperAdmin && $isAdminOrSuperAdmin ? User::where('role', 'user')->where('is_active', true)->count() : 0,
-            'pending_leaves' => !$isSuperAdmin && $isAdminOrSuperAdmin ? Leave::where('status', 'pending')->count() : 0,
-            'total_projects' => !$isSuperAdmin ? Project::count() : 0,
-            'total_tasks' => !$isSuperAdmin ? Task::count() : 0,
-            'pending_tasks' => !$isSuperAdmin ? Task::where('status', 'pending')->count() : 0,
-            'in_progress_tasks' => !$isSuperAdmin ? Task::where('status', 'in progress')->count() : 0,
-            'completed_tasks' => !$isSuperAdmin ? Task::where('status', 'completed')->count() : 0,
-            'total_admins' => $isSuperAdmin ? User::where('role', 'admin')->count() : 0,
+            'total_users' => !$isSuperAdmin && $isAdminOrSuperAdmin 
+                ? User::where('admin_id', $tenantAdminId)->whereIn('role', ['user', 'manager', 'editor'])->where('is_active', true)->count() 
+                : 0,
+            'pending_leaves' => !$isSuperAdmin && $isAdminOrSuperAdmin 
+                ? Leave::whereIn('user_id', $tenantUserIds)->where('status', 'pending')->count() 
+                : 0,
+            'total_projects' => !$isSuperAdmin ? Project::where('admin_id', $tenantAdminId)->count() : 0,
+            'total_tasks' => !$isSuperAdmin ? Task::whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->count() : 0,
+            'pending_tasks' => !$isSuperAdmin ? Task::whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'pending')->count() : 0,
+            'in_progress_tasks' => !$isSuperAdmin ? Task::whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'in progress')->count() : 0,
+            'completed_tasks' => !$isSuperAdmin ? Task::whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'completed')->count() : 0,
+            'total_admins' => $isSuperAdmin ? \App\Models\Admin::where('role', 'admin')->count() : 0,
         ];
 
         $startDate = Carbon::create($year, $month, 1)->subMonth()->day(25)->toDateString();
         $endDate = Carbon::create($year, $month, 1)->day(24)->toDateString();
 
-        // Fetch users for filtering and widgets
-        $users = User::where('role', 'user')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'role', 'designation', 'image', 'thumb']);
+        // Fetch users for filtering and widgets (scoped to tenant)
+        $usersQuery = User::whereIn('role', ['user', 'manager', 'editor'])->where('is_active', true);
+        if (!$isSuperAdmin) {
+            $usersQuery->where('admin_id', $tenantAdminId);
+        }
+        $users = $usersQuery->orderBy('name')->get(['id', 'name', 'role', 'designation', 'image', 'thumb']);
 
         $todayAttendance = Attendance::where('user_id', auth()->id())
             ->whereDate('date', Carbon::today()->toDateString())

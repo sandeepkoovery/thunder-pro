@@ -45,7 +45,7 @@ class User extends Authenticatable
         'email',
         'password',
         'role',
-        'plan',
+        'admin_id',
         'designation',
         'phone',
         'is_active',
@@ -175,6 +175,25 @@ class User extends Authenticatable
     {
         return $this->hasMany(Attendance::class);
     }
+
+    public function tenantAdmin(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
+    }
+
+    public function tenantUsers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(User::class, 'admin_id');
+    }
+
+    public function getEffectiveAdminIdAttribute(): ?int
+    {
+        if ($this->role === 'admin') {
+            return $this->id;
+        }
+        return $this->admin_id;
+    }
+
 
 }
 

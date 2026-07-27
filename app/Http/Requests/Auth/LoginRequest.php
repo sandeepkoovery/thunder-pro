@@ -43,8 +43,14 @@ class LoginRequest extends FormRequest
         $this->ensureIsNotRateLimited();
 
         $remember = $this->boolean('remember');
+        $credentials = $this->only('email', 'password');
 
-        if (!Auth::attempt($this->only('email', 'password'), $remember)) {
+        // Attempt login as Admin first (admins table), then User (users table)
+        if (Auth::guard('admin')->attempt($credentials, $remember)) {
+            Auth::shouldUse('admin');
+        } elseif (Auth::guard('web')->attempt($credentials, $remember)) {
+            Auth::shouldUse('web');
+        } else {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -52,9 +58,9 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        // Check if user is active
+        // Check if account is active
         $user = Auth::user();
-        if (!$user->is_active) {
+        if ($user && isset($user->is_active) && !$user->is_active) {
             Auth::logout();
 
             throw ValidationException::withMessages([

@@ -115,9 +115,9 @@ export default function Welcome({ canLogin, canRegister }) {
 
                         {/* Navigation links (Desktop) */}
                         <div className="hidden md:flex items-center gap-10">
-                            <a href="#" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Home</a>
+                            <Link href={route('home')} className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Home</Link>
                             <a href="#features" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Features</a>
-                            <a href="#" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Pricing</a>
+                            <Link href={route('pricing.public')} className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Pricing</Link>
                             <a href="#" className="text-slate-500 hover:text-[#7460ee] text-[15px] font-semibold transition-colors">Contact</a>
                         </div>
 
@@ -126,7 +126,7 @@ export default function Welcome({ canLogin, canRegister }) {
                             <div className="hidden md:flex items-center gap-2">
                                 {auth?.user ? (
                                     <Link 
-                                        href="/dashboard" 
+                                        href={route('dashboard')} 
                                         className="px-4 py-2 sm:px-6 sm:py-2.5 text-[15px] sm:text-[17px] font-bold text-white bg-[#7460ee] hover:bg-[#5e45d6] rounded-xl hover:shadow-lg transition-all flex items-center justify-center"
                                         style={{ minHeight: '44px' }}
                                     >
@@ -174,13 +174,13 @@ export default function Welcome({ canLogin, canRegister }) {
                             >
                                 Features
                             </a>
-                            <a 
-                                href="#" 
+                            <Link 
+                                href={route('pricing.public')} 
                                 onClick={() => setMobileMenuOpen(false)}
                                 className="text-slate-600 hover:text-[#7460ee] text-[16px] font-bold py-2 border-b border-slate-50 transition-colors"
                             >
                                 Pricing
-                            </a>
+                            </Link>
                             <a 
                                 href="#" 
                                 onClick={() => setMobileMenuOpen(false)}
@@ -191,7 +191,7 @@ export default function Welcome({ canLogin, canRegister }) {
                             <div className="pt-2 flex flex-col gap-3">
                                 {auth?.user ? (
                                     <Link 
-                                        href="/dashboard" 
+                                        href={route('dashboard')} 
                                         className="w-full text-center px-4 py-3 text-[16px] font-bold text-white bg-[#7460ee] hover:bg-[#5e45d6] rounded-xl transition-all"
                                     >
                                         Dashboard
@@ -346,9 +346,9 @@ export default function Welcome({ canLogin, canRegister }) {
                         <div className="space-y-4">
                             <h4 className="text-xs font-bold text-[#2b1440] uppercase tracking-wider">Quick Links</h4>
                             <ul className="space-y-2.5 text-xs text-[#6B7280]">
-                                <li><a href="#" className="hover:text-[#7460ee] transition-colors">Home</a></li>
+                                <li><Link href={route('home')} className="hover:text-[#7460ee] transition-colors">Home</Link></li>
                                 <li><a href="#features" className="hover:text-[#7460ee] transition-colors">Features</a></li>
-                                <li><a href="#" className="hover:text-[#7460ee] transition-colors">Pricing</a></li>
+                                <li><Link href={route('pricing.public')} className="hover:text-[#7460ee] transition-colors">Pricing</Link></li>
                                 <li><a href="#" className="hover:text-[#7460ee] transition-colors">Contact</a></li>
                             </ul>
                         </div>

@@ -13,7 +13,15 @@ class ProjectController extends Controller
 {
     public function index(Request $request)
     {
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+
         $query = Project::query();
+
+        if (!$isSuperAdmin) {
+            $query->where('admin_id', $tenantAdminId);
+        }
 
         if ($search = $request->input('search')) {
             $query->where('name', 'like', "%{$search}%");
@@ -30,12 +38,12 @@ class ProjectController extends Controller
 
         // We also need project status counts for the tabs
         $statusCounts = [
-            'All' => Project::count(),
-            'Ongoing' => Project::where('status', 'in progress')->count(),
-            'Completed' => Project::where('status', 'completed')->count(),
-            'Inactive' => Project::where('status', 'on hold')->count(),
-            'Cancelled' => Project::where('status', 'cancelled')->count(),
-            'Critical' => Project::where('status', 'critical')->count(),
+            'All' => (clone $query)->count(),
+            'Ongoing' => (clone $query)->where('status', 'in progress')->count(),
+            'Completed' => (clone $query)->where('status', 'completed')->count(),
+            'Inactive' => (clone $query)->where('status', 'on hold')->count(),
+            'Cancelled' => (clone $query)->where('status', 'cancelled')->count(),
+            'Critical' => (clone $query)->where('status', 'critical')->count(),
         ];
 
         // Fetch projects with their relation aggregates
@@ -95,7 +103,13 @@ class ProjectController extends Controller
             'end_date' => 'required|date',
         ]);
 
-        Project::create($request->all());
+        $authUser = auth()->user();
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+
+        Project::create([
+            ...$request->all(),
+            'admin_id' => $tenantAdminId,
+        ]);
 
         return redirect()->route('admin.projects.index')
             ->with('success', 'Project created successfully!');

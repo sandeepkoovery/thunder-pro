@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->trustProxies(at: '*');
+        $middleware->web(prepend: [
+            \App\Http\Middleware\ResolveAuthGuard::class,
+        ]);
         $middleware->web(append: [
             \App\Http\Middleware\HandleInertiaRequests::class,
             \App\Http\Middleware\CheckBetaAccess::class,
@@ -20,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
 
         $middleware->alias([
+            'auth' => \App\Http\Middleware\AuthenticateMultiGuard::class,
             'is_admin' => IsAdmin::class,
             'is_super_admin' => \App\Http\Middleware\IsSuperAdmin::class,
             'is_super_or_admin' => \App\Http\Middleware\IsSuperOrAdmin::class,

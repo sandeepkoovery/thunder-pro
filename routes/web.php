@@ -15,6 +15,8 @@ use App\Http\Controllers\Admin\LeaveController as AdminLeaveController;
 use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AiAssistantController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\Admin\PricingController;
 
 
 // Home page
@@ -23,11 +25,18 @@ Route::get('/', function () {
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
     ]);
-});
+})->name('home');
+
 
 Route::get('/welcome-new', function () {
     return Inertia::render('Landing');
 });
+
+// Public Pricing & Razorpay Payment Routes
+Route::get('/pricing', [PricingController::class, 'showPricing'])->name('pricing.public');
+Route::post('/payment/create-order', [PaymentController::class, 'createOrder'])->name('payment.create-order');
+Route::post('/payment/verify', [PaymentController::class, 'verifyPayment'])->name('payment.verify');
+
 
 // Dashboard (redirects based on role)
 Route::middleware(['auth'])->get('/dashboard', function () {

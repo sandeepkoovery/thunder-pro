@@ -12,6 +12,10 @@ class HandleInertiaRequests extends Middleware
      */
     public function handle(Request $request, \Closure $next)
     {
+        if (!\Illuminate\Support\Facades\Auth::guard('web')->check() && \Illuminate\Support\Facades\Auth::guard('admin')->check()) {
+            \Illuminate\Support\Facades\Auth::shouldUse('admin');
+        }
+
         $response = parent::handle($request, $next);
 
         if ($request->header('X-Inertia')) {
@@ -52,7 +56,8 @@ class HandleInertiaRequests extends Middleware
             } elseif ($user->role === 'admin') {
                 $plan = $user->plan ?? 'basic';
             } else {
-                $admin = \App\Models\User::where('role', 'admin')->first();
+                $tenantAdminId = $user->admin_id ?? null;
+                $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : \App\Models\Admin::first();
                 $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
             }
         }
@@ -83,6 +88,13 @@ class HandleInertiaRequests extends Middleware
             }
         } else {
             $premiumModules = json_decode(\App\Models\Setting::where('key', 'premium_plan_modules')->value('value') ?? '[]', true);
+        }
+
+        if (empty($basicModules)) {
+            $basicModules = ['projects', 'users', 'leaves', 'attendance', 'chat'];
+        }
+        if (empty($premiumModules)) {
+            $premiumModules = ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'reports', 'drive'];
         }
 
         $allowedModules = ($plan === 'premium' || ($user && $user->role === 'superadmin')) ? $premiumModules : $basicModules;

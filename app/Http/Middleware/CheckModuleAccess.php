@@ -54,11 +54,12 @@ class CheckModuleAccess
         if ($module) {
             // Determine active plan
             $plan = 'basic';
-            if ($user->role === 'admin') {
+            if ($user instanceof \App\Models\Admin || $user->role === 'admin') {
                 $plan = $user->plan ?? 'basic';
             } else {
-                // Employees fallback to the first admin's plan
-                $admin = \App\Models\User::where('role', 'admin')->first();
+                // Employees inherit plan from their assigned Tenant Admin (admins table)
+                $tenantAdminId = $user->admin_id ?? null;
+                $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : \App\Models\Admin::first();
                 $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
             }
 
@@ -74,6 +75,12 @@ class CheckModuleAccess
                 }
             } else {
                 $allowed = json_decode(\App\Models\Setting::where('key', $plan . '_plan_modules')->value('value') ?? '[]', true);
+            }
+
+            if (empty($allowed)) {
+                $allowed = $plan === 'premium' 
+                    ? ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'reports', 'drive'] 
+                    : ['projects', 'users', 'leaves', 'attendance', 'chat'];
             }
 
             if (!in_array($module, $allowed)) {

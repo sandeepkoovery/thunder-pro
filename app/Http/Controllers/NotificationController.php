@@ -51,13 +51,19 @@ class NotificationController extends Controller
         }
 
         // 2. Leave Requests
-        if (in_array($user->role, ['admin', 'manager', 'editor'])) {
-            $leaves = Leave::with('user')
-                ->orderBy('created_at', 'desc')
-                ->take(50)
-                ->get();
+        if (in_array($user->role, ['admin', 'manager', 'editor', 'superadmin'])) {
+            $isSuperAdmin = $user->role === 'superadmin';
+            $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+            $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+
+            $leavesQuery = Leave::with('user')->orderBy('created_at', 'desc');
+            if (!$isSuperAdmin) {
+                $leavesQuery->whereIn('user_id', $tenantUserIds);
+            }
+            $leaves = $leavesQuery->take(50)->get();
 
             foreach ($leaves as $leave) {
+                if (!$leave->user) continue;
                 $notifId = 'leave_' . $leave->id;
                 $isRead = in_array($notifId, $seenIds) || $leave->status !== 'pending';
 
@@ -157,14 +163,24 @@ class NotificationController extends Controller
         }
 
         // 2. Leave Requests
-        if (in_array($user->role, ['admin', 'manager', 'editor'])) {
-            // Admins see pending leaves from others
-            $pendingLeaves = Leave::with('user')
+        if (in_array($user->role, ['admin', 'manager', 'editor', 'superadmin'])) {
+            $isSuperAdmin = $user->role === 'superadmin';
+            $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+            $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+
+            // Admins see pending leaves from their tenant users
+            $pendingLeavesQuery = Leave::with('user')
                 ->where('status', 'pending')
-                ->orderBy('created_at', 'desc')
-                ->get();
+                ->orderBy('created_at', 'desc');
+
+            if (!$isSuperAdmin) {
+                $pendingLeavesQuery->whereIn('user_id', $tenantUserIds);
+            }
+
+            $pendingLeaves = $pendingLeavesQuery->get();
 
             foreach ($pendingLeaves as $leave) {
+                if (!$leave->user) continue;
                 $notifId = 'leave_' . $leave->id;
                 if (in_array($notifId, $seenIds))
                     continue;
@@ -225,9 +241,14 @@ class NotificationController extends Controller
         if (!$user)
             return response()->json([], 401);
 
-        $unreadChats = Message::where('receiver_id', $user->id)
-            ->where('is_read', false)
-            ->count();
+        if ($user->role === 'superadmin') {
+            $unreadChats = 0;
+        } else {
+            $currentUserId = $user->role === 'admin' ? 'admin_' . $user->id : (string) $user->id;
+            $unreadChats = Message::where('receiver_id', $currentUserId)
+                ->where('is_read', false)
+                ->count();
+        }
 
         $pendingLeaves = 0;
         $seenIds = DB::table('notification_reads')
@@ -235,8 +256,17 @@ class NotificationController extends Controller
             ->pluck('notification_id')
             ->toArray();
 
-        if (in_array($user->role, ['admin', 'manager', 'editor'])) {
-            $leaves = Leave::where('status', 'pending')->get();
+        if (in_array($user->role, ['admin', 'manager', 'editor', 'superadmin'])) {
+            $isSuperAdmin = $user->role === 'superadmin';
+            $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+            $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+
+            $leavesQuery = Leave::where('status', 'pending');
+            if (!$isSuperAdmin) {
+                $leavesQuery->whereIn('user_id', $tenantUserIds);
+            }
+            $leaves = $leavesQuery->get();
+
             foreach ($leaves as $leave) {
                 if (!in_array('leave_' . $leave->id, $seenIds)) {
                     $pendingLeaves++;
