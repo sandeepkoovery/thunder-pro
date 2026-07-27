@@ -58,14 +58,33 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        // Check if account is active
+        // Check if account is active (or if parent tenant admin is disabled)
         $user = Auth::user();
-        if ($user && isset($user->is_active) && !$user->is_active) {
-            Auth::logout();
+        if ($user) {
+            $isDisabled = false;
+            if ($user instanceof \App\Models\Admin) {
+                if ($user->role !== 'superadmin' && !$user->is_active) {
+                    $isDisabled = true;
+                }
+            } elseif ($user instanceof \App\Models\User) {
+                if (!$user->is_active) {
+                    $isDisabled = true;
+                } elseif ($user->admin_id) {
+                    $parentAdmin = \App\Models\Admin::find($user->admin_id);
+                    if ($parentAdmin && !$parentAdmin->is_active) {
+                        $isDisabled = true;
+                    }
+                }
+            }
 
-            throw ValidationException::withMessages([
-                'email' => 'Your account is disabled. Please contact the administrator.',
-            ]);
+            if ($isDisabled) {
+                Auth::guard('admin')->logout();
+                Auth::guard('web')->logout();
+
+                throw ValidationException::withMessages([
+                    'email' => 'Your account or company organization has been disabled by administrator.',
+                ]);
+            }
         }
 
         RateLimiter::clear($this->throttleKey());

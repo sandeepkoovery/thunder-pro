@@ -115,6 +115,7 @@ class PricingController extends Controller
             'premium_plan_price' => Setting::where('key', 'premium_plan_price')->value('value') ?? '2999',
             'basic_plan_features' => $basicFeatures,
             'premium_plan_features' => $premiumFeatures,
+            'allow_admin_registration' => Setting::where('key', 'allow_admin_registration')->value('value') ?? '1',
         ];
     }
 
@@ -177,6 +178,7 @@ class PricingController extends Controller
             'premium_plan_price' => 'required|numeric|min:0',
             'basic_plan_features' => 'required|array',
             'premium_plan_features' => 'required|array',
+            'allow_admin_registration' => 'nullable',
         ]);
 
         $basicKeys = [];
@@ -197,7 +199,8 @@ class PricingController extends Controller
         Setting::updateOrCreate(['key' => 'premium_plan_price'], ['value' => $validated['premium_plan_price']]);
         Setting::updateOrCreate(['key' => 'basic_plan_features'], ['value' => json_encode($validated['basic_plan_features'])]);
         Setting::updateOrCreate(['key' => 'premium_plan_features'], ['value' => json_encode($validated['premium_plan_features'])]);
-        
+        Setting::updateOrCreate(['key' => 'allow_admin_registration'], ['value' => ($request->boolean('allow_admin_registration') || $request->input('allow_admin_registration') === '1' || $request->input('allow_admin_registration') === 1) ? '1' : '0']);
+
         // Sync legacy keys for route and side navigation checks compatibility
         Setting::updateOrCreate(['key' => 'basic_plan_modules'], ['value' => json_encode($basicKeys)]);
         Setting::updateOrCreate(['key' => 'premium_plan_modules'], ['value' => json_encode($premiumKeys)]);
@@ -219,5 +222,22 @@ class PricingController extends Controller
         $admin->update(['plan' => $request->plan]);
 
         return back()->with('success', 'Plan updated successfully for ' . $admin->name . '.');
+    }
+
+    public function toggleAdminStatus(Request $request, $id)
+    {
+        if (auth()->user()->role !== 'superadmin') {
+            abort(403, 'Unauthorized.');
+        }
+
+        $admin = \App\Models\Admin::findOrFail($id);
+        $newStatus = !$admin->is_active;
+        $admin->update(['is_active' => $newStatus]);
+
+        // Cascading disable: update all employee users belonging to this admin
+        \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => $newStatus]);
+
+        $statusLabel = $newStatus ? 'enabled' : 'disabled';
+        return back()->with('success', "Admin {$admin->name} and all associated employee users have been {$statusLabel}.");
     }
 }

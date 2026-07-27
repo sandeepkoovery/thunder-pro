@@ -181,6 +181,7 @@ Route::middleware(['auth', 'is_admin'])
             Route::post('pricing/subscribe', [\App\Http\Controllers\Admin\PricingController::class, 'subscribe'])->name('pricing.subscribe');
             Route::post('pricing/settings', [\App\Http\Controllers\Admin\PricingController::class, 'updateSettings'])->name('pricing.settings');
             Route::post('pricing/admin-plan/{user}', [\App\Http\Controllers\Admin\PricingController::class, 'updateAdminPlan'])->name('pricing.admin-plan');
+            Route::post('pricing/admin-status/{id}', [\App\Http\Controllers\Admin\PricingController::class, 'toggleAdminStatus'])->name('pricing.admin-status');
         });
 
         Route::resource('projects', AdminProjectController::class);

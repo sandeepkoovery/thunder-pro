@@ -19,9 +19,9 @@ import AppShell, { NavItem } from "@/Layouts/AppShell";
 
 export default function AdminLayout({ children, title = "Dashboard" }) {
   const { auth, flash, sharedSettings, expiringWebsitesCount, allowedModules } = usePage().props;
-  const betaMenuItems = Array.isArray(sharedSettings?.beta_menu_items) ? sharedSettings.beta_menu_items : [];
-  const hiddenMenuItems = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
   const isSuperAdmin = auth?.user?.role === "superadmin";
+  const betaMenuItems = isSuperAdmin ? [] : (Array.isArray(sharedSettings?.beta_menu_items) ? sharedSettings.beta_menu_items : []);
+  const hiddenMenuItems = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
   const isAdmin = auth?.user?.role === "admin" || isSuperAdmin;
 
   const isVisible = (module) => {

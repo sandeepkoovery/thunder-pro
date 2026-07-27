@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Head, useForm, usePage } from '@inertiajs/react';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { Settings, CreditCard, Check, X, Save, Users, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -35,7 +35,12 @@ export default function Index({ settings, admins, currentPlan }) {
         premium_plan_price: settings.premium_plan_price || '2999',
         basic_plan_features: settings.basic_plan_features || [],
         premium_plan_features: settings.premium_plan_features || [],
+        allow_admin_registration: (settings.allow_admin_registration ?? '1') === '1',
     });
+
+    useEffect(() => {
+        settingsForm.setData('allow_admin_registration', (settings.allow_admin_registration ?? '1') === '1');
+    }, [settings.allow_admin_registration]);
 
     // Core module dropdown addition select state
     const [selectedCoreBasic, setSelectedCoreBasic] = useState('custom');
@@ -606,91 +611,146 @@ export default function Index({ settings, admins, currentPlan }) {
 
                         </div>
 
-                        <div className="flex justify-end pt-4 border-t border-gray-100">
-                            <button
-                                type="submit"
-                                disabled={settingsForm.processing}
-                                className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-widest text-[11px] transition-all shadow-md shadow-emerald-600/25"
-                            >
-                                <Save size={16} />
-                                {settingsForm.processing ? "Saving..." : "Save Configuration"}
-                            </button>
-                        </div>
-                    </form>
-                )}
+                                <div className="flex justify-end pt-4 border-t border-gray-100">
+                                    <button
+                                        type="submit"
+                                        disabled={settingsForm.processing}
+                                        className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-widest text-[11px] transition-all shadow-md shadow-emerald-600/25"
+                                    >
+                                        <Save size={16} />
+                                        {settingsForm.processing ? "Saving..." : "Save Configuration"}
+                                    </button>
+                                </div>
+                            </form>
+                        )}
 
-                {/* TAB: SUPER ADMIN ADMINS SUBSCRIPTION MANAGEMENT */}
-                {activeTab === 'admins' && isSuperAdmin && (
-                    <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 space-y-6">
-                        <div>
-                            <h2 className="text-lg font-bold text-gray-900 mb-1">Manage Admin User Subscriptions</h2>
-                            <p className="text-gray-400 text-sm">Force switch subscriptions or plans for specific company administrators.</p>
-                        </div>
+                        {/* TAB: SUPER ADMIN ADMINS SUBSCRIPTION MANAGEMENT */}
+                        {activeTab === 'admins' && isSuperAdmin && (
+                            <div className="space-y-6">
+                                {/* Admin Registration Control (Top of Manage Admin Plans tab) */}
+                                <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 space-y-4">
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-900 mb-1">Admin Registration Control</h2>
+                                        <p className="text-gray-400 text-sm">Enable or disable new company client admin sign-ups from the public frontend pricing page.</p>
+                                    </div>
 
-                        {admins.length === 0 ? (
-                            <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-[24px]">
-                                <AlertTriangle className="text-gray-300 mb-3" size={48} />
-                                <p className="text-gray-500 font-medium">No admin users found in the system.</p>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="border-b border-gray-100">
-                                            <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Admin Name</th>
-                                            <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Email Address</th>
-                                            <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Current Plan</th>
-                                            <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400 text-right">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-50">
-                                        {admins.map((admin) => (
-                                            <tr key={admin.id} className="hover:bg-gray-50/50 transition-colors">
-                                                <td className="py-4 font-semibold text-gray-900 text-sm">{admin.name}</td>
-                                                <td className="py-4 text-gray-500 text-sm">{admin.email}</td>
-                                                <td className="py-4">
-                                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                                        admin.plan === 'premium'
-                                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                                            : 'bg-blue-50 text-blue-600 border border-blue-100'
-                                                    }`}>
-                                                        {admin.plan || 'basic'}
-                                                    </span>
-                                                </td>
-                                                <td className="py-4 text-right">
-                                                    <div className="flex justify-end gap-2">
-                                                        <button
-                                                            onClick={() => handleUpdateAdminPlan(admin.id, 'basic')}
-                                                            disabled={admin.plan === 'basic' || adminPlanForm.processing}
-                                                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                admin.plan === 'basic'
-                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                                                            }`}
-                                                        >
-                                                            Basic
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleUpdateAdminPlan(admin.id, 'premium')}
-                                                            disabled={admin.plan === 'premium' || adminPlanForm.processing}
-                                                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                admin.plan === 'premium'
-                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                                    : 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm'
-                                                            }`}
-                                                        >
-                                                            Premium
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
+                                    <form onSubmit={handleSaveSettings} className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-2xl bg-gray-50 border border-gray-100">
+                                        <label className="flex items-center gap-3 cursor-pointer">
+                                            <input
+                                                type="checkbox"
+                                                checked={settingsForm.data.allow_admin_registration}
+                                                onChange={(e) => settingsForm.setData('allow_admin_registration', e.target.checked)}
+                                                className="w-5 h-5 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500"
+                                            />
+                                            <div>
+                                                <span className="text-sm font-bold text-gray-900 block">Allow New Admin Registrations</span>
+                                                <span className="text-xs text-gray-500 block">When unchecked, public sign-ups on the pricing page will be paused.</span>
+                                            </div>
+                                        </label>
+
+                                        <button
+                                            type="submit"
+                                            disabled={settingsForm.processing}
+                                            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold uppercase tracking-widest text-[10px] transition-all shadow-sm flex-shrink-0"
+                                        >
+                                            <Save size={14} />
+                                            {settingsForm.processing ? "Saving..." : "Save Setting"}
+                                        </button>
+                                    </form>
+                                </div>
+
+                                {/* Manage Admin Users & Subscriptions Table */}
+                                <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 space-y-6">
+                                    <div>
+                                        <h2 className="text-lg font-bold text-gray-900 mb-1">Manage Admin Users & Subscriptions</h2>
+                                        <p className="text-gray-400 text-sm">Force switch subscriptions or enable/disable client administrators and their employee users.</p>
+                                    </div>
+
+                                    {admins.length === 0 ? (
+                                        <div className="flex flex-col items-center justify-center p-12 bg-gray-50 rounded-[24px]">
+                                            <AlertTriangle className="text-gray-300 mb-3" size={48} />
+                                            <p className="text-gray-500 font-medium">No admin users found in the system.</p>
+                                        </div>
+                                    ) : (
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="border-b border-gray-100">
+                                                        <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Admin Name</th>
+                                                        <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Email Address</th>
+                                                        <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Account Status</th>
+                                                        <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Current Plan</th>
+                                                        <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400 text-right">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-50">
+                                                    {admins.map((admin) => (
+                                                        <tr key={admin.id} className="hover:bg-gray-50/50 transition-colors">
+                                                            <td className="py-4 font-semibold text-gray-900 text-sm">{admin.name}</td>
+                                                            <td className="py-4 text-gray-500 text-sm">{admin.email}</td>
+                                                            <td className="py-4">
+                                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                                                    admin.is_active
+                                                                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                                                        : 'bg-red-50 text-red-600 border border-red-100'
+                                                                }`}>
+                                                                    {admin.is_active ? 'Active' : 'Disabled'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-4">
+                                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                                                    admin.plan === 'premium'
+                                                                        ? 'bg-purple-50 text-purple-600 border border-purple-100'
+                                                                        : 'bg-blue-50 text-blue-600 border border-blue-100'
+                                                                }`}>
+                                                                    {admin.plan || 'basic'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="py-4 text-right">
+                                                                <div className="flex justify-end gap-2">
+                                                                    <button
+                                                                        onClick={() => router.post(route('admin.pricing.admin-status', admin.id))}
+                                                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                                            admin.is_active
+                                                                                ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 cursor-pointer'
+                                                                                : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm cursor-pointer'
+                                                                        }`}
+                                                                    >
+                                                                        {admin.is_active ? 'Disable' : 'Enable'}
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleUpdateAdminPlan(admin.id, 'basic')}
+                                                                        disabled={admin.plan === 'basic' || adminPlanForm.processing}
+                                                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                                            admin.plan === 'basic'
+                                                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                                                                        }`}
+                                                                    >
+                                                                        Basic
+                                                                    </button>
+                                                                    <button
+                                                                        onClick={() => handleUpdateAdminPlan(admin.id, 'premium')}
+                                                                        disabled={admin.plan === 'premium' || adminPlanForm.processing}
+                                                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                                            admin.plan === 'premium'
+                                                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                                : 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm'
+                                                                        }`}
+                                                                    >
+                                                                        Premium
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         )}
-                    </div>
-                )}
             </div>
         </AdminLayout>
     );

@@ -134,37 +134,7 @@ export default function Index({ settings, users }) {
 
                             {isSuperAdmin && (
                                 <>
-                                    <div className="bg-gray-50/50 rounded-[28px] p-8 border border-gray-100">
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowMenuSettings(!showMenuSettings)}
-                                            className="flex items-center justify-between w-full group"
-                                        >
-                                            <div>
-                                                <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">Menu Beta Labels</h3>
-                                                <p className="text-gray-500 font-medium text-sm">Select items to highlight with a "Beta" tag</p>
-                                            </div>
-                                            <div className={`p-2 bg-white rounded-full shadow-sm border border-gray-100 transition-transform duration-300 ${showMenuSettings ? 'rotate-180' : ''}`}>
-                                                <ChevronRight className="rotate-90 text-gray-400" />
-                                            </div>
-                                        </button>
 
-                                        {showMenuSettings && (
-                                            <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 animate-in fade-in zoom-in-95 duration-200">
-                                                {menuItems.map((item) => (
-                                                    <label key={item.id} className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl cursor-pointer hover:border-blue-200 hover:shadow-md hover:shadow-blue-500/5 transition-all">
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={data.beta_menu_items.includes(item.id)}
-                                                            onChange={() => toggleMenuItem(item.id)}
-                                                            className="w-5 h-5 rounded-lg border-gray-200 text-blue-600 focus:ring-blue-500/20"
-                                                        />
-                                                        <span className="font-bold text-gray-700 text-sm">{item.label}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
 
                                     {/* Module Visibility Section */}
                                     <div className="bg-gray-50/50 rounded-[28px] p-8 border border-gray-100">

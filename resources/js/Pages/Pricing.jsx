@@ -97,12 +97,18 @@ export default function Pricing({ settings, currentPlan, razorpayKey }) {
         }
     };
 
+    const isRegistrationAllowed = (settings.allow_admin_registration ?? '1') === '1';
+
     const handleSelectPlan = (planName) => {
         setSelectedPlan(planName);
         if (currentUser) {
             // Logged in user: proceed with checkout directly
             initiatePayment(planName, {});
         } else {
+            if (!isRegistrationAllowed) {
+                toast.error("New admin registrations are currently paused by the system administrator.");
+                return;
+            }
             // Guest client: prompt for client admin account details
             setIsCheckoutModalOpen(true);
         }
@@ -264,7 +270,7 @@ export default function Pricing({ settings, currentPlan, razorpayKey }) {
                         </h1>
 
                         <p className="text-lg text-slate-500 font-medium">
-                            Choose the plan that fits your organization. Instant automated setup with full admin privileges, Super Admin management, and Razorpay secure checkout.
+                            Choose the plan that fits your organization. Instant automated setup with full admin privileges, workspace management, and Razorpay secure checkout.
                         </p>
                     </div>
 
@@ -403,7 +409,7 @@ export default function Pricing({ settings, currentPlan, razorpayKey }) {
                         </div>
                         <div className="flex items-center gap-2">
                             <CheckCircle2 className="text-[#7460ee]" size={20} />
-                            <span>Super Admin & Admin Panel Redirection</span>
+                            <span>Admin Panel Redirection</span>
                         </div>
                     </div>
 
