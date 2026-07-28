@@ -98,10 +98,16 @@ class LoginRequest extends FormRequest
                 $effectivePlan = 'basic';
                 if ($user->role === 'superadmin') {
                     $effectivePlan = 'premium';
-                } elseif ($user instanceof \App\Models\Admin || $user->role === 'admin') {
+                } elseif ($user instanceof \App\Models\Admin) {
                     $effectivePlan = $user->plan ?? 'basic';
                 } else {
-                    $tenantAdmin = $user->admin_id ? \App\Models\Admin::find($user->admin_id) : \App\Models\Admin::first();
+                    $tenantAdmin = $user->admin_id ? \App\Models\Admin::find($user->admin_id) : null;
+                    if (!$tenantAdmin && ($user->role === 'admin' || isset($user->id))) {
+                        $tenantAdmin = \App\Models\Admin::find($user->id) ?? \App\Models\Admin::where('email', $user->email)->first();
+                    }
+                    if (!$tenantAdmin) {
+                        $tenantAdmin = \App\Models\Admin::where('role', 'admin')->first();
+                    }
                     $effectivePlan = $tenantAdmin ? ($tenantAdmin->plan ?? 'basic') : 'basic';
                 }
 

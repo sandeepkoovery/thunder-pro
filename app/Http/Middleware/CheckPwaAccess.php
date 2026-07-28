@@ -27,11 +27,17 @@ class CheckPwaAccess
                 $effectivePlan = 'basic';
                 if ($user->role === 'superadmin') {
                     $effectivePlan = 'premium';
-                } elseif ($user instanceof \App\Models\Admin || $user->role === 'admin') {
+                } elseif ($user instanceof \App\Models\Admin) {
                     $effectivePlan = $user->plan ?? 'basic';
                 } else {
                     $tenantAdminId = $user->admin_id ?? null;
-                    $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : \App\Models\Admin::first();
+                    $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : null;
+                    if (!$admin && ($user->role === 'admin' || isset($user->id))) {
+                        $admin = \App\Models\Admin::find($user->id) ?? \App\Models\Admin::where('email', $user->email)->first();
+                    }
+                    if (!$admin) {
+                        $admin = \App\Models\Admin::where('role', 'admin')->first();
+                    }
                     $effectivePlan = $admin ? ($admin->plan ?? 'basic') : 'basic';
                 }
 
