@@ -85,6 +85,35 @@ class LoginRequest extends FormRequest
                     'email' => 'Your account or company organization has been disabled by administrator.',
                 ]);
             }
+
+            // Check PWA access for Premium Plan only
+            $isPwaRequest = $this->header('X-PWA-Mode') === 'true' 
+                         || $this->boolean('is_pwa') 
+                         || $this->input('is_pwa') === 'true' 
+                         || $this->query('pwa') === '1' 
+                         || $this->query('source') === 'pwa'
+                         || str_contains($this->header('Referer', ''), 'source=pwa');
+
+            if ($isPwaRequest) {
+                $effectivePlan = 'basic';
+                if ($user->role === 'superadmin') {
+                    $effectivePlan = 'premium';
+                } elseif ($user instanceof \App\Models\Admin || $user->role === 'admin') {
+                    $effectivePlan = $user->plan ?? 'basic';
+                } else {
+                    $tenantAdmin = $user->admin_id ? \App\Models\Admin::find($user->admin_id) : \App\Models\Admin::first();
+                    $effectivePlan = $tenantAdmin ? ($tenantAdmin->plan ?? 'basic') : 'basic';
+                }
+
+                if ($effectivePlan !== 'premium') {
+                    Auth::guard('admin')->logout();
+                    Auth::guard('web')->logout();
+
+                    throw ValidationException::withMessages([
+                        'email' => 'PWA access is exclusive to Premium plan subscribers. Please upgrade your plan to access the PWA application.',
+                    ]);
+                }
+            }
         }
 
         RateLimiter::clear($this->throttleKey());

@@ -6,10 +6,18 @@ import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 
 export default function Login({ status, canResetPassword }) {
+    const isPwa = typeof window !== 'undefined' && (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true ||
+        window.location.search.includes('source=pwa') ||
+        window.location.search.includes('pwa=1')
+    );
+
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
         remember: false,
+        is_pwa: isPwa,
     });
 
     const submit = (e) => {

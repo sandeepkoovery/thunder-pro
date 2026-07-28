@@ -70,19 +70,26 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
     }
   };
 
-  const profileDropdownRef = useRef(null);
-  
+  const pageProps = usePage().props;
+  const isSuperAdmin = (auth?.user || pageProps.auth?.user)?.role === 'superadmin';
+  const isPremiumPlan = pageProps.userPlan === 'premium' || isSuperAdmin;
+
   useEffect(() => {
+    if (!isPremiumPlan) {
+      setDeferredPrompt(null);
+      return;
+    }
+
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
     };
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     return () => window.removeEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
-  }, []);
+  }, [isPremiumPlan]);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    if (!deferredPrompt || !isPremiumPlan) return;
     deferredPrompt.prompt();
     const { outcome } = await deferredPrompt.userChoice;
     console.log(`User response to the install prompt: ${outcome}`);
@@ -167,7 +174,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
           </div>
 
           <div className="mp-topbar-right">
-            {deferredPrompt && (
+            {isPremiumPlan && deferredPrompt && (
               <button
                 className="mp-nav-btn install-btn bg-blue-50 text-blue-600 px-3 rounded-lg flex items-center gap-1.5 transition-all duration-300 hover:bg-blue-100 mr-2"
                 onClick={handleInstallClick}
