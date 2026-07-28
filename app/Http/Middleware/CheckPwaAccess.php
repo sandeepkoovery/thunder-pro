@@ -18,8 +18,7 @@ class CheckPwaAccess
                      || $request->boolean('is_pwa')
                      || $request->input('is_pwa') === 'true'
                      || $request->query('pwa') === '1'
-                     || $request->query('source') === 'pwa'
-                     || str_contains($request->header('Referer', ''), 'source=pwa');
+                     || $request->query('source') === 'pwa';
 
         if ($isPwaRequest) {
             $user = $request->user();

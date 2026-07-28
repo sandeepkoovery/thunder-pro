@@ -14,6 +14,7 @@
         <meta name="theme-color" content="#00A8FF">
         <link rel="manifest" href="{{ url('/manifest.webmanifest?v=5') }}">
         <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png?v=5') }}">
+        <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">
         <meta name="apple-mobile-web-app-title" content="WorkNest">

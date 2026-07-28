@@ -1,6 +1,6 @@
 // resources/js/Layouts/AppShell.jsx
 import React, { useEffect, useState, useRef } from "react";
-import { Link, router, Head } from "@inertiajs/react";
+import { Link, router, Head, usePage } from "@inertiajs/react";
 import { Menu, Search, Moon, Sun, ChevronDown, LogOut, Settings, User, CreditCard, DollarSign, HelpCircle, Power, Download } from "lucide-react";
 import NotificationDropdown from "@/Components/NotificationDropdown";
 import ThemeCustomizer from "@/Components/ThemeCustomizer";
@@ -50,6 +50,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
   const [customizerOpen, setCustomizerOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
+  const profileDropdownRef = useRef(null);
   const [themeMode, setThemeMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("tp-theme-mode") || "light";

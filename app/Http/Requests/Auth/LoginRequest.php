@@ -91,8 +91,7 @@ class LoginRequest extends FormRequest
                          || $this->boolean('is_pwa') 
                          || $this->input('is_pwa') === 'true' 
                          || $this->query('pwa') === '1' 
-                         || $this->query('source') === 'pwa'
-                         || str_contains($this->header('Referer', ''), 'source=pwa');
+                         || $this->query('source') === 'pwa';
 
             if ($isPwaRequest) {
                 $effectivePlan = 'basic';
