@@ -5,85 +5,147 @@ namespace App\Services;
 use Google\Client;
 use Google\Service\Drive;
 use Illuminate\Support\Facades\Cache;
+use App\Models\Admin;
+use App\Models\GoogleDriveConnection;
 
 class GoogleDriveService
 {
     protected $client;
     protected $service;
     protected $folderId;
+    protected $admin;
+    protected $connection;
 
-    public function __construct()
+    public function __construct($adminId = null)
+    {
+        $this->admin = $this->resolveAdminContext($adminId);
+        $this->initService();
+    }
+
+    public static function forAdmin($adminId)
+    {
+        return new self($adminId);
+    }
+
+    protected function resolveAdminContext($adminId = null)
+    {
+        if ($adminId) {
+            return Admin::find($adminId);
+        }
+
+        if (auth()->check()) {
+            $user = auth()->user();
+            if ($user instanceof Admin) {
+                return $user;
+            }
+
+            return Admin::where('email', $user->email)->first()
+                ?? Admin::find($user->admin_id ?? 0)
+                ?? Admin::first();
+        }
+
+        return null;
+    }
+
+    protected function initService()
     {
         try {
+            $this->connection = $this->admin ? $this->admin->googleDriveConnection : null;
+
+            if (!$this->connection || !$this->connection->refresh_token) {
+                \Log::info('Google Drive: No connected account in database for Admin ID: ' . ($this->admin->id ?? 'unknown'));
+                $this->client = null;
+                $this->service = null;
+                return;
+            }
+
+            $clientId = $this->connection->client_id ?: config('services.google.client_id');
+            $clientSecret = $this->connection->client_secret ?: config('services.google.client_secret');
+
             $this->client = new Client();
-            $this->client->setClientId(config('services.google.client_id'));
-            $this->client->setClientSecret(config('services.google.client_secret'));
+            $this->client->setClientId($clientId);
+            $this->client->setClientSecret($clientSecret);
             $this->client->setScopes([
                 'https://www.googleapis.com/auth/drive'
             ]);
             $this->client->setAccessType('offline');
-            $this->client->setPrompt('select_account consent');
+            $this->client->setPrompt('consent');
 
-            $refreshToken = config('services.google.refresh_token');
+            $refreshToken = $this->connection->refresh_token;
+            $this->folderId = $this->connection->root_folder_id;
 
-            if (!$refreshToken) {
-                \Log::warning('Google Drive Refresh Token not configured in .env (GOOGLE_DRIVE_REFRESH_TOKEN).');
-                return;
-            }
-
-            // Try to get access token from cache
-            $cacheKey = 'google_drive_access_token';
+            // Set cached access token if valid
+            $cacheKey = 'google_drive_access_token_' . ($this->admin->id ?? 'global');
             $accessToken = Cache::get($cacheKey);
 
             if ($accessToken) {
                 $this->client->setAccessToken($accessToken);
             }
 
-            // If token is expired or not in cache, refresh it
+            // If token is expired or not in cache, refresh it using refresh_token
             if ($this->client->isAccessTokenExpired()) {
                 $newToken = $this->client->fetchAccessTokenWithRefreshToken($refreshToken);
 
                 if (isset($newToken['error'])) {
                     $errorMsg = $newToken['error_description'] ?? $newToken['error'] ?? 'Unknown error';
-                    \Log::error('Google Drive Token Refresh Failed', [
+                    \Log::error('Google Drive Token Refresh Failed for Admin: ' . ($this->admin->id ?? 'global'), [
                         'error' => $newToken['error'],
-                        'error_description' => $errorMsg,
-                        'hint' => 'If error is "invalid_grant", your refresh token might be expired (Testing mode) or revoked.'
+                        'error_description' => $errorMsg
                     ]);
 
                     if ($newToken['error'] === 'invalid_grant') {
-                        throw new \Exception('Google Drive authentication expired. Please re-authenticate in the admin settings.');
+                        throw new \Exception('Google Drive authentication expired for this account. Please reconnect Google Drive.');
                     }
 
                     $this->client = null;
                     return;
                 }
 
-                // Cache the new token (Google tokens usually last 1 hour, we cache for 55 mins)
                 Cache::put($cacheKey, $newToken, 3300);
                 $this->client->setAccessToken($newToken);
+
+                if ($this->connection) {
+                    $this->connection->update([
+                        'token_expires_at' => now()->addSeconds($newToken['expires_in'] ?? 3600),
+                    ]);
+                }
             }
 
             $this->service = new Drive($this->client);
-            $this->folderId = config('services.google.folder_id');
-
         } catch (\Exception $e) {
             \Log::error('Google Drive Service Init Error: ' . $e->getMessage(), [
+                'admin_id' => $this->admin->id ?? null,
                 'trace' => $e->getTraceAsString()
             ]);
             $this->client = null;
         }
     }
 
+    public function isConnected()
+    {
+        return $this->service !== null;
+    }
+
+    public function clearCache($folderId = null)
+    {
+        $adminKey = $this->admin->id ?? 'global';
+        $targetFolderId = $folderId ?: ($this->folderId ?: 'root');
+        if ($targetFolderId) {
+            Cache::forget("google_drive_files_{$adminKey}_{$targetFolderId}");
+        }
+        Cache::forget("google_drive_access_token_{$adminKey}");
+    }
+
     public function listFiles($folderId = null)
     {
         if (!$this->service) {
-            throw new \Exception('Google Drive service not initialized. Please check your refresh token and credentials in .env.');
+            throw new \Exception('Google Drive service not initialized. Please connect a Google Drive account.');
         }
 
-        $targetFolderId = $folderId ?: $this->folderId;
+        $targetFolderId = $folderId ?: ($this->folderId ?: 'root');
+        $adminKey = $this->admin->id ?? 'global';
 
-        return Cache::remember("google_drive_files_{$targetFolderId}", 3600, function () use ($targetFolderId) {
+        return Cache::remember("google_drive_files_{$adminKey}_{$targetFolderId}", 15, function () use ($targetFolderId) {
             $optParams = [
                 'q' => "'{$targetFolderId}' in parents and trashed = false",
                 'fields' => 'files(id, name, mimeType, webViewLink, webContentLink, thumbnailLink)',
@@ -112,11 +174,11 @@ class GoogleDriveService
     public function uploadFile($file, $folderId = null)
     {
         if (!$this->service) {
-            throw new \Exception('Google Drive service not initialized. Please check your refresh token and credentials in .env.');
+            throw new \Exception('Google Drive service not initialized. Please connect a Google Drive account.');
         }
 
         try {
-            $targetFolderId = $folderId ?: $this->folderId;
+            $targetFolderId = $folderId ?: ($this->folderId ?: 'root');
 
             $fileMetadata = new \Google\Service\Drive\DriveFile([
                 'name' => $file->getClientOriginalName(),
@@ -133,8 +195,8 @@ class GoogleDriveService
                 'fields' => 'id, name, mimeType, webViewLink, thumbnailLink'
             ]);
 
-            // Clear cache for this folder
-            Cache::forget("google_drive_files_{$targetFolderId}");
+            $adminKey = $this->admin->id ?? 'global';
+            Cache::forget("google_drive_files_{$adminKey}_{$targetFolderId}");
 
             return [
                 'id' => $uploadedFile->getId(),
@@ -156,11 +218,11 @@ class GoogleDriveService
     public function createFolder($folderName, $parentFolderId = null)
     {
         if (!$this->service) {
-            throw new \Exception('Google Drive service not initialized. Please check your refresh token and credentials in .env.');
+            throw new \Exception('Google Drive service not initialized. Please connect a Google Drive account.');
         }
 
         try {
-            $targetParentId = $parentFolderId ?: $this->folderId;
+            $targetParentId = $parentFolderId ?: ($this->folderId ?: 'root');
 
             $fileMetadata = new \Google\Service\Drive\DriveFile([
                 'name' => $folderName,
@@ -172,8 +234,8 @@ class GoogleDriveService
                 'fields' => 'id, name, mimeType'
             ]);
 
-            // Clear cache for this folder
-            Cache::forget("google_drive_files_{$targetParentId}");
+            $adminKey = $this->admin->id ?? 'global';
+            Cache::forget("google_drive_files_{$adminKey}_{$targetParentId}");
 
             return [
                 'id' => $folder->getId(),
@@ -193,15 +255,15 @@ class GoogleDriveService
     public function deleteFile($fileId, $parentFolderId = null)
     {
         if (!$this->service) {
-            throw new \Exception('Google Drive service not initialized. Please check your refresh token and credentials in .env.');
+            throw new \Exception('Google Drive service not initialized. Please connect a Google Drive account.');
         }
 
         try {
             $this->service->files->delete($fileId);
 
-            // Clear cache for the parent folder
             $targetParentId = $parentFolderId ?: $this->folderId;
-            Cache::forget("google_drive_files_{$targetParentId}");
+            $adminKey = $this->admin->id ?? 'global';
+            Cache::forget("google_drive_files_{$adminKey}_{$targetParentId}");
 
             return true;
         } catch (\Exception $e) {
@@ -216,7 +278,7 @@ class GoogleDriveService
     public function renameFileOrFolder($fileId, $newName, $parentFolderId = null)
     {
         if (!$this->service) {
-            throw new \Exception('Google Drive service not initialized. Please check your refresh token and credentials in .env.');
+            throw new \Exception('Google Drive service not initialized. Please connect a Google Drive account.');
         }
 
         try {
@@ -229,7 +291,8 @@ class GoogleDriveService
             ]);
 
             $targetParentId = $parentFolderId ?: $this->folderId;
-            Cache::forget("google_drive_files_{$targetParentId}");
+            $adminKey = $this->admin->id ?? 'global';
+            Cache::forget("google_drive_files_{$adminKey}_{$targetParentId}");
 
             return [
                 'id' => $updatedFile->getId(),
@@ -251,5 +314,15 @@ class GoogleDriveService
     public function getClient()
     {
         return $this->client;
+    }
+
+    public function getFolderId()
+    {
+        return $this->folderId;
+    }
+
+    public function getConnection()
+    {
+        return $this->connection;
     }
 }

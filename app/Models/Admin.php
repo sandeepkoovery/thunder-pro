@@ -58,6 +58,11 @@ class Admin extends Authenticatable
         return $this->hasMany(Leave::class, 'user_id');
     }
 
+    public function googleDriveConnection()
+    {
+        return $this->hasOne(GoogleDriveConnection::class, 'admin_id');
+    }
+
     public function attendances()
     {
         return $this->hasMany(Attendance::class, 'user_id');

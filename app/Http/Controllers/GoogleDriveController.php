@@ -7,22 +7,20 @@ use Illuminate\Http\Request;
 
 class GoogleDriveController extends Controller
 {
-    protected $googleDriveService;
-
-    public function __construct(GoogleDriveService $googleDriveService)
+    protected function getService()
     {
-        $this->googleDriveService = $googleDriveService;
+        return new GoogleDriveService();
     }
 
     public function index(Request $request)
     {
         try {
             $folderId = $request->query('folder_id');
-            $files = $this->googleDriveService->listFiles($folderId);
+            $files = $this->getService()->listFiles($folderId);
             return response()->json($files);
         } catch (\Exception $e) {
             $status = 500;
-            if (str_contains($e->getMessage(), 're-authenticate')) {
+            if (str_contains(strtolower($e->getMessage()), 're-authenticate') || str_contains(strtolower($e->getMessage()), 'expired')) {
                 $status = 401;
             }
             return response()->json(['error' => $e->getMessage()], $status);
@@ -33,14 +31,14 @@ class GoogleDriveController extends Controller
     {
         try {
             $request->validate([
-                'file' => 'required|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm|max:102400', // 100MB max
+                'file' => 'required|file|mimes:jpg,jpeg,png,gif,webp,mp4,mov,avi,webm,pdf,doc,docx,xls,xlsx,zip,rar,txt|max:102400', // 100MB max
                 'folder_id' => 'nullable|string'
             ]);
 
             $file = $request->file('file');
             $folderId = $request->input('folder_id');
 
-            $uploadedFile = $this->googleDriveService->uploadFile($file, $folderId);
+            $uploadedFile = $this->getService()->uploadFile($file, $folderId);
 
             return response()->json([
                 'success' => true,
@@ -66,7 +64,7 @@ class GoogleDriveController extends Controller
             $folderName = $request->input('folder_name');
             $parentFolderId = $request->input('parent_folder_id');
 
-            $folder = $this->googleDriveService->createFolder($folderName, $parentFolderId);
+            $folder = $this->getService()->createFolder($folderName, $parentFolderId);
 
             return response()->json([
                 'success' => true,
@@ -94,7 +92,7 @@ class GoogleDriveController extends Controller
             $newName = $request->input('name');
             $parentFolderId = $request->input('parent_folder_id');
 
-            $item = $this->googleDriveService->renameFileOrFolder($fileId, $newName, $parentFolderId);
+            $item = $this->getService()->renameFileOrFolder($fileId, $newName, $parentFolderId);
 
             return response()->json([
                 'success' => true,
@@ -120,7 +118,7 @@ class GoogleDriveController extends Controller
             $fileId = $request->input('file_id');
             $parentFolderId = $request->input('parent_folder_id');
 
-            $this->googleDriveService->deleteFile($fileId, $parentFolderId);
+            $this->getService()->deleteFile($fileId, $parentFolderId);
 
             return response()->json([
                 'success' => true,
@@ -132,40 +130,5 @@ class GoogleDriveController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
-    }
-
-    public function generateAuthUrl()
-    {
-        $client = $this->googleDriveService->getClient();
-        if (!$client) {
-            return "Google Client not initialized. Check your Client ID and Secret in .env.";
-        }
-
-        $client->setRedirectUri(route('admin.google.callback'));
-        $authUrl = $client->createAuthUrl();
-
-        return redirect()->away($authUrl);
-    }
-
-    public function handleCallback(Request $request)
-    {
-        $client = $this->googleDriveService->getClient();
-        $client->setRedirectUri(route('admin.google.callback'));
-
-        if ($request->has('code')) {
-            $token = $client->fetchAccessTokenWithAuthCode($request->input('code'));
-
-            if (isset($token['error'])) {
-                return response()->json($token);
-            }
-
-            return response()->json([
-                'message' => 'Copy the refresh_token below and paste it into your .env file as GOOGLE_DRIVE_REFRESH_TOKEN',
-                'refresh_token' => $token['refresh_token'] ?? 'No refresh token returned. Make sure you revoked access first or set prompt to consent.',
-                'full_token' => $token
-            ]);
-        }
-
-        return "No code provided.";
     }
 }

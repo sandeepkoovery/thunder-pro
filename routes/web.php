@@ -13,6 +13,7 @@ use App\Http\Controllers\User\ProjectController as UserProjectController;
 use App\Http\Controllers\User\LeaveController as UserLeaveController;
 use App\Http\Controllers\Admin\LeaveController as AdminLeaveController;
 use App\Http\Controllers\GoogleDriveController;
+use App\Http\Controllers\GoogleDriveAuthController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\PaymentController;
@@ -87,8 +88,14 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/calendar/events/{id}', [App\Http\Controllers\CalendarController::class, 'destroy'])->name('calendar.events.destroy');
 
     // -------------------------
-    // ✅ GOOGLE DRIVE ROUTES
+    // ✅ GOOGLE DRIVE ROUTES & OAUTH
     // -------------------------
+    Route::get('/google-drive/connect', [GoogleDriveAuthController::class, 'redirect'])->name('google-drive.connect');
+    Route::get('/google-drive/callback', [GoogleDriveAuthController::class, 'callback'])->name('google-drive.callback');
+    Route::get('/google-drive/status', [GoogleDriveAuthController::class, 'status'])->name('google-drive.status');
+    Route::post('/google-drive/disconnect', [GoogleDriveAuthController::class, 'disconnect'])->name('google-drive.disconnect');
+    Route::post('/google-drive/save-manual', [GoogleDriveAuthController::class, 'saveManualConnection'])->name('google-drive.save-manual');
+
     Route::get('/google-drive/files', [GoogleDriveController::class, 'index'])->name('google-drive.files');
     Route::post('/google-drive/upload', [GoogleDriveController::class, 'upload'])->name('google-drive.upload');
     Route::post('/google-drive/create-folder', [GoogleDriveController::class, 'createFolder'])->name('google-drive.create-folder');
@@ -259,43 +266,8 @@ Route::get('/debug-remember', function () {
     ];
 });
 
-// Temporary OAuth Helper Routes
-Route::get('/google-drive/auth', function () {
-    $client = new \Google\Client();
-    $client->setClientId(config('services.google.client_id'));
-    $client->setClientSecret(config('services.google.client_secret'));
-    // Dynamically determine redirect URI based on current host to support both local and live
-    $redirectUri = url('/google-drive/callback');
-    $client->setRedirectUri($redirectUri);
-    $client->setAccessType('offline'); // Crucial for getting refresh token
-    $client->setPrompt('consent'); // Force consent to ensure refresh token is returned
-    $client->addScope("https://www.googleapis.com/auth/drive");
-
-    return redirect($client->createAuthUrl());
-});
-
-Route::get('/google-drive/callback', function (\Illuminate\Http\Request $request) {
-    if (!$request->has('code')) {
-        return "Error: No code returned from Google.";
-    }
-
-    try {
-        $client = new \Google\Client();
-        $client->setClientId(config('services.google.client_id'));
-        $client->setClientSecret(config('services.google.client_secret'));
-        $client->setRedirectUri(url('/google-drive/callback'));
-
-        $token = $client->fetchAccessTokenWithAuthCode($request->input('code'));
-
-        if (isset($token['error'])) {
-            return "Error fetching token: " . json_encode($token);
-        }
-
-        return "<h1>Success! Here is your new Refresh Token:</h1><p style='font-family:monospace; background:#eee; padding:10px;'>" . ($token['refresh_token'] ?? 'No refresh token found. Did you set prompt=consent?') . "</p><p>Copy this and update your .env file: <br><code>GOOGLE_DRIVE_REFRESH_TOKEN=" . ($token['refresh_token'] ?? '...') . "</code></p>";
-    } catch (\Exception $e) {
-        return "Exception: " . $e->getMessage();
-    }
-});
+// Production OAuth Helper Redirects
+Route::get('/google-drive/auth', [GoogleDriveAuthController::class, 'redirect']);
 
 // PWA Routes for local development
 Route::get('/sw.js', function () {

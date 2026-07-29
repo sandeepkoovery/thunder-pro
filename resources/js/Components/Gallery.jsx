@@ -61,6 +61,77 @@ export default function Gallery() {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [deleting, setDeleting] = useState(false);
 
+    // Account Connection State
+    const [connectionStatus, setConnectionStatus] = useState(null);
+    const [showAccountModal, setShowAccountModal] = useState(false);
+    const [manualClientId, setManualClientId] = useState('');
+    const [manualClientSecret, setManualClientSecret] = useState('');
+    const [manualToken, setManualToken] = useState('');
+    const [manualFolderId, setManualFolderId] = useState('');
+    const [savingManual, setSavingManual] = useState(false);
+    const [disconnecting, setDisconnecting] = useState(false);
+    const [accountSuccessMsg, setAccountSuccessMsg] = useState('');
+
+    const fetchConnectionStatus = () => {
+        axios.get(route('google-drive.status'))
+            .then(res => {
+                setConnectionStatus(res.data);
+                if (res.data) {
+                    if (res.data.client_id) setManualClientId(res.data.client_id);
+                    if (res.data.client_secret) setManualClientSecret(res.data.client_secret);
+                    if (res.data.refresh_token) setManualToken(res.data.refresh_token);
+                    if (res.data.root_folder_id) setManualFolderId(res.data.root_folder_id);
+                }
+            })
+            .catch(err => console.error("Error fetching connection status:", err));
+    };
+
+    useEffect(() => {
+        fetchConnectionStatus();
+    }, []);
+
+    const handleSaveManual = (e) => {
+        e.preventDefault();
+        setSavingManual(true);
+        setAccountSuccessMsg('');
+
+        axios.post(route('google-drive.save-manual'), {
+            client_id: manualClientId,
+            client_secret: manualClientSecret,
+            refresh_token: manualToken,
+            root_folder_id: manualFolderId
+        })
+        .then(res => {
+            setSavingManual(false);
+            setAccountSuccessMsg('Google Drive parameters saved in database successfully!');
+            fetchConnectionStatus();
+            fetchFiles(currentFolderId);
+            setTimeout(() => setAccountSuccessMsg(''), 3000);
+        })
+        .catch(err => {
+            setSavingManual(false);
+            alert("Error saving connection: " + (err.response?.data?.error || err.message));
+        });
+    };
+
+    const handleDisconnect = () => {
+        if (!confirm("Are you sure you want to disconnect this Google Drive account?")) return;
+        setDisconnecting(true);
+
+        axios.post(route('google-drive.disconnect'))
+        .then(res => {
+            setDisconnecting(false);
+            setManualToken('');
+            setManualFolderId('');
+            fetchConnectionStatus();
+            fetchFiles(currentFolderId);
+        })
+        .catch(err => {
+            setDisconnecting(false);
+            alert("Disconnect error: " + (err.response?.data?.error || err.message));
+        });
+    };
+
     const fetchFiles = (folderId) => {
         setLoading(true);
         setError(null);
@@ -279,29 +350,6 @@ export default function Gallery() {
         );
     }
 
-    if (error && !isPremiumError) {
-        return (
-            <div className="flex flex-col items-center justify-center p-8 bg-red-50 rounded-xl border border-red-200 text-center">
-                <p className="text-red-700 font-medium mb-4">{error}</p>
-                {error.includes("expired") && auth?.user?.role === 'admin' ? (
-                    <a
-                        href={route('admin.google.auth')}
-                        className="inline-flex items-center px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 font-medium transition-colors"
-                    >
-                        Re-authenticate Google Drive
-                    </a>
-                ) : (
-                    <button
-                        onClick={() => fetchFiles(currentFolderId)}
-                        className="inline-flex items-center px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition-colors gap-2"
-                    >
-                        <RefreshCw className="w-4 h-4" /> Retry
-                    </button>
-                )}
-            </div>
-        );
-    }
-
     return (
         <div className="space-y-6">
             {/* Header & Controls Bar */}
@@ -348,32 +396,47 @@ export default function Gallery() {
                             </button>
                         </div>
 
-                        {/* Create Folder Button */}
+                        {/* Account Connection Settings Button */}
                         <button
-                            onClick={() => setShowCreateFolderModal(true)}
-                            className="inline-flex items-center px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 !text-white rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all shadow-md shadow-emerald-600/25 gap-2 active:scale-95 cursor-pointer"
-                            style={{ color: '#ffffff' }}
+                            onClick={() => setShowAccountModal(true)}
+                            className="inline-flex items-center px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all gap-2 cursor-pointer border border-slate-200/80 shadow-sm"
+                            title="Manage Google Drive Account Connection"
                         >
-                            <FolderPlus className="w-4 h-4 shrink-0" style={{ color: '#ffffff' }} />
-                            <span className="!text-white" style={{ color: '#ffffff' }}>Create Folder</span>
+                            <RefreshCw className={`w-4 h-4 shrink-0 ${connectionStatus?.connected ? 'text-emerald-600' : 'text-amber-500'}`} />
+                            <span>{connectionStatus?.has_custom_connection ? 'Drive Connected' : 'Connect Account'}</span>
                         </button>
 
-                        {/* Upload Files Input */}
-                        <input
-                            type="file"
-                            id="file-upload"
-                            multiple
-                            onChange={handleFileSelect}
-                            className="hidden"
-                        />
-                        <label
-                            htmlFor="file-upload"
-                            className="inline-flex items-center px-5 py-2.5 bg-[var(--theme-primary,#1e88e5)] hover:bg-[var(--theme-primary-dark,#1565c0)] !text-white rounded-xl font-bold uppercase tracking-wider text-[11px] cursor-pointer transition-all shadow-md gap-2 active:scale-95 border-0"
-                            style={{ backgroundColor: 'var(--theme-primary, #1e88e5)', color: '#ffffff' }}
-                        >
-                            <Upload className="w-4 h-4 shrink-0" style={{ color: '#ffffff' }} />
-                            <span className="!text-white" style={{ color: '#ffffff' }}>Upload Files</span>
-                        </label>
+                        {/* Render Create Folder & Upload Files only if account is connected and active */}
+                        {(connectionStatus?.connected && !error) && (
+                            <>
+                                {/* Create Folder Button */}
+                                <button
+                                    onClick={() => setShowCreateFolderModal(true)}
+                                    className="inline-flex items-center px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 !text-white rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all shadow-md shadow-emerald-600/25 gap-2 active:scale-95 cursor-pointer"
+                                    style={{ color: '#ffffff' }}
+                                >
+                                    <FolderPlus className="w-4 h-4 shrink-0" style={{ color: '#ffffff' }} />
+                                    <span className="!text-white" style={{ color: '#ffffff' }}>Create Folder</span>
+                                </button>
+
+                                {/* Upload Files Input */}
+                                <input
+                                    type="file"
+                                    id="file-upload"
+                                    multiple
+                                    onChange={handleFileSelect}
+                                    className="hidden"
+                                />
+                                <label
+                                    htmlFor="file-upload"
+                                    className="inline-flex items-center px-5 py-2.5 bg-[var(--theme-primary,#1e88e5)] hover:bg-[var(--theme-primary-dark,#1565c0)] !text-white rounded-xl font-bold uppercase tracking-wider text-[11px] cursor-pointer transition-all shadow-md gap-2 active:scale-95 border-0"
+                                    style={{ backgroundColor: 'var(--theme-primary, #1e88e5)', color: '#ffffff' }}
+                                >
+                                    <Upload className="w-4 h-4 shrink-0" style={{ color: '#ffffff' }} />
+                                    <span className="!text-white" style={{ color: '#ffffff' }}>Upload Files</span>
+                                </label>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -401,7 +464,34 @@ export default function Gallery() {
             </div>
 
             {/* Content Display */}
-            {loading ? (
+            {error && !isPremiumError ? (
+                <div className="bg-amber-50/90 rounded-2xl p-8 border border-amber-200 text-center shadow-sm flex flex-col items-center justify-center space-y-4 my-2">
+                    <div className="p-3 bg-amber-100 text-amber-700 rounded-full">
+                        <RefreshCw className="w-8 h-8" />
+                    </div>
+                    <div>
+                        <h4 className="text-lg font-bold text-amber-900 mb-1">Google Drive Connection Required</h4>
+                        <p className="text-sm text-amber-800 max-w-md">{error}</p>
+                    </div>
+                    <div className="flex flex-wrap gap-3 justify-center pt-2">
+                        <button
+                            onClick={() => setShowAccountModal(true)}
+                            className="inline-flex items-center px-5 py-2.5 bg-[#1e88e5] hover:bg-[#1565c0] !text-white rounded-xl font-bold uppercase tracking-wider text-[11px] shadow-md transition-all cursor-pointer gap-2"
+                            style={{ color: '#ffffff' }}
+                        >
+                            <RefreshCw className="w-4 h-4 text-white shrink-0" style={{ color: '#ffffff' }} />
+                            <span className="!text-white" style={{ color: '#ffffff' }}>Connect Account Settings</span>
+                        </button>
+                        <button
+                            onClick={() => fetchFiles(currentFolderId)}
+                            className="inline-flex items-center px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs transition-colors gap-2 cursor-pointer"
+                        >
+                            <RefreshCw className="w-3.5 h-3.5" />
+                            <span>Retry</span>
+                        </button>
+                    </div>
+                </div>
+            ) : loading ? (
                 <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl shadow-sm">
                     <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-3"></div>
                     <p className="text-sm text-gray-500 font-medium">Loading folder items...</p>
@@ -830,6 +920,133 @@ export default function Gallery() {
                                 Done
                             </button>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* ACCOUNT CONNECTION MODAL */}
+            {showAccountModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl max-w-lg w-full p-6 space-y-5">
+                        <div className="flex justify-between items-center border-b pb-3">
+                            <div className="flex items-center gap-2.5">
+                                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+                                    <RefreshCw className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">Google Drive Account Settings</h3>
+                                    <p className="text-xs text-gray-500">Connect a separate Google Drive account for this company</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setShowAccountModal(false)}
+                                className="text-gray-400 hover:text-gray-600"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div className={`p-4 rounded-xl border flex items-center justify-between ${
+                            connectionStatus?.connected ? 'bg-emerald-50/80 border-emerald-200 text-emerald-800' : 'bg-amber-50/80 border-amber-200 text-amber-800'
+                        }`}>
+                            <div>
+                                <span className="text-xs font-semibold uppercase tracking-wider block">Status</span>
+                                <strong className="text-sm font-bold">
+                                    {connectionStatus?.connected
+                                        ? 'Connected & Active'
+                                        : 'Not Connected (Using Default System Fallback)'}
+                                </strong>
+                                {connectionStatus?.root_folder_id && (
+                                    <span className="block text-[11px] font-mono mt-1 opacity-80">
+                                        Root Folder ID: {connectionStatus.root_folder_id}
+                                    </span>
+                                )}
+                            </div>
+                            {connectionStatus?.has_custom_connection && (
+                                <button
+                                    onClick={handleDisconnect}
+                                    disabled={disconnecting}
+                                    className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-700 font-semibold text-xs rounded-lg transition-colors"
+                                >
+                                    {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                                </button>
+                            )}
+                        </div>
+
+                        {accountSuccessMsg && (
+                            <div className="p-3 bg-emerald-100 text-emerald-800 text-xs font-semibold rounded-lg">
+                                {accountSuccessMsg}
+                            </div>
+                        )}
+
+                        {/* Database Credentials Form */}
+                        <form onSubmit={handleSaveManual} className="space-y-3 border-t pt-4">
+                            <label className="text-xs font-bold text-gray-700 uppercase tracking-wider block">
+                                Google Drive Connection Parameters
+                            </label>
+                            
+                            <div>
+                                <label className="text-xs text-gray-600 font-medium block mb-1">GOOGLE_DRIVE_CLIENT_ID (Optional)</label>
+                                <input
+                                    type="text"
+                                    value={manualClientId}
+                                    onChange={(e) => setManualClientId(e.target.value)}
+                                    placeholder="Enter Client ID (e.g. 12345...apps.googleusercontent.com)"
+                                    className="w-full text-xs font-mono p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-600 font-medium block mb-1">GOOGLE_DRIVE_CLIENT_SECRET (Optional)</label>
+                                <input
+                                    type="text"
+                                    value={manualClientSecret}
+                                    onChange={(e) => setManualClientSecret(e.target.value)}
+                                    placeholder="Enter Client Secret"
+                                    className="w-full text-xs font-mono p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-600 font-medium block mb-1">GOOGLE_DRIVE_REFRESH_TOKEN (Required)</label>
+                                <input
+                                    type="text"
+                                    value={manualToken}
+                                    onChange={(e) => setManualToken(e.target.value)}
+                                    placeholder="Enter 1//04... OAuth Refresh Token"
+                                    className="w-full text-xs font-mono p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-xs text-gray-600 font-medium block mb-1">GOOGLE_DRIVE_FOLDER_ID / Root Folder ID (Optional)</label>
+                                <input
+                                    type="text"
+                                    value={manualFolderId}
+                                    onChange={(e) => setManualFolderId(e.target.value)}
+                                    placeholder="e.g. 1A2B3C4D5E6F7G8H9I0J"
+                                    className="w-full text-xs font-mono p-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                                />
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowAccountModal(false)}
+                                    className="px-4 py-2 text-xs text-gray-600 font-medium hover:bg-gray-100 rounded-lg"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={savingManual || !manualToken.trim()}
+                                    className="px-5 py-2 bg-slate-900 hover:bg-black text-white text-xs font-bold uppercase tracking-wider rounded-lg disabled:opacity-50 transition-colors"
+                                >
+                                    {savingManual ? 'Saving to DB...' : 'Save Parameters to DB'}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}
