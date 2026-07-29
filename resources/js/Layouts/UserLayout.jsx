@@ -48,7 +48,7 @@ export default function UserLayout({ children, title = "Dashboard" }) {
       <NavItem href={route("projects.index")} icon={FolderKanban} label="Projects" routeName="projects" visible={isVisible("projects")} beta={betaMenuItems.includes("projects")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("leave.index")} icon={FileText} label="Leaves" routeName="leave" visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("calendar.index")} icon={CalendarDays} label="Calendar" routeName="calendar" visible={isVisible("calendar")} beta={betaMenuItems.includes("calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-      <NavItem href={route("drive.index")} icon={FolderKanban} label="Drive" routeName="drive" visible={isVisible("drive")} beta={betaMenuItems.includes("drive")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      <NavItem href={route("drive.index")} icon={FolderKanban} label="Drive" routeName="drive" visible={!hiddenMenuItems.includes("drive")} beta={false} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("chat.index")} icon={MessageSquare} label="Chat" routeName="chat" visible={isVisible("chat")} beta={betaMenuItems.includes("chat")} badge={sidebarCounts.unread_chats} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("notifications.index")} icon={Bell} label="Notifications" routeName="notifications" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />
     </>

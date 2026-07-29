@@ -105,6 +105,7 @@ class PricingController extends Controller
                     ['key' => 'calendar', 'label' => 'Calendar', 'is_core' => true, 'included' => true],
                     ['key' => 'chat', 'label' => 'Chat', 'is_core' => true, 'included' => true],
                     ['key' => 'reports', 'label' => 'Reports', 'is_core' => true, 'included' => true],
+                    ['key' => 'drive', 'label' => 'Google Drive', 'is_core' => true, 'included' => true],
                     ['key' => 'user_limit_premium', 'label' => 'Unlimited Users', 'is_core' => true, 'included' => true],
                 ];
             }

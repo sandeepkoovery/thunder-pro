@@ -41,6 +41,7 @@ class CheckModuleAccess
             'attendance.' => 'attendance',
             'calendar.' => 'calendar',
             'chat.' => 'chat',
+            'google-drive.' => 'drive',
         ];
 
         $module = null;
@@ -54,8 +55,11 @@ class CheckModuleAccess
         if ($module) {
             // Determine active plan
             $plan = 'basic';
-            if ($user instanceof \App\Models\Admin || $user->role === 'admin') {
-                $plan = $user->plan ?? 'basic';
+            if ($user->role === 'superadmin') {
+                $plan = 'premium';
+            } elseif ($user->role === 'admin' || $user instanceof \App\Models\Admin) {
+                $admin = \App\Models\Admin::where('email', $user->email)->first();
+                $plan = $admin ? ($admin->plan ?? 'basic') : ($user->plan ?? 'basic');
             } else {
                 // Employees inherit plan from their assigned Tenant Admin (admins table)
                 $tenantAdminId = $user->admin_id ?? null;
@@ -81,6 +85,10 @@ class CheckModuleAccess
                 $allowed = $plan === 'premium' 
                     ? ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'reports', 'drive'] 
                     : ['projects', 'users', 'leaves', 'attendance', 'chat'];
+            }
+
+            if ($plan === 'premium' && !in_array('drive', $allowed)) {
+                $allowed[] = 'drive';
             }
 
             if (!in_array($module, $allowed)) {

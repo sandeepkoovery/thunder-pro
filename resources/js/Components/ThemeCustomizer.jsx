@@ -9,6 +9,7 @@ const COLOR_PRESETS = [
     primary: "#1e88e5",
     primaryDark: "#1565c0",
     primarySoft: "rgba(30, 136, 229, 0.12)",
+    headerBg: "#1565c0",
     swatch: "linear-gradient(135deg, #1e88e5, #1565c0)",
   },
   {
@@ -17,6 +18,7 @@ const COLOR_PRESETS = [
     primary: "#009688",
     primaryDark: "#00796b",
     primarySoft: "rgba(0, 150, 136, 0.12)",
+    headerBg: "#00796b",
     swatch: "linear-gradient(135deg, #009688, #00796b)",
   },
   {
@@ -25,6 +27,7 @@ const COLOR_PRESETS = [
     primary: "#7460ee",
     primaryDark: "#5e45d6",
     primarySoft: "rgba(116, 96, 238, 0.12)",
+    headerBg: "#2b1440",
     swatch: "linear-gradient(135deg, #7460ee, #5e45d6)",
   },
   {
@@ -33,6 +36,7 @@ const COLOR_PRESETS = [
     primary: "#21c1d6",
     primaryDark: "#17a2b8",
     primarySoft: "rgba(33, 193, 214, 0.12)",
+    headerBg: "#17a2b8",
     swatch: "linear-gradient(135deg, #21c1d6, #17a2b8)",
   },
   {
@@ -41,6 +45,7 @@ const COLOR_PRESETS = [
     primary: "#2196f3",
     primaryDark: "#1976d2",
     primarySoft: "rgba(33, 150, 243, 0.12)",
+    headerBg: "#1976d2",
     swatch: "linear-gradient(135deg, #2196f3, #1976d2)",
   },
   {
@@ -49,6 +54,7 @@ const COLOR_PRESETS = [
     primary: "#ff5722",
     primaryDark: "#e64a19",
     primarySoft: "rgba(255, 87, 34, 0.12)",
+    headerBg: "#e64a19",
     swatch: "linear-gradient(135deg, #ff5722, #e64a19)",
   },
 ];
@@ -65,6 +71,8 @@ function applyColorPreset(preset) {
   root.style.setProperty("--theme-primary-dark", preset.primaryDark);
   root.style.setProperty("--theme-primary-soft", preset.primarySoft);
   root.style.setProperty("--theme-sidebar-icon", preset.primary);
+  root.style.setProperty("--theme-header-bg", preset.headerBg || preset.primaryDark);
+  root.style.setProperty("--theme-purple", preset.primary);
 }
 
 function applyThemeMode(mode) {

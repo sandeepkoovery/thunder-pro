@@ -213,6 +213,41 @@ class GoogleDriveService
         }
     }
 
+    public function renameFileOrFolder($fileId, $newName, $parentFolderId = null)
+    {
+        if (!$this->service) {
+            throw new \Exception('Google Drive service not initialized. Please check your refresh token and credentials in .env.');
+        }
+
+        try {
+            $fileMetadata = new \Google\Service\Drive\DriveFile([
+                'name' => $newName
+            ]);
+
+            $updatedFile = $this->service->files->update($fileId, $fileMetadata, [
+                'fields' => 'id, name, mimeType, webViewLink, thumbnailLink'
+            ]);
+
+            $targetParentId = $parentFolderId ?: $this->folderId;
+            Cache::forget("google_drive_files_{$targetParentId}");
+
+            return [
+                'id' => $updatedFile->getId(),
+                'name' => $updatedFile->getName(),
+                'mimeType' => $updatedFile->getMimeType(),
+                'webViewLink' => $updatedFile->getWebViewLink(),
+                'thumbnailLink' => $updatedFile->getThumbnailLink(),
+            ];
+        } catch (\Exception $e) {
+            \Log::error('Google Drive Rename Error: ' . $e->getMessage(), [
+                'file_id' => $fileId,
+                'new_name' => $newName,
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw new \Exception('Failed to rename: ' . $e->getMessage());
+        }
+    }
+
     public function getClient()
     {
         return $this->client;

@@ -92,6 +92,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/google-drive/files', [GoogleDriveController::class, 'index'])->name('google-drive.files');
     Route::post('/google-drive/upload', [GoogleDriveController::class, 'upload'])->name('google-drive.upload');
     Route::post('/google-drive/create-folder', [GoogleDriveController::class, 'createFolder'])->name('google-drive.create-folder');
+    Route::put('/google-drive/rename', [GoogleDriveController::class, 'rename'])->name('google-drive.rename');
     Route::delete('/google-drive/delete', [GoogleDriveController::class, 'delete'])->name('google-drive.delete');
     Route::get('/drive', function () {
         return Inertia::render('Drive/Index');

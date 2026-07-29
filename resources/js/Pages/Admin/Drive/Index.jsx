@@ -7,8 +7,8 @@ export default function DriveIndex() {
     return (
         <div>
             <Head title="Drive" />
-            <div className="bg-white p-6 rounded shadow">
-                <h2 className="text-xl font-bold mb-4">Drive Gallery</h2>
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h2 className="text-xl font-bold mb-4 text-gray-800">Google Drive Storage & Management</h2>
                 <Gallery />
             </div>
         </div>

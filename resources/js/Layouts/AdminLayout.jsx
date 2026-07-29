@@ -60,7 +60,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
             </>
           )}
           <NavItem href={route("calendar.index")} icon={CalendarDays} label="Calendar" routeName="calendar" visible={isVisible("calendar")} beta={betaMenuItems.includes("calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          <NavItem href={route("admin.drive.index")} icon={FolderKanban} label="Drive" routeName="admin.drive" visible={isVisible("drive")} beta={betaMenuItems.includes("drive")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+          <NavItem href={route("admin.drive.index")} icon={FolderKanban} label="Drive" routeName="admin.drive" visible={!hiddenMenuItems.includes("drive")} beta={false} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           <NavItem href={route("chat.index")} icon={MessageSquare} label="Chat" routeName="chat" visible={isVisible("chat")} beta={betaMenuItems.includes("chat")} badge={sidebarCounts.unread_chats} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           <NavItem href={route("notifications.index")} icon={Bell} label="Notifications" routeName="notifications" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           {isAdmin && <NavItem href={route("admin.websites.index")} icon={Globe} label="Websites" routeName="admin.websites" visible={isVisible("websites")} badge={expiringWebsitesCount} collapsed={collapsed} isMobileOpen={isMobileOpen} />}

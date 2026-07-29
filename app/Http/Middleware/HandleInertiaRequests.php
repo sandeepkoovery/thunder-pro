@@ -54,7 +54,8 @@ class HandleInertiaRequests extends Middleware
             if ($user->role === 'superadmin') {
                 $plan = 'premium';
             } elseif ($user->role === 'admin') {
-                $plan = $user->plan ?? 'basic';
+                $admin = \App\Models\Admin::where('email', $user->email)->first();
+                $plan = $admin ? ($admin->plan ?? 'basic') : ($user->plan ?? 'basic');
             } else {
                 $tenantAdminId = $user->admin_id ?? null;
                 $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : \App\Models\Admin::first();
@@ -95,6 +96,10 @@ class HandleInertiaRequests extends Middleware
         }
         if (empty($premiumModules)) {
             $premiumModules = ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'reports', 'drive'];
+        }
+
+        if (!in_array('drive', $premiumModules)) {
+            $premiumModules[] = 'drive';
         }
 
         $allowedModules = ($plan === 'premium' || ($user && $user->role === 'superadmin')) ? $premiumModules : $basicModules;

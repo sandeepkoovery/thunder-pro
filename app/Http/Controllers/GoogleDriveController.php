@@ -81,15 +81,36 @@ class GoogleDriveController extends Controller
         }
     }
 
-    public function delete(Request $request)
+    public function rename(Request $request)
     {
-        if ($request->user()->role !== 'admin') {
+        try {
+            $request->validate([
+                'file_id' => 'required|string',
+                'name' => 'required|string|max:255',
+                'parent_folder_id' => 'nullable|string'
+            ]);
+
+            $fileId = $request->input('file_id');
+            $newName = $request->input('name');
+            $parentFolderId = $request->input('parent_folder_id');
+
+            $item = $this->googleDriveService->renameFileOrFolder($fileId, $newName, $parentFolderId);
+
+            return response()->json([
+                'success' => true,
+                'item' => $item,
+                'message' => 'Renamed successfully'
+            ]);
+        } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'error' => 'Unauthorized. Only admins can delete files.'
-            ], 403);
+                'error' => $e->getMessage()
+            ], 500);
         }
+    }
 
+    public function delete(Request $request)
+    {
         try {
             $request->validate([
                 'file_id' => 'required|string',

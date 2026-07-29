@@ -40,7 +40,6 @@ class CheckBetaAccess
             'leaves' => ['leave.', 'admin.leaves.'],
             'attendance' => ['attendance.', 'admin.attendance.'],
             'calendar' => ['calendar.'],
-            'drive' => ['drive.', 'admin.drive.', 'google-drive.'],
             'chat' => ['chat.'],
             'content-calendar' => ['content-calendar.', 'admin.content-calendar.'],
             'daily-worksheet' => ['daily-worksheet.', 'admin.daily-worksheet.'],

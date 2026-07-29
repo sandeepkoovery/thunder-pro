@@ -53,8 +53,8 @@ export default function Dashboard({
       <div className="space-y-6">
         <Head title="Super Admin Dashboard" />
 
-        {/* VUESY STYLE DEEP PURPLE HEADER BANNER */}
-        <div className="mp-vuesy-header bg-[#2b1440] text-white -mx-[28px] -mt-[24px] px-[28px] py-8 shadow-sm transition-all duration-300 relative rounded-b-2xl">
+        {/* VUESY STYLE HEADER BANNER */}
+        <div className="mp-vuesy-header text-white -mx-[28px] -mt-[24px] px-[28px] py-8 shadow-sm transition-all duration-300 relative rounded-b-2xl">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6 mb-6">
             <div>
               <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">Super Admin Control Panel</h1>
@@ -172,8 +172,8 @@ export default function Dashboard({
     <div className="space-y-6">
       <Head title="Admin Dashboard" />
 
-      {/* VUESY STYLE DEEP PURPLE HEADER BANNER */}
-      <div className="mp-vuesy-header bg-[#2b1440] text-white -mx-[28px] -mt-[24px] px-[28px] py-6 sm:py-8 shadow-sm transition-all duration-300 relative">
+      {/* VUESY STYLE HEADER BANNER */}
+      <div className="mp-vuesy-header text-white -mx-[28px] -mt-[24px] px-[28px] py-6 sm:py-8 shadow-sm transition-all duration-300 relative">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6 mb-6">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">Dashboard</h1>

@@ -75,8 +75,8 @@ export default function Dashboard({ stats = {}, todayAttendance, recentTasks = [
     <div className="space-y-6">
       <Head title="User Dashboard" />
 
-      {/* VUESY STYLE DEEP PURPLE HEADER BANNER */}
-      <div className="mp-vuesy-header bg-[#2b1440] text-white -mx-[28px] -mt-[24px] px-[28px] py-6 sm:py-8 shadow-sm transition-all duration-300 relative">
+      {/* VUESY STYLE HEADER BANNER */}
+      <div className="mp-vuesy-header text-white -mx-[28px] -mt-[24px] px-[28px] py-6 sm:py-8 shadow-sm transition-all duration-300 relative">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6 mb-6">
           <div>
             <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">Dashboard</h1>
@@ -134,7 +134,7 @@ export default function Dashboard({ stats = {}, todayAttendance, recentTasks = [
         {/* Collapse toggle button */}
         <button
           onClick={() => setStatsExpanded(!statsExpanded)}
-          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-8 h-8 rounded-full bg-[#7460ee] hover:bg-[#5e45d6] text-white flex items-center justify-center shadow-lg border border-white/10 hover:scale-105 active:scale-95 transition-all z-10"
+          className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-8 h-8 rounded-full bg-[var(--theme-primary,#7460ee)] hover:bg-[var(--theme-primary-dark,#5e45d6)] text-white flex items-center justify-center shadow-lg border border-white/10 hover:scale-105 active:scale-95 transition-all z-10"
           title={statsExpanded ? "Collapse Stats" : "Expand Stats"}
         >
           {statsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
