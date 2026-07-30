@@ -4,34 +4,20 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Domain;
+use App\Models\Hosting;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use Carbon\Carbon;
 
 class DomainController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Domain::query();
-
-        if ($search = $request->input('search')) {
-            $query->where('domain_name', 'like', "%{$search}%");
-        }
-
-        $sort = $request->input('sort', 'expiration_date');
-        $direction = $request->input('direction', 'asc');
-
-        $allowed = ['id', 'domain_name', 'status', 'expiration_date', 'auto_renewal'];
-        if (!in_array($sort, $allowed)) {
-            $sort = 'expiration_date';
-        }
-
-        $perPage = (int) $request->input('perPage', 10);
-        $domains = $query->orderBy($sort, $direction)->paginate($perPage)->withQueryString();
+        $domains = Domain::orderBy('expiration_date', 'asc')->get();
+        $hostings = Hosting::orderBy('expiration_date', 'asc')->get();
 
         return Inertia::render('Admin/Domains/Index', [
             'domains' => $domains,
-            'filters' => $request->only(['search', 'perPage', 'sort', 'direction']),
+            'hostings' => $hostings,
         ]);
     }
 
@@ -43,6 +29,7 @@ class DomainController extends Controller
             'expiration_date' => 'required|date',
             'auto_renewal' => 'required|boolean',
             'provider' => 'nullable|string|max:255',
+            'price' => 'nullable|numeric',
         ]);
 
         Domain::create($validated);
@@ -58,6 +45,7 @@ class DomainController extends Controller
             'expiration_date' => 'required|date',
             'auto_renewal' => 'required|boolean',
             'provider' => 'nullable|string|max:255',
+            'price' => 'nullable|numeric',
         ]);
 
         $domain->update($validated);
@@ -70,5 +58,50 @@ class DomainController extends Controller
         $domain->delete();
 
         return back()->with('success', 'Domain deleted successfully!');
+    }
+
+    public function storeHosting(Request $request)
+    {
+        $validated = $request->validate([
+            'site_name' => 'required|string|max:255',
+            'provider' => 'required|string|max:255',
+            'plan' => 'nullable|string|max:255',
+            'server_ip' => 'nullable|string|max:255',
+            'status' => 'required|string',
+            'expiration_date' => 'required|date',
+            'auto_renewal' => 'required|boolean',
+            'price' => 'nullable|numeric',
+            'notes' => 'nullable|string',
+        ]);
+
+        Hosting::create($validated);
+
+        return back()->with('success', 'Hosting added successfully!');
+    }
+
+    public function updateHosting(Request $request, Hosting $hosting)
+    {
+        $validated = $request->validate([
+            'site_name' => 'required|string|max:255',
+            'provider' => 'required|string|max:255',
+            'plan' => 'nullable|string|max:255',
+            'server_ip' => 'nullable|string|max:255',
+            'status' => 'required|string',
+            'expiration_date' => 'required|date',
+            'auto_renewal' => 'required|boolean',
+            'price' => 'nullable|numeric',
+            'notes' => 'nullable|string',
+        ]);
+
+        $hosting->update($validated);
+
+        return back()->with('success', 'Hosting updated successfully!');
+    }
+
+    public function destroyHosting(Hosting $hosting)
+    {
+        $hosting->delete();
+
+        return back()->with('success', 'Hosting deleted successfully!');
     }
 }

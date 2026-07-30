@@ -53,11 +53,12 @@ const loadRazorpayScript = () => {
     });
 };
 
-export default function Pricing({ settings, currentPlan, razorpayKey }) {
+export default function Pricing({ settings, currentPlan, currentAdditionalModules = [], razorpayKey }) {
     const { auth } = usePage().props;
     const currentUser = auth?.user;
 
     const [selectedPlan, setSelectedPlan] = useState(null);
+    const [selectedAdditionalModules, setSelectedAdditionalModules] = useState(currentAdditionalModules || []);
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -99,11 +100,35 @@ export default function Pricing({ settings, currentPlan, razorpayKey }) {
 
     const isRegistrationAllowed = (settings.allow_admin_registration ?? '1') === '1';
 
+    const handleToggleAdditionalModule = (key) => {
+        if (selectedAdditionalModules.includes(key)) {
+            setSelectedAdditionalModules(selectedAdditionalModules.filter(k => k !== key));
+        } else {
+            setSelectedAdditionalModules([...selectedAdditionalModules, key]);
+        }
+    };
+
+    const computeTotalPrice = (planName) => {
+        const basePrice = planName === 'premium'
+            ? parseFloat(settings.premium_plan_price || 2999)
+            : parseFloat(settings.basic_plan_price || 999);
+
+        let addOnsSum = 0;
+        if (settings.additional_modules && Array.isArray(settings.additional_modules)) {
+            settings.additional_modules.forEach(mod => {
+                if (mod.included !== false && selectedAdditionalModules.includes(mod.key)) {
+                    addOnsSum += parseFloat(mod.price || 0);
+                }
+            });
+        }
+        return basePrice + addOnsSum;
+    };
+
     const handleSelectPlan = (planName) => {
         setSelectedPlan(planName);
         if (currentUser) {
             // Logged in user: proceed with checkout directly
-            initiatePayment(planName, {});
+            initiatePayment(planName, {}, selectedAdditionalModules);
         } else {
             if (!isRegistrationAllowed) {
                 toast.error("New admin registrations are currently paused by the system administrator.");
@@ -130,10 +155,10 @@ export default function Pricing({ settings, currentPlan, razorpayKey }) {
         }
 
         setIsCheckoutModalOpen(false);
-        initiatePayment(selectedPlan, formData);
+        initiatePayment(selectedPlan, formData, selectedAdditionalModules);
     };
 
-    const initiatePayment = async (planName, clientDetails) => {
+    const initiatePayment = async (planName, clientDetails, addOns = []) => {
         setLoading(true);
 
         try {
@@ -143,6 +168,7 @@ export default function Pricing({ settings, currentPlan, razorpayKey }) {
                 razorpay_order_id: 'order_direct_' + Date.now(),
                 razorpay_signature: 'sig_direct_' + Date.now(),
                 plan: planName,
+                additional_modules: addOns,
                 is_guest: !currentUser,
                 ...clientDetails,
             });
@@ -349,9 +375,14 @@ export default function Pricing({ settings, currentPlan, razorpayKey }) {
                                     <h3 className="text-3xl font-light text-center text-gray-800 mb-2">Premium</h3>
 
                                     {/* Price */}
-                                    <div className="text-center mb-8">
-                                        <span className="text-5xl font-light text-gray-800 tracking-tight">₹{settings.premium_plan_price}</span>
+                                    <div className="text-center mb-6">
+                                        <span className="text-5xl font-light text-gray-800 tracking-tight">₹{computeTotalPrice('premium')}</span>
                                         <span className="text-xs font-normal text-gray-400 block mt-1">per month</span>
+                                        {selectedAdditionalModules.length > 0 && (
+                                            <span className="inline-block mt-1 px-2.5 py-0.5 bg-purple-50 text-purple-600 font-bold text-[11px] rounded-full">
+                                                Base ₹{settings.premium_plan_price} + {selectedAdditionalModules.length} Add-on(s)
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Feature list */}

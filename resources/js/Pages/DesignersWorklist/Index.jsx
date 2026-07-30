@@ -1,0 +1,504 @@
+import React, { useState, useMemo } from 'react';
+import AdminLayout from '@/Layouts/AdminLayout';
+import UserLayout from '@/Layouts/UserLayout';
+import { Head, useForm, usePage, router } from '@inertiajs/react';
+import { 
+    Calendar as CalendarIcon, 
+    Plus, 
+    Trash2, 
+    Edit2, 
+    Eye,
+    X,
+    ChevronDown,
+    User,
+    Check,
+    Search,
+    FileText
+} from 'lucide-react';
+import toast from 'react-hot-toast';
+
+export default function Index({ worklists = [], users = [] }) {
+    const { auth } = usePage().props;
+    const isUser = auth?.user?.role === 'user';
+    const Layout = isUser ? UserLayout : AdminLayout;
+
+    // Filter States
+    const [selectedDateFilter, setSelectedDateFilter] = useState('');
+    const [selectedDesignerFilter, setSelectedDesignerFilter] = useState('');
+
+    // Modals
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [editingItem, setEditingItem] = useState(null);
+    const [previewItem, setPreviewItem] = useState(null);
+
+    // Form
+    const form = useForm({
+        client_name: '',
+        task_date: new Date().toISOString().split('T')[0],
+        task_type: 'POSTER',
+        description: '',
+        status: 'Not Done',
+        assigned_user_ids: [],
+    });
+
+    const handleCreateSubmit = (e) => {
+        e.preventDefault();
+        if (editingItem) {
+            form.put(route('designers-worklist.update', editingItem.id), {
+                onSuccess: () => {
+                    toast.success('Designers worklist task updated');
+                    setIsCreateModalOpen(false);
+                    setEditingItem(null);
+                    form.reset();
+                },
+                onError: () => toast.error('Failed to update task'),
+            });
+        } else {
+            form.post(route('designers-worklist.store'), {
+                onSuccess: () => {
+                    toast.success('Designers worklist task created');
+                    setIsCreateModalOpen(false);
+                    form.reset();
+                },
+                onError: () => toast.error('Failed to create task'),
+            });
+        }
+    };
+
+    const handleOpenEdit = (item) => {
+        setEditingItem(item);
+        const assignedIds = item.assigned_users ? item.assigned_users.map(u => u.id) : [];
+        form.setData({
+            client_name: item.client_name || '',
+            task_date: item.task_date || new Date().toISOString().split('T')[0],
+            task_type: item.task_type || 'POSTER',
+            description: item.description || '',
+            status: item.status || 'Not Done',
+            assigned_user_ids: assignedIds,
+        });
+        setIsCreateModalOpen(true);
+    };
+
+    const handleInlineStatusChange = (id, newStatus) => {
+        router.put(route('designers-worklist.update', id), { status: newStatus }, {
+            preserveScroll: true,
+            onSuccess: () => toast.success('Task status updated'),
+            onError: () => toast.error('Failed to update status'),
+        });
+    };
+
+    const handleDelete = (id) => {
+        if (confirm('Are you sure you want to delete this designer task?')) {
+            router.delete(route('designers-worklist.destroy', id), {
+                onSuccess: () => toast.success('Task deleted'),
+                onError: () => toast.error('Failed to delete task'),
+            });
+        }
+    };
+
+    // Filtered Worklist Items
+    const filteredWorklists = useMemo(() => {
+        return worklists.filter(item => {
+            if (selectedDateFilter && item.task_date !== selectedDateFilter) {
+                return false;
+            }
+            if (selectedDesignerFilter) {
+                const userIds = item.assigned_users ? item.assigned_users.map(u => String(u.id)) : [];
+                if (!userIds.includes(String(selectedDesignerFilter))) return false;
+            }
+            return true;
+        });
+    }, [worklists, selectedDateFilter, selectedDesignerFilter]);
+
+    // Format Date helper (e.g. Jul 30 / THU)
+    const formatDate = (dateStr) => {
+        if (!dateStr) return { main: '-', sub: '' };
+        try {
+            const d = new Date(dateStr);
+            const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            const days = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+            return {
+                main: `${months[d.getMonth()]} ${String(d.getDate()).padStart(2, '0')}`,
+                sub: days[d.getDay()]
+            };
+        } catch (e) {
+            return { main: dateStr, sub: '' };
+        }
+    };
+
+    return (
+        <Layout title={isUser ? "My Worklist" : "Designers Worklist"}>
+            <Head title={isUser ? "My Worklist" : "Designers Worklist"} />
+
+            <div className="w-full space-y-6 font-sans pb-12 bg-slate-50/50 min-h-screen p-3 sm:p-6">
+                
+                {/* 1. TOP HEADER CARD (Exact match to Screenshots) */}
+                <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                    <div>
+                        <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
+                            {isUser ? "My Worklist" : "Designers Worklist"}
+                        </h1>
+                        <p className="text-gray-500 font-medium text-xs sm:text-sm mt-0.5">
+                            {isUser ? "Tasks assigned to you by managers" : "Assign and manage tasks for designers"}
+                        </p>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-3 self-end md:self-center">
+                        
+                        {/* Date Picker Filter */}
+                        <div className="relative">
+                            <input
+                                type="date"
+                                value={selectedDateFilter}
+                                onChange={(e) => setSelectedDateFilter(e.target.value)}
+                                className="px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                            />
+                        </div>
+
+                        {/* Designer Filter (Admin Side) */}
+                        {!isUser && (
+                            <div className="relative">
+                                <select
+                                    value={selectedDesignerFilter}
+                                    onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                                    className="pl-4 pr-9 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"
+                                >
+                                    <option value="">DESIGNER: All Designers</option>
+                                    {users.map(u => (
+                                        <option key={u.id} value={u.id}>{u.name}</option>
+                                    ))}
+                                </select>
+                                <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                            </div>
+                        )}
+
+                        {/* + ADD TASK Button (Admin Side) */}
+                        {!isUser && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditingItem(null);
+                                    form.reset();
+                                    form.setData('task_date', new Date().toISOString().split('T')[0]);
+                                    setIsCreateModalOpen(true);
+                                }}
+                                className="px-5 py-2.5 rounded-2xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                            >
+                                <Plus size={16} /> ADD TASK
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* 2. MAIN WORKLIST TABLE (Exact match to Screenshots) */}
+                <div className="bg-white rounded-[28px] shadow-sm border border-gray-100 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse min-w-[950px]">
+                            <thead>
+                                <tr className="border-b border-gray-100 bg-white">
+                                    <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">DATE</th>
+                                    <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">CLIENT</th>
+                                    {!isUser && <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">ASSIGNED TO</th>}
+                                    <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">TASK TYPE</th>
+                                    {isUser && <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">OTHER ASSIGNEES</th>}
+                                    <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">STATUS</th>
+                                    <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400 text-right">ACTION</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {filteredWorklists.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={7} className="py-20 text-center">
+                                            <div className="flex flex-col items-center justify-center">
+                                                <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-3">
+                                                    <CalendarIcon className="text-gray-300" size={32} />
+                                                </div>
+                                                <h4 className="font-bold text-gray-900 text-base">No worklist tasks found</h4>
+                                                <p className="text-xs text-gray-400 mt-1">Select a different date or filter above.</p>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    filteredWorklists.map((item) => {
+                                        const dateFmt = formatDate(item.task_date);
+                                        const assignedList = item.assigned_users || [];
+                                        const isDone = (item.status || '').toLowerCase() === 'done' || (item.status || '').toLowerCase() === 'completed';
+
+                                        // Other assignees text for user side
+                                        let otherAssigneesText = 'ONLY YOU';
+                                        if (assignedList.length > 1) {
+                                            const others = assignedList.filter(u => u.id !== auth?.user?.id);
+                                            if (others.length > 0) {
+                                                otherAssigneesText = others.map(u => u.name.toUpperCase()).join(', ');
+                                            }
+                                        }
+
+                                        return (
+                                            <tr key={item.id} className="hover:bg-slate-50/70 transition-colors group">
+                                                
+                                                {/* DATE */}
+                                                <td className="py-4 px-6 whitespace-nowrap">
+                                                    <div className="font-extrabold text-gray-900 text-base">{dateFmt.main}</div>
+                                                    <div className="text-xs font-extrabold text-gray-400 tracking-wider uppercase">{dateFmt.sub}</div>
+                                                </td>
+
+                                                {/* CLIENT */}
+                                                <td className="py-4 px-6 font-extrabold text-gray-900 text-sm uppercase max-w-xs">{item.client_name || '-'}</td>
+
+                                                {/* ASSIGNED TO (ADMIN SIDE: SOFT BLUE PILL BADGE) */}
+                                                {!isUser && (
+                                                    <td className="py-4 px-6 whitespace-nowrap">
+                                                        <div className="flex flex-wrap items-center gap-1.5">
+                                                            {assignedList.length > 0 ? (
+                                                                assignedList.map(u => (
+                                                                    <span key={u.id} className="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-blue-50 text-blue-600">
+                                                                        {u.name}
+                                                                    </span>
+                                                                ))
+                                                            ) : (
+                                                                <span className="text-xs text-gray-400 font-bold uppercase">-</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                )}
+
+                                                {/* TASK TYPE (LIGHT GREY ROUNDED PILL BADGE) */}
+                                                <td className="py-4 px-6 whitespace-nowrap">
+                                                    <span className="px-3.5 py-1 rounded-full text-xs font-extrabold uppercase bg-gray-100 text-gray-700">
+                                                        {item.task_type || 'POSTER'}
+                                                    </span>
+                                                </td>
+
+                                                {/* OTHER ASSIGNEES (USER SIDE: ITALIC LIGHT GRAY TEXT) */}
+                                                {isUser && (
+                                                    <td className="py-4 px-6 whitespace-nowrap text-xs italic font-semibold text-gray-300 uppercase">
+                                                        {otherAssigneesText}
+                                                    </td>
+                                                )}
+
+                                                {/* STATUS */}
+                                                <td className="py-4 px-6 whitespace-nowrap">
+                                                    {isUser ? (
+                                                        /* User Status Dropdown Pill with Chevron Arrow */
+                                                        <select
+                                                            value={isDone ? 'Done' : 'Not Done'}
+                                                            onChange={(e) => handleInlineStatusChange(item.id, e.target.value)}
+                                                            className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border cursor-pointer appearance-none text-center ${
+                                                                isDone
+                                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                    : 'bg-red-50 text-red-600 border-red-100'
+                                                            }`}
+                                                        >
+                                                            <option value="Not Done">NOT DONE ∨</option>
+                                                            <option value="Done">DONE ∨</option>
+                                                        </select>
+                                                    ) : (
+                                                        /* Admin Soft Status Pill */
+                                                        <span className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border text-center ${
+                                                            isDone
+                                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                : 'bg-red-50 text-red-600 border-red-100'
+                                                        }`}>
+                                                            {isDone ? 'DONE' : 'NOT DONE'}
+                                                        </span>
+                                                    )}
+                                                </td>
+
+                                                {/* ACTION */}
+                                                <td className="py-4 px-6 text-right whitespace-nowrap">
+                                                    <div className="flex items-center justify-end gap-2">
+                                                        {isUser ? (
+                                                            /* User Action: Eye icon button */
+                                                            <button
+                                                                onClick={() => setPreviewItem(item)}
+                                                                className="w-8 h-8 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors cursor-pointer"
+                                                                title="View Task Details"
+                                                            >
+                                                                <Eye size={16} />
+                                                            </button>
+                                                        ) : (
+                                                            /* Admin Action: Edit Pencil & Delete Trash */
+                                                            <>
+                                                                <button
+                                                                    onClick={() => handleOpenEdit(item)}
+                                                                    className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors cursor-pointer"
+                                                                    title="Edit Task"
+                                                                >
+                                                                    <Edit2 size={16} />
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleDelete(item.id)}
+                                                                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
+                                                                    title="Delete Task"
+                                                                >
+                                                                    <Trash2 size={16} />
+                                                                </button>
+                                                            </>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                {/* 3. PREVIEW MODAL */}
+                {previewItem && (
+                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl border border-slate-100 space-y-6">
+                            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                                <div>
+                                    <span className="text-xs font-extrabold uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                                        {previewItem.task_type || 'POSTER'}
+                                    </span>
+                                    <h3 className="text-xl font-extrabold text-gray-900 mt-2 uppercase">{previewItem.client_name}</h3>
+                                </div>
+                                <button onClick={() => setPreviewItem(null)} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <div className="space-y-4 text-xs text-gray-700">
+                                <div>
+                                    <span className="font-bold text-gray-400 uppercase text-xs block">Task Date</span>
+                                    <span className="font-extrabold text-base text-gray-900">{previewItem.task_date || '-'}</span>
+                                </div>
+
+                                <div>
+                                    <span className="font-bold text-gray-400 uppercase text-xs block">Description / Guidelines</span>
+                                    <p className="p-4 bg-gray-50 rounded-2xl text-gray-800 text-sm font-medium leading-relaxed mt-1">
+                                        {previewItem.description || 'No specific guidelines provided.'}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <span className="font-bold text-gray-400 uppercase text-xs block mb-1">Assigned Designers</span>
+                                    <div className="flex flex-wrap gap-2">
+                                        {(previewItem.assigned_users || []).map(u => (
+                                            <span key={u.id} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full font-bold text-xs uppercase">
+                                                {u.name}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* 4. CREATE / EDIT TASK MODAL (ADMIN ONLY) */}
+                {isCreateModalOpen && !isUser && (
+                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-100 space-y-6">
+                            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                                <h3 className="text-lg font-bold text-gray-900">
+                                    {editingItem ? 'Edit Designer Task' : 'Add Designer Task'}
+                                </h3>
+                                <button onClick={() => setIsCreateModalOpen(false)} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100">
+                                    <X size={20} />
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleCreateSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Client Name *</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={form.data.client_name}
+                                        onChange={(e) => form.setData('client_name', e.target.value)}
+                                        placeholder="KALPAKA - 30"
+                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold uppercase"
+                                    />
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Task Date *</label>
+                                        <input
+                                            type="date"
+                                            required
+                                            value={form.data.task_date}
+                                            onChange={(e) => form.setData('task_date', e.target.value)}
+                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Task Type *</label>
+                                        <input
+                                            type="text"
+                                            required
+                                            value={form.data.task_type}
+                                            onChange={(e) => form.setData('task_type', e.target.value)}
+                                            placeholder="POSTER / STORY / THUMBNAIL"
+                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm uppercase font-bold"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Description / Notes</label>
+                                    <textarea
+                                        rows={3}
+                                        value={form.data.description}
+                                        onChange={(e) => form.setData('description', e.target.value)}
+                                        placeholder="Creative brief and designer guidelines..."
+                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Assign Designers</label>
+                                    <div className="space-y-1.5 max-h-40 overflow-y-auto p-2 border border-gray-100 rounded-xl bg-gray-50/50">
+                                        {users.map(u => {
+                                            const isAssigned = form.data.assigned_user_ids.includes(u.id);
+                                            return (
+                                                <div
+                                                    key={u.id}
+                                                    onClick={() => {
+                                                        const current = form.data.assigned_user_ids;
+                                                        const next = current.includes(u.id)
+                                                            ? current.filter(id => id !== u.id)
+                                                            : [...current, u.id];
+                                                        form.setData('assigned_user_ids', next);
+                                                    }}
+                                                    className={`p-2 rounded-lg text-xs font-bold flex items-center justify-between cursor-pointer ${
+                                                        isAssigned ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-white text-gray-700'
+                                                    }`}
+                                                >
+                                                    <span>{u.name} ({u.email})</span>
+                                                    {isAssigned && <Check size={14} className="text-blue-600" />}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsCreateModalOpen(false)}
+                                        className="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold uppercase"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={form.processing}
+                                        className="px-5 py-2 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold uppercase shadow-md"
+                                    >
+                                        {form.processing ? 'Saving...' : editingItem ? 'Update Task' : 'Add Task'}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
+            </div>
+        </Layout>
+    );
+}

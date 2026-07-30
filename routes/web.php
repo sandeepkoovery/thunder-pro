@@ -130,6 +130,27 @@ Route::middleware(['auth'])->group(function () {
 
 
     // -------------------------
+    // ✅ ADDITIONAL MODULES ROUTES
+    // -------------------------
+    Route::get('/content-calendar', [\App\Http\Controllers\ContentCalendarController::class, 'index'])->name('content-calendar.index');
+    Route::post('/content-calendar', [\App\Http\Controllers\ContentCalendarController::class, 'store'])->name('content-calendar.store');
+    Route::post('/content-calendar/generate-month', [\App\Http\Controllers\ContentCalendarController::class, 'generateMonth'])->name('content-calendar.generate-month');
+    Route::put('/content-calendar/{id}', [\App\Http\Controllers\ContentCalendarController::class, 'update'])->name('content-calendar.update');
+    Route::delete('/content-calendar/{id}', [\App\Http\Controllers\ContentCalendarController::class, 'destroy'])->name('content-calendar.destroy');
+
+    Route::get('/daily-listings', [\App\Http\Controllers\DailyListingsController::class, 'index'])->name('daily-listings.index');
+    Route::post('/daily-listings', [\App\Http\Controllers\DailyListingsController::class, 'store'])->name('daily-listings.store');
+    Route::put('/daily-listings/{id}', [\App\Http\Controllers\DailyListingsController::class, 'update'])->name('daily-listings.update');
+    Route::delete('/daily-listings/{id}', [\App\Http\Controllers\DailyListingsController::class, 'destroy'])->name('daily-listings.destroy');
+    Route::post('/daily-listings/settings', [\App\Http\Controllers\DailyListingsController::class, 'updateSettings'])->name('daily-listings.settings');
+
+    Route::get('/designers-worklist', [\App\Http\Controllers\DesignersWorklistController::class, 'index'])->name('designers-worklist.index');
+    Route::post('/designers-worklist', [\App\Http\Controllers\DesignersWorklistController::class, 'store'])->name('designers-worklist.store');
+    Route::put('/designers-worklist/{id}', [\App\Http\Controllers\DesignersWorklistController::class, 'update'])->name('designers-worklist.update');
+    Route::patch('/designers-worklist/{id}/status', [\App\Http\Controllers\DesignersWorklistController::class, 'updateStatus'])->name('designers-worklist.status');
+    Route::delete('/designers-worklist/{id}', [\App\Http\Controllers\DesignersWorklistController::class, 'destroy'])->name('designers-worklist.destroy');
+
+    // -------------------------
     // ✅ AI ASSISTANT ROUTES
     // -------------------------
     Route::post('/ai/chat', [AiAssistantController::class, 'chat'])->name('ai.chat');
@@ -202,10 +223,11 @@ Route::middleware(['auth', 'is_admin'])
         Route::post('/tasks/{task}/comments', [AdminTaskController::class, 'storeComment'])->name('tasks.comments.store');
         Route::delete('/comments/{comment}', [AdminTaskController::class, 'destroyComment'])->name('tasks.comments.destroy');
 
-        // Domains
+        // Domains & Hosting
         Route::resource('domains', \App\Http\Controllers\Admin\DomainController::class);
-
-        // Hosting
+        Route::post('domains/hostings', [\App\Http\Controllers\Admin\DomainController::class, 'storeHosting'])->name('domains.hostings.store');
+        Route::put('domains/hostings/{hosting}', [\App\Http\Controllers\Admin\DomainController::class, 'updateHosting'])->name('domains.hostings.update');
+        Route::delete('domains/hostings/{hosting}', [\App\Http\Controllers\Admin\DomainController::class, 'destroyHosting'])->name('domains.hostings.destroy');
         Route::resource('hostings', \App\Http\Controllers\Admin\HostingController::class);
 
         // Websites (combined Domains + Hosting view)

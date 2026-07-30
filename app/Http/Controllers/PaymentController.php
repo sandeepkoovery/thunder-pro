@@ -22,6 +22,7 @@ class PaymentController extends Controller
     {
         $request->validate([
             'plan' => 'required|in:basic,premium',
+            'additional_modules' => 'nullable|array',
             'name' => 'required_if:is_guest,true|nullable|string|max:255',
             'email' => 'required_if:is_guest,true|nullable|email|max:255',
             'password' => 'required_if:is_guest,true|nullable|string|min:6',
@@ -45,7 +46,22 @@ class PaymentController extends Controller
         $defaultPrice = $plan === 'premium' ? 2999 : 999;
         
         $settingPrice = Setting::where('key', $plan . '_plan_price')->value('value');
-        $price = $settingPrice ? (float) $settingPrice : $defaultPrice;
+        $basePrice = $settingPrice ? (float) $settingPrice : $defaultPrice;
+
+        // Add additional module prices if selected
+        $additionalModulesInput = $request->input('additional_modules', []);
+        $additionalPriceSum = 0;
+        if (!empty($additionalModulesInput)) {
+            $additionalSettingsJson = Setting::where('key', 'additional_modules')->value('value');
+            $additionalSettings = $additionalSettingsJson ? json_decode($additionalSettingsJson, true) : [];
+            foreach ($additionalSettings as $mod) {
+                if (in_array($mod['key'], $additionalModulesInput)) {
+                    $additionalPriceSum += (float) ($mod['price'] ?? 0);
+                }
+            }
+        }
+
+        $price = $basePrice + $additionalPriceSum;
         $amountInPaise = (int) round($price * 100);
 
         $keyId = config('services.razorpay.key_id', env('RAZORPAY_KEY_ID', 'rzp_test_worknest_key'));
@@ -98,12 +114,14 @@ class PaymentController extends Controller
             'razorpay_payment_id' => 'required|string',
             'razorpay_order_id' => 'required|string',
             'plan' => 'required|in:basic,premium',
+            'additional_modules' => 'nullable|array',
         ]);
 
         $paymentId = $request->input('razorpay_payment_id');
         $orderId = $request->input('razorpay_order_id');
         $signature = $request->input('razorpay_signature');
         $plan = $request->input('plan');
+        $additionalModules = $request->input('additional_modules', []);
 
         $keySecret = config('services.razorpay.key_secret', env('RAZORPAY_KEY_SECRET', 'rzp_test_worknest_secret'));
 
@@ -172,6 +190,7 @@ class PaymentController extends Controller
                     'password' => Hash::make($password),
                     'role' => 'admin',
                     'plan' => $plan,
+                    'additional_modules' => $additionalModules,
                     'phone' => $request->input('phone'),
                     'company_name' => $request->input('company_name'),
                     'is_active' => true,
@@ -188,6 +207,7 @@ class PaymentController extends Controller
                 $adminUser->update([
                     'role' => 'admin',
                     'plan' => $plan,
+                    'additional_modules' => $additionalModules,
                     'is_active' => true,
                 ]);
             }
@@ -195,6 +215,7 @@ class PaymentController extends Controller
             $adminUser->update([
                 'role' => 'admin',
                 'plan' => $plan,
+                'additional_modules' => $additionalModules,
                 'is_active' => true,
             ]);
         }

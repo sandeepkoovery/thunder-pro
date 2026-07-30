@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
-import { Settings, CreditCard, Check, X, Save, Users, AlertTriangle, ChevronUp, ChevronDown } from 'lucide-react';
+import { Settings, CreditCard, Check, X, Save, Users, AlertTriangle, ChevronUp, ChevronDown, Sliders, Sparkles, CheckCircle2, Receipt } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const CORE_MODULES = [
@@ -16,7 +16,7 @@ const CORE_MODULES = [
     { key: 'user_limit_premium', label: 'Unlimited Users', is_core: true }
 ];
 
-export default function Index({ settings, admins, currentPlan }) {
+export default function Index({ settings, admins = [], currentPlan, currentAdditionalModules = [] }) {
     const { auth } = usePage().props;
     const isSuperAdmin = auth?.user?.role === 'superadmin';
     const [activeTab, setActiveTab] = useState(() => {
@@ -35,6 +35,7 @@ export default function Index({ settings, admins, currentPlan }) {
         premium_plan_price: settings.premium_plan_price || '2999',
         basic_plan_features: settings.basic_plan_features || [],
         premium_plan_features: settings.premium_plan_features || [],
+        additional_modules: settings.additional_modules || [],
         allow_admin_registration: (settings.allow_admin_registration ?? '1') === '1',
     });
 
@@ -49,19 +50,99 @@ export default function Index({ settings, admins, currentPlan }) {
     // Admin subscription update form
     const subscriptionForm = useForm({
         plan: currentPlan,
+        additional_modules: [],
     });
 
     // Super Admin update admin user's plan form
     const adminPlanForm = useForm({
         plan: 'basic',
+        additional_modules: [],
     });
 
+    // Handlers for Additional Modules in Super Admin Plan Config
+    const handleAddAdditionalModule = () => {
+        const newKey = `module_${Date.now()}`;
+        const newMod = {
+            key: newKey,
+            label: 'New Additional Module',
+            price: 499,
+            description: 'Custom module add-on',
+            included: true,
+        };
+        settingsForm.setData('additional_modules', [...settingsForm.data.additional_modules, newMod]);
+    };
+
+    const handleUpdateAdditionalModule = (key, field, value) => {
+        const updatedList = settingsForm.data.additional_modules.map((mod) => {
+            if (mod.key === key) {
+                return { ...mod, [field]: value };
+            }
+            return mod;
+        });
+        settingsForm.setData('additional_modules', updatedList);
+    };
+
+    const handleDeleteAdditionalModule = (key) => {
+        const updatedList = settingsForm.data.additional_modules.filter((mod) => mod.key !== key);
+        settingsForm.setData('additional_modules', updatedList);
+    };
+
+    // State for standard logged-in tenant Admin add-on module selections
+    const [selectedAdminAddOns, setSelectedAdminAddOns] = useState(currentAdditionalModules || []);
+
+    // Calculate Subscription Breakdown for Tenant Admin Billing Summary
+    const basePlanPrice = currentPlan === 'basic' 
+        ? Number(settings.basic_plan_price || 999) 
+        : currentPlan === 'premium' 
+        ? Number(settings.premium_plan_price || 2999) 
+        : 0;
+
+    const assignedModulesDetails = (settings.additional_modules || []).filter(mod => 
+        (currentAdditionalModules || []).includes(mod.key)
+    );
+
+    const addOnsTotal = assignedModulesDetails.reduce((sum, mod) => sum + Number(mod.price || 499), 0);
+    const grandTotal = basePlanPrice + addOnsTotal;
+
+    // Super Admin: Module Assignment Modal State
+    const [selectedAdminForModules, setSelectedAdminForModules] = useState(null);
+    const [tempAdminModules, setTempAdminModules] = useState([]);
+    const [moduleSearchQuery, setModuleSearchQuery] = useState('');
+
+    const handleOpenManageModules = (admin) => {
+        setSelectedAdminForModules(admin);
+        setTempAdminModules(Array.isArray(admin.additional_modules) ? admin.additional_modules : []);
+        setModuleSearchQuery('');
+    };
+
+    const handleSaveAdminModules = () => {
+        if (!selectedAdminForModules) return;
+        handleUpdateAdminPlan(selectedAdminForModules.id, selectedAdminForModules.plan || 'basic', tempAdminModules);
+        setSelectedAdminForModules(null);
+    };
+
+    const handleToggleTempModule = (key) => {
+        if (tempAdminModules.includes(key)) {
+            setTempAdminModules(tempAdminModules.filter(k => k !== key));
+        } else {
+            setTempAdminModules([...tempAdminModules, key]);
+        }
+    };
+
+    const handleToggleAdminAddOn = (key) => {
+        if (selectedAdminAddOns.includes(key)) {
+            setSelectedAdminAddOns(selectedAdminAddOns.filter(k => k !== key));
+        } else {
+            setSelectedAdminAddOns([...selectedAdminAddOns, key]);
+        }
+    };
+
     const handleSubscribe = (planName) => {
-        if (planName === currentPlan) return;
-        
-        subscriptionForm.setData('plan', planName);
-        subscriptionForm.post(route('admin.pricing.subscribe'), {
-            onSuccess: () => toast.success(`Subscribed to ${planName.toUpperCase()} plan successfully.`),
+        router.post(route('admin.pricing.subscribe'), {
+            plan: planName,
+            additional_modules: selectedAdminAddOns,
+        }, {
+            onSuccess: () => toast.success(`Subscription updated successfully to ${planName.toUpperCase()} plan.`),
             onError: (err) => toast.error(err.error || "Failed to update subscription"),
         });
     };
@@ -74,10 +155,12 @@ export default function Index({ settings, admins, currentPlan }) {
         });
     };
 
-    const handleUpdateAdminPlan = (adminId, planName) => {
-        adminPlanForm.setData('plan', planName);
-        adminPlanForm.post(route('admin.pricing.admin-plan', adminId), {
-            onSuccess: () => toast.success("Admin subscription updated successfully"),
+    const handleUpdateAdminPlan = (adminId, planName, additionalModules = []) => {
+        router.post(route('admin.pricing.admin-plan', adminId), {
+            plan: planName,
+            additional_modules: additionalModules,
+        }, {
+            onSuccess: () => toast.success("Admin plan & modules updated successfully"),
             onError: () => toast.error("Failed to update subscription"),
         });
     };
@@ -192,6 +275,20 @@ export default function Index({ settings, admins, currentPlan }) {
                         <CreditCard size={16} />
                         Pricing Plans
                     </button>
+
+                    {!isSuperAdmin && (
+                        <button
+                            onClick={() => setActiveTab('subscription')}
+                            className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold uppercase tracking-widest text-[11px] transition-all whitespace-nowrap ${
+                                activeTab === 'subscription'
+                                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
+                                    : 'text-gray-400 hover:text-emerald-600 hover:bg-gray-50'
+                            }`}
+                        >
+                            <Receipt size={16} />
+                            Subscription Details
+                        </button>
+                    )}
 
                     {isSuperAdmin && (
                         <button
@@ -364,6 +461,109 @@ export default function Index({ settings, admins, currentPlan }) {
                             </div>
                         </div>
 
+                    </div>
+                )}
+
+                {/* TAB: SUBSCRIPTION DETAILS (SEPARATE FULL WIDTH TAB FOR TENANT ADMINS) */}
+                {activeTab === 'subscription' && !isSuperAdmin && (
+                    <div className="w-full space-y-8 pt-4">
+                        <div className="bg-white rounded-[32px] p-8 sm:p-10 shadow-sm border border-gray-100 space-y-8 w-full">
+                            
+                            {/* Header & Total Monthly Amount Box */}
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-gray-100 pb-8">
+                                <div>
+                                    <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase tracking-wider mb-3 border border-emerald-100">
+                                        <CheckCircle2 size={15} className="text-emerald-500" /> Active Subscription
+                                    </div>
+                                    <h2 className="text-3xl font-black text-gray-900 tracking-tight">Subscription & Billing Details</h2>
+                                    <p className="text-sm text-gray-500 font-medium mt-1">Full invoice breakdown of your active base plan and assigned additional modules.</p>
+                                </div>
+
+                                <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-700 w-full md:w-auto min-w-[320px] text-right">
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400 block">TOTAL MONTHLY AMOUNT</span>
+                                    <div className="text-4xl font-black text-white mt-2">
+                                        ₹{grandTotal.toLocaleString('en-IN')} <span className="text-sm font-normal text-slate-400">/ mo</span>
+                                    </div>
+                                    <div className="text-xs font-medium text-slate-400 mt-2">
+                                        Base Plan (₹{basePlanPrice.toLocaleString('en-IN')}) + Add-ons (₹{addOnsTotal.toLocaleString('en-IN')})
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* 3 KPI Stat Cards Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                {/* Base Plan */}
+                                <div className="p-6 rounded-3xl bg-slate-50 border border-slate-200/80 space-y-3">
+                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400 block">ACTIVE BASE PLAN</span>
+                                    <div className="text-2xl font-black text-slate-900 uppercase">
+                                        {currentPlan ? `${currentPlan} Plan` : 'No Active Plan'}
+                                    </div>
+                                    <div className="text-sm font-bold text-emerald-600">
+                                        ₹{basePlanPrice.toLocaleString('en-IN')} / month
+                                    </div>
+                                </div>
+
+                                {/* Add-ons Subtotal */}
+                                <div className="p-6 rounded-3xl bg-purple-50/70 border border-purple-100 space-y-3">
+                                    <span className="text-xs font-black uppercase tracking-widest text-purple-600 block">ADD-ON MODULES</span>
+                                    <div className="text-2xl font-black text-purple-950">
+                                        {assignedModulesDetails.length} {assignedModulesDetails.length === 1 ? 'Module' : 'Modules'}
+                                    </div>
+                                    <div className="text-sm font-bold text-purple-700">
+                                        ₹{addOnsTotal.toLocaleString('en-IN')} / month
+                                    </div>
+                                </div>
+
+                                {/* Total Billing */}
+                                <div className="p-6 rounded-3xl bg-blue-50/70 border border-blue-100 space-y-3">
+                                    <span className="text-xs font-black uppercase tracking-widest text-blue-600 block">TOTAL SUBSCRIPTION COST</span>
+                                    <div className="text-2xl font-black text-blue-950">
+                                        ₹{grandTotal.toLocaleString('en-IN')} / mo
+                                    </div>
+                                    <div className="text-xs font-bold text-blue-600">
+                                        Billed Monthly
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Detailed List of Assigned Add-on Modules */}
+                            <div className="space-y-4 pt-4 border-t border-gray-100">
+                                <div className="flex items-center justify-between">
+                                    <h3 className="text-xl font-black text-gray-900 tracking-tight">Assigned Add-on Modules Breakdown</h3>
+                                    <span className="text-xs font-extrabold text-purple-600 bg-purple-50 px-3.5 py-1.5 rounded-full border border-purple-100">
+                                        {assignedModulesDetails.length} Assigned by Super Admin
+                                    </span>
+                                </div>
+
+                                {assignedModulesDetails.length === 0 ? (
+                                    <div className="p-10 text-center bg-gray-50/70 rounded-3xl border border-dashed border-gray-200 text-gray-400">
+                                        <p className="text-sm font-bold text-gray-600">No additional modules are currently assigned to your workspace.</p>
+                                        <p className="text-xs text-gray-400 mt-1">If you require add-on modules (e.g. Content Calendar, Daily Listings, Designers Worklist, Domains), contact your Super Admin.</p>
+                                    </div>
+                                ) : (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        {assignedModulesDetails.map((mod) => (
+                                            <div key={mod.key} className="p-6 rounded-2xl bg-white border border-gray-200/90 shadow-sm flex items-center justify-between gap-4 hover:border-purple-200 transition-all">
+                                                <div className="space-y-1">
+                                                    <div className="font-extrabold text-gray-900 text-base flex items-center gap-2">
+                                                        <Sparkles size={18} className="text-purple-600" />
+                                                        {mod.label}
+                                                    </div>
+                                                    {mod.description && (
+                                                        <p className="text-xs text-gray-500 font-medium">{mod.description}</p>
+                                                    )}
+                                                </div>
+                                                <div className="text-right flex-shrink-0">
+                                                    <div className="text-sm font-black text-purple-700 bg-purple-50 px-3.5 py-2 rounded-xl border border-purple-100 whitespace-nowrap">
+                                                        + ₹{mod.price || 499} / mo
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 )}
 
@@ -611,7 +811,87 @@ export default function Index({ settings, admins, currentPlan }) {
 
                         </div>
 
-                                <div className="flex justify-end pt-4 border-t border-gray-100">
+                        {/* SECTION: ADDITIONAL MODULES (ADD-ONS) CONFIGURATION */}
+                        <div className="pt-8 border-t border-gray-100 space-y-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                <div>
+                                    <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-600 rounded-full text-xs font-bold uppercase tracking-wider mb-1">
+                                        Add-ons Management
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900">Additional Modules (Add-ons) & Prices</h3>
+                                    <p className="text-xs text-gray-500">Separately marked modules with individual price fields. Clients can add these to Premium plans for an additional cost.</p>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={handleAddAdditionalModule}
+                                    className="px-4 py-2.5 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl text-xs font-bold uppercase tracking-wider transition-all shadow-md shadow-purple-600/20 whitespace-nowrap self-start sm:self-auto"
+                                >
+                                    + Add New Additional Module
+                                </button>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {settingsForm.data.additional_modules.map((mod) => (
+                                    <div key={mod.key} className="p-5 bg-purple-50/30 border border-purple-100 rounded-3xl space-y-3 relative">
+                                        <div className="flex items-center justify-between gap-2">
+                                            <div className="flex items-center gap-2 flex-grow">
+                                                <input
+                                                    type="checkbox"
+                                                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer"
+                                                    checked={mod.included !== false}
+                                                    onChange={(e) => handleUpdateAdditionalModule(mod.key, 'included', e.target.checked)}
+                                                    title="Enable or disable this additional module"
+                                                />
+                                                <input
+                                                    type="text"
+                                                    className="font-bold text-gray-900 text-sm px-3 py-1.5 rounded-xl border border-gray-200 focus:ring-1 focus:ring-purple-500 bg-white w-full"
+                                                    value={mod.label}
+                                                    onChange={(e) => handleUpdateAdditionalModule(mod.key, 'label', e.target.value)}
+                                                    placeholder="Module Title (e.g. Content Calendar)"
+                                                />
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => handleDeleteAdditionalModule(mod.key)}
+                                                className="text-red-400 hover:text-red-600 p-1 transition-colors"
+                                                title="Remove additional module"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+
+                                        <div className="grid grid-cols-3 gap-3 items-center">
+                                            <div className="col-span-1">
+                                                <label className="block text-[11px] font-bold text-purple-700 uppercase tracking-wider mb-1">Price (₹/mo)</label>
+                                                <div className="relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">₹</span>
+                                                    <input
+                                                        type="number"
+                                                        min="0"
+                                                        className="w-full pl-7 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-900 focus:ring-1 focus:ring-purple-500 bg-white"
+                                                        value={mod.price ?? 499}
+                                                        onChange={(e) => handleUpdateAdditionalModule(mod.key, 'price', e.target.value)}
+                                                        placeholder="499"
+                                                    />
+                                                </div>
+                                            </div>
+                                            <div className="col-span-2">
+                                                <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Description</label>
+                                                <input
+                                                    type="text"
+                                                    className="w-full px-3 py-1.5 rounded-xl border border-gray-200 text-xs text-gray-700 focus:ring-1 focus:ring-purple-500 bg-white"
+                                                    value={mod.description || ''}
+                                                    onChange={(e) => handleUpdateAdditionalModule(mod.key, 'description', e.target.value)}
+                                                    placeholder="Brief description of add-on"
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                                <div className="flex justify-end pt-6 border-t border-gray-100">
                                     <button
                                         type="submit"
                                         disabled={settingsForm.processing}
@@ -663,7 +943,7 @@ export default function Index({ settings, admins, currentPlan }) {
                                 <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 space-y-6">
                                     <div>
                                         <h2 className="text-lg font-bold text-gray-900 mb-1">Manage Admin Users & Subscriptions</h2>
-                                        <p className="text-gray-400 text-sm">Force switch subscriptions or enable/disable client administrators and their employee users.</p>
+                                        <p className="text-gray-400 text-sm">Force switch subscriptions or grant additional add-on modules to client administrators.</p>
                                     </div>
 
                                     {admins.length === 0 ? (
@@ -680,70 +960,92 @@ export default function Index({ settings, admins, currentPlan }) {
                                                         <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Email Address</th>
                                                         <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Account Status</th>
                                                         <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Current Plan</th>
+                                                        <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Granted Add-on Modules</th>
                                                         <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400 text-right">Actions</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody className="divide-y divide-gray-50">
-                                                    {admins.map((admin) => (
-                                                        <tr key={admin.id} className="hover:bg-gray-50/50 transition-colors">
-                                                            <td className="py-4 font-semibold text-gray-900 text-sm">{admin.name}</td>
-                                                            <td className="py-4 text-gray-500 text-sm">{admin.email}</td>
-                                                            <td className="py-4">
-                                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                                                    admin.is_active
-                                                                        ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
-                                                                        : 'bg-red-50 text-red-600 border border-red-100'
-                                                                }`}>
-                                                                    {admin.is_active ? 'Active' : 'Disabled'}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-4">
-                                                                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                                                    admin.plan === 'premium'
-                                                                        ? 'bg-purple-50 text-purple-600 border border-purple-100'
-                                                                        : 'bg-blue-50 text-blue-600 border border-blue-100'
-                                                                }`}>
-                                                                    {admin.plan || 'basic'}
-                                                                </span>
-                                                            </td>
-                                                            <td className="py-4 text-right">
-                                                                <div className="flex justify-end gap-2">
-                                                                    <button
-                                                                        onClick={() => router.post(route('admin.pricing.admin-status', admin.id))}
-                                                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                            admin.is_active
-                                                                                ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 cursor-pointer'
-                                                                                : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm cursor-pointer'
-                                                                        }`}
-                                                                    >
-                                                                        {admin.is_active ? 'Disable' : 'Enable'}
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleUpdateAdminPlan(admin.id, 'basic')}
-                                                                        disabled={admin.plan === 'basic' || adminPlanForm.processing}
-                                                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                            admin.plan === 'basic'
-                                                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                                                : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
-                                                                        }`}
-                                                                    >
-                                                                        Basic
-                                                                    </button>
-                                                                    <button
-                                                                        onClick={() => handleUpdateAdminPlan(admin.id, 'premium')}
-                                                                        disabled={admin.plan === 'premium' || adminPlanForm.processing}
-                                                                        className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                            admin.plan === 'premium'
-                                                                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                                                                                : 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm'
-                                                                        }`}
-                                                                    >
-                                                                        Premium
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
+                                                    {admins.map((admin) => {
+                                                        const adminMods = Array.isArray(admin.additional_modules) ? admin.additional_modules : [];
+                                                        return (
+                                                            <tr key={admin.id} className="hover:bg-gray-50/50 transition-colors">
+                                                                <td className="py-4 font-semibold text-gray-900 text-sm">{admin.name}</td>
+                                                                <td className="py-4 text-gray-500 text-sm">{admin.email}</td>
+                                                                <td className="py-4">
+                                                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                                                        admin.is_active
+                                                                            ? 'bg-emerald-50 text-emerald-600 border border-emerald-100'
+                                                                            : 'bg-red-50 text-red-600 border border-red-100'
+                                                                    }`}>
+                                                                        {admin.is_active ? 'Active' : 'Disabled'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-4">
+                                                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                                                        admin.plan === 'premium'
+                                                                            ? 'bg-purple-50 text-purple-600 border border-purple-100'
+                                                                            : 'bg-blue-50 text-blue-600 border border-blue-100'
+                                                                    }`}>
+                                                                        {admin.plan || 'basic'}
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-4">
+                                                                    <div className="flex items-center gap-3">
+                                                                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
+                                                                            adminMods.length > 0
+                                                                                ? 'bg-purple-50 text-purple-700 border border-purple-200'
+                                                                                : 'bg-gray-100 text-gray-500'
+                                                                        }`}>
+                                                                            {adminMods.length} Active {adminMods.length === 1 ? 'Add-on' : 'Add-ons'}
+                                                                        </span>
+                                                                        <button
+                                                                            onClick={() => handleOpenManageModules(admin)}
+                                                                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-sm cursor-pointer whitespace-nowrap"
+                                                                        >
+                                                                            <Sliders size={13} />
+                                                                            Assign Modules
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                                <td className="py-4 text-right">
+                                                                    <div className="flex justify-end gap-2">
+                                                                        <button
+                                                                            onClick={() => router.post(route('admin.pricing.admin-status', admin.id))}
+                                                                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                                                admin.is_active
+                                                                                    ? 'bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 cursor-pointer'
+                                                                                    : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-sm cursor-pointer'
+                                                                            }`}
+                                                                        >
+                                                                            {admin.is_active ? 'Disable' : 'Enable'}
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleUpdateAdminPlan(admin.id, 'basic', adminMods)}
+                                                                            disabled={admin.plan === 'basic' || adminPlanForm.processing}
+                                                                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                                                admin.plan === 'basic'
+                                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                                                                            }`}
+                                                                        >
+                                                                            Basic
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => handleUpdateAdminPlan(admin.id, 'premium', adminMods)}
+                                                                            disabled={admin.plan === 'premium' || adminPlanForm.processing}
+                                                                            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                                                admin.plan === 'premium'
+                                                                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                                                                    : 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm'
+                                                                            }`}
+                                                                        >
+                                                                            Premium
+                                                                        </button>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })}
                                                 </tbody>
                                             </table>
                                         </div>
@@ -751,6 +1053,110 @@ export default function Index({ settings, admins, currentPlan }) {
                                 </div>
                             </div>
                         )}
+
+            {/* SUPER ADMIN: ASSIGN MODULES MODAL */}
+            {selectedAdminForModules && (
+                <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-xl w-full p-8 shadow-2xl border border-slate-100 space-y-6">
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900">
+                                    Assign Additional Modules
+                                </h3>
+                                <p className="text-xs text-gray-500">
+                                    Manage add-on modules for <span className="font-bold text-gray-800">{selectedAdminForModules.name}</span> ({selectedAdminForModules.email})
+                                </p>
+                            </div>
+                            <button onClick={() => setSelectedAdminForModules(null)} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        {/* Search & Select All */}
+                        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+                            <input
+                                type="text"
+                                placeholder="Search modules..."
+                                value={moduleSearchQuery}
+                                onChange={(e) => setModuleSearchQuery(e.target.value)}
+                                className="w-full sm:w-64 px-3 py-2 rounded-xl border border-gray-200 text-xs focus:ring-purple-500"
+                            />
+                            <div className="flex items-center gap-2 text-xs">
+                                <button
+                                    type="button"
+                                    onClick={() => setTempAdminModules(settingsForm.data.additional_modules.map(m => m.key))}
+                                    className="text-purple-600 font-bold hover:underline"
+                                >
+                                    Select All
+                                </button>
+                                <span className="text-gray-300">|</span>
+                                <button
+                                    type="button"
+                                    onClick={() => setTempAdminModules([])}
+                                    className="text-gray-500 font-bold hover:underline"
+                                >
+                                    Clear All
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Module List */}
+                        <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+                            {settingsForm.data.additional_modules
+                                .filter(m => (m.label || '').toLowerCase().includes(moduleSearchQuery.toLowerCase()))
+                                .map((mod) => {
+                                    const isChecked = tempAdminModules.includes(mod.key);
+                                    return (
+                                        <div
+                                            key={mod.key}
+                                            onClick={() => handleToggleTempModule(mod.key)}
+                                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 ${
+                                                isChecked
+                                                    ? 'bg-purple-50/80 border-purple-300 text-purple-900 shadow-sm'
+                                                    : 'bg-gray-50/50 border-gray-100 text-gray-700 hover:bg-gray-100'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isChecked}
+                                                    onChange={() => {}}
+                                                    className="w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-gray-300 cursor-pointer"
+                                                />
+                                                <div>
+                                                    <div className="font-bold text-sm text-gray-900">{mod.label}</div>
+                                                    {mod.description && (
+                                                        <div className="text-xs text-gray-500">{mod.description}</div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <div className="font-extrabold text-purple-600 bg-white px-2.5 py-1 rounded-xl border border-purple-100 text-xs">
+                                                + ₹{mod.price ?? 499}/mo
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                        </div>
+
+                        <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                            <button
+                                type="button"
+                                onClick={() => setSelectedAdminForModules(null)}
+                                className="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold uppercase"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveAdminModules}
+                                className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold uppercase shadow-md"
+                            >
+                                Save Assigned Modules ({tempAdminModules.length})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             </div>
         </AdminLayout>
     );

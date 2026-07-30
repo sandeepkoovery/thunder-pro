@@ -110,6 +110,14 @@ class GoogleDriveController extends Controller
     public function delete(Request $request)
     {
         try {
+            $user = auth()->user();
+            if (!$user || !in_array($user->role, ['superadmin', 'admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'error' => 'Permission denied. Only admins can delete files or folders from Google Drive.'
+                ], 403);
+            }
+
             $request->validate([
                 'file_id' => 'required|string',
                 'parent_folder_id' => 'nullable|string'

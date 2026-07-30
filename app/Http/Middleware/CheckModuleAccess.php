@@ -42,6 +42,12 @@ class CheckModuleAccess
             'calendar.' => 'calendar',
             'chat.' => 'chat',
             'google-drive.' => 'drive',
+            'content-calendar.' => 'content_calendar',
+            'daily-listings.' => 'daily_listings',
+            'designers-worklist.' => 'designers_worklist',
+            'admin.domains.' => 'domains',
+            'admin.hostings.' => 'domains',
+            'admin.websites.' => 'domains',
         ];
 
         $module = null;
@@ -53,18 +59,21 @@ class CheckModuleAccess
         }
 
         if ($module) {
-            // Determine active plan
+            // Determine active plan & tenant admin record
             $plan = 'basic';
+            $additional = [];
             if ($user->role === 'superadmin') {
                 $plan = 'premium';
             } elseif ($user->role === 'admin' || $user instanceof \App\Models\Admin) {
                 $admin = \App\Models\Admin::where('email', $user->email)->first();
                 $plan = $admin ? ($admin->plan ?? 'basic') : ($user->plan ?? 'basic');
+                $additional = $admin ? ($admin->additional_modules ?? []) : [];
             } else {
                 // Employees inherit plan from their assigned Tenant Admin (admins table)
                 $tenantAdminId = $user->admin_id ?? null;
                 $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : \App\Models\Admin::first();
                 $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
+                $additional = $admin ? ($admin->additional_modules ?? []) : [];
             }
 
             // Get allowed modules from settings table
@@ -89,6 +98,10 @@ class CheckModuleAccess
 
             if ($plan === 'premium' && !in_array('drive', $allowed)) {
                 $allowed[] = 'drive';
+            }
+
+            if (!empty($additional) && is_array($additional)) {
+                $allowed = array_unique(array_merge($allowed, $additional));
             }
 
             if (!in_array($module, $allowed)) {

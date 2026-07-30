@@ -26,6 +26,7 @@ import {
 
 export default function Gallery() {
     const { auth } = usePage().props;
+    const isAdmin = auth?.user?.role === 'superadmin' || auth?.user?.role === 'admin';
     const [files, setFiles] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -294,10 +295,18 @@ export default function Gallery() {
 
     // Delete Folder or File
     const openDeleteModal = (item) => {
+        if (!isAdmin) {
+            alert('Permission denied. Only admins can delete files or folders from Google Drive.');
+            return;
+        }
         setItemToDelete(item);
     };
 
     const confirmDelete = async () => {
+        if (!isAdmin) {
+            alert('Permission denied. Only admins can delete files or folders from Google Drive.');
+            return;
+        }
         if (!itemToDelete) return;
 
         setDeleting(true);
@@ -586,13 +595,15 @@ export default function Gallery() {
                                             <ExternalLink className="w-3.5 h-3.5" />
                                         </a>
                                     )}
-                                    <button
-                                        onClick={() => openDeleteModal(file)}
-                                        className="p-1.5 hover:bg-red-100 rounded text-gray-600 hover:text-red-600 transition-colors"
-                                        title="Delete"
-                                    >
-                                        <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
+                                    {isAdmin && (
+                                        <button
+                                            onClick={() => openDeleteModal(file)}
+                                            className="p-1.5 hover:bg-red-100 rounded text-gray-600 hover:text-red-600 transition-colors"
+                                            title="Delete"
+                                        >
+                                            <Trash2 className="w-3.5 h-3.5" />
+                                        </button>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -669,13 +680,15 @@ export default function Gallery() {
                                                     <ExternalLink className="w-4 h-4" />
                                                 </a>
                                             )}
-                                            <button
-                                                onClick={() => openDeleteModal(file)}
-                                                className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                                                title="Delete"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
-                                            </button>
+                                            {isAdmin && (
+                                                <button
+                                                    onClick={() => openDeleteModal(file)}
+                                                    className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                                                    title="Delete"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

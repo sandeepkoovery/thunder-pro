@@ -111,11 +111,32 @@ class PricingController extends Controller
             }
         }
 
+        $additionalModulesJson = Setting::where('key', 'additional_modules')->value('value');
+        if ($additionalModulesJson) {
+            $additionalModules = json_decode($additionalModulesJson, true);
+            foreach ($additionalModules as &$mod) {
+                if (!isset($mod['included']) || $mod['included'] === false) {
+                    $mod['included'] = true;
+                }
+                if (!isset($mod['price'])) {
+                    $mod['price'] = 499;
+                }
+            }
+        } else {
+            $additionalModules = [
+                ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'description' => 'Plan & schedule social content campaigns', 'included' => true],
+                ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'description' => 'Track & manage daily property/item listings', 'included' => true],
+                ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'description' => 'Manage creative tasks & designer workflows', 'included' => true],
+                ['key' => 'domains', 'label' => 'Domains & Hosting', 'price' => 499, 'description' => 'Track domain names and website hosting', 'included' => true],
+            ];
+        }
+
         return [
             'basic_plan_price' => Setting::where('key', 'basic_plan_price')->value('value') ?? '999',
             'premium_plan_price' => Setting::where('key', 'premium_plan_price')->value('value') ?? '2999',
             'basic_plan_features' => $basicFeatures,
             'premium_plan_features' => $premiumFeatures,
+            'additional_modules' => $additionalModules,
             'allow_admin_registration' => Setting::where('key', 'allow_admin_registration')->value('value') ?? '1',
         ];
     }
@@ -125,9 +146,15 @@ class PricingController extends Controller
         $settings = $this->getPricingSettings();
         $user = auth()->user();
 
+        $admin = null;
+        if ($user) {
+            $admin = \App\Models\Admin::where('email', $user->email)->first();
+        }
+
         return Inertia::render('Pricing', [
             'settings' => $settings,
-            'currentPlan' => $user?->plan ?? null,
+            'currentPlan' => $admin?->plan ?? $user?->plan ?? null,
+            'currentAdditionalModules' => $admin?->additional_modules ?? [],
             'razorpayKey' => config('services.razorpay.key_id', env('RAZORPAY_KEY_ID', 'rzp_test_worknest_key')),
         ]);
     }
@@ -138,17 +165,20 @@ class PricingController extends Controller
         $isSuperAdmin = $user->role === 'superadmin';
         $settings = $this->getPricingSettings();
 
+        $admin = \App\Models\Admin::where('email', $user->email)->first();
+
         $admins = [];
         if ($isSuperAdmin) {
             $admins = \App\Models\Admin::where('role', 'admin')
                 ->orderBy('name')
-                ->get(['id', 'name', 'email', 'plan', 'company_name', 'phone', 'is_active']);
+                ->get(['id', 'name', 'email', 'plan', 'additional_modules', 'company_name', 'phone', 'is_active']);
         }
 
         return Inertia::render('Admin/Pricing/Index', [
             'settings' => $settings,
             'admins' => $admins,
-            'currentPlan' => $user->plan ?? 'basic',
+            'currentPlan' => $admin?->plan ?? 'basic',
+            'currentAdditionalModules' => $admin?->additional_modules ?? [],
         ]);
     }
 
@@ -156,16 +186,29 @@ class PricingController extends Controller
     {
         $request->validate([
             'plan' => 'required|in:basic,premium',
+            'additional_modules' => 'nullable|array',
         ]);
 
         $user = auth()->user();
-        if ($user->role !== 'admin') {
+        if (!in_array($user->role, ['admin', 'superadmin'])) {
             return back()->with('error', 'Only standard admins can subscribe to plans.');
         }
 
-        $user->update(['plan' => $request->plan]);
+        $additionalModules = $request->input('additional_modules', []);
 
-        return back()->with('success', 'Plan updated successfully to ' . ucfirst($request->plan) . ' plan.');
+        $admin = \App\Models\Admin::where('email', $user->email)->first();
+        if ($admin) {
+            $admin->update([
+                'plan' => $request->plan,
+                'additional_modules' => $additionalModules,
+            ]);
+        }
+
+        if ($user instanceof \App\Models\User || isset($user->plan)) {
+            $user->update(['plan' => $request->plan]);
+        }
+
+        return back()->with('success', 'Subscription updated successfully to ' . ucfirst($request->plan) . ' plan.');
     }
 
     public function updateSettings(Request $request)
@@ -179,6 +222,7 @@ class PricingController extends Controller
             'premium_plan_price' => 'required|numeric|min:0',
             'basic_plan_features' => 'required|array',
             'premium_plan_features' => 'required|array',
+            'additional_modules' => 'required|array',
             'allow_admin_registration' => 'nullable',
         ]);
 
@@ -200,6 +244,7 @@ class PricingController extends Controller
         Setting::updateOrCreate(['key' => 'premium_plan_price'], ['value' => $validated['premium_plan_price']]);
         Setting::updateOrCreate(['key' => 'basic_plan_features'], ['value' => json_encode($validated['basic_plan_features'])]);
         Setting::updateOrCreate(['key' => 'premium_plan_features'], ['value' => json_encode($validated['premium_plan_features'])]);
+        Setting::updateOrCreate(['key' => 'additional_modules'], ['value' => json_encode($validated['additional_modules'])]);
         Setting::updateOrCreate(['key' => 'allow_admin_registration'], ['value' => ($request->boolean('allow_admin_registration') || $request->input('allow_admin_registration') === '1' || $request->input('allow_admin_registration') === 1) ? '1' : '0']);
 
         // Sync legacy keys for route and side navigation checks compatibility
@@ -217,12 +262,16 @@ class PricingController extends Controller
 
         $request->validate([
             'plan' => 'required|in:basic,premium',
+            'additional_modules' => 'nullable|array',
         ]);
 
         $admin = \App\Models\Admin::findOrFail($id);
-        $admin->update(['plan' => $request->plan]);
+        $admin->update([
+            'plan' => $request->plan,
+            'additional_modules' => $request->input('additional_modules', []),
+        ]);
 
-        return back()->with('success', 'Plan updated successfully for ' . $admin->name . '.');
+        return back()->with('success', 'Plan & modules updated successfully for ' . $admin->name . '.');
     }
 
     public function toggleAdminStatus(Request $request, $id)

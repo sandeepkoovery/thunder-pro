@@ -14,6 +14,9 @@ import {
   BarChart3,
   Bell,
   CreditCard,
+  Palette,
+  List,
+  Sparkles,
 } from "lucide-react";
 import AppShell, { NavItem } from "@/Layouts/AppShell";
 
@@ -60,10 +63,13 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
             </>
           )}
           <NavItem href={route("calendar.index")} icon={CalendarDays} label="Calendar" routeName="calendar" visible={isVisible("calendar")} beta={betaMenuItems.includes("calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+          <NavItem href={route("content-calendar.index")} icon={Sparkles} label="Content Calendar" routeName="content-calendar" visible={isVisible("content_calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+          <NavItem href={route("daily-listings.index")} icon={List} label="Daily Listings" routeName="daily-listings" visible={isVisible("daily_listings")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+          <NavItem href={route("designers-worklist.index")} icon={Palette} label="Designers Worklist" routeName="designers-worklist" visible={isVisible("designers_worklist")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           <NavItem href={route("admin.drive.index")} icon={FolderKanban} label="Drive" routeName="admin.drive" visible={!hiddenMenuItems.includes("drive")} beta={false} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           <NavItem href={route("chat.index")} icon={MessageSquare} label="Chat" routeName="chat" visible={isVisible("chat")} beta={betaMenuItems.includes("chat")} badge={sidebarCounts.unread_chats} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           <NavItem href={route("notifications.index")} icon={Bell} label="Notifications" routeName="notifications" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          {isAdmin && <NavItem href={route("admin.websites.index")} icon={Globe} label="Websites" routeName="admin.websites" visible={isVisible("websites")} badge={expiringWebsitesCount} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
+          {isAdmin && <NavItem href={route("admin.websites.index")} icon={Globe} label="Websites & Domains" routeName="admin.websites" visible={isVisible("websites") || isVisible("domains")} badge={expiringWebsitesCount} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
           {isAdmin && <NavItem href={route("admin.attendance.report")} icon={BarChart3} label="Reports" routeName="admin.attendance.report" visible={isVisible("reports")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
         </>
       )}

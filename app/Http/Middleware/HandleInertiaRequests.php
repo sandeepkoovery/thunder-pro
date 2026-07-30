@@ -50,16 +50,19 @@ class HandleInertiaRequests extends Middleware
     {
         $user = $request->user();
         $plan = 'basic';
+        $userAdditionalModules = [];
         if ($user) {
             if ($user->role === 'superadmin') {
                 $plan = 'premium';
             } elseif ($user->role === 'admin') {
                 $admin = \App\Models\Admin::where('email', $user->email)->first();
                 $plan = $admin ? ($admin->plan ?? 'basic') : ($user->plan ?? 'basic');
+                $userAdditionalModules = $admin ? ($admin->additional_modules ?? []) : [];
             } else {
                 $tenantAdminId = $user->admin_id ?? null;
                 $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : \App\Models\Admin::first();
                 $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
+                $userAdditionalModules = $admin ? ($admin->additional_modules ?? []) : [];
             }
         }
 
@@ -102,7 +105,19 @@ class HandleInertiaRequests extends Middleware
             $premiumModules[] = 'drive';
         }
 
+        $additionalModulesSettingJson = \App\Models\Setting::where('key', 'additional_modules')->value('value');
+        $additionalModulesSetting = $additionalModulesSettingJson ? json_decode($additionalModulesSettingJson, true) : [
+            ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'included' => true],
+            ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'included' => true],
+            ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'included' => true],
+            ['key' => 'domains', 'label' => 'Domains & Hosting', 'price' => 499, 'included' => true],
+        ];
+
         $allowedModules = ($plan === 'premium' || ($user && $user->role === 'superadmin')) ? $premiumModules : $basicModules;
+
+        if (!empty($userAdditionalModules) && is_array($userAdditionalModules)) {
+            $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
+        }
 
         return [
             ...parent::share($request),
@@ -117,11 +132,13 @@ class HandleInertiaRequests extends Middleware
             ],
             'userPlan' => $plan,
             'allowedModules' => $allowedModules,
+            'userAdditionalModules' => $userAdditionalModules,
             'pricingSettings' => [
                 'basic_plan_price' => \App\Models\Setting::where('key', 'basic_plan_price')->value('value') ?? '999',
                 'premium_plan_price' => \App\Models\Setting::where('key', 'premium_plan_price')->value('value') ?? '2999',
                 'basic_plan_modules' => $basicModules,
                 'premium_plan_modules' => $premiumModules,
+                'additional_modules' => $additionalModulesSetting,
             ],
             'sharedSettings' => [
                 'beta_menu_items' => json_decode(\App\Models\Setting::where('key', 'beta_menu_items')->value('value') ?? '[]', true),

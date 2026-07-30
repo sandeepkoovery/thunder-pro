@@ -18,6 +18,7 @@ class Admin extends Authenticatable
         'password',
         'role',
         'plan',
+        'additional_modules',
         'company_name',
         'phone',
         'image',
@@ -35,6 +36,7 @@ class Admin extends Authenticatable
         return [
             'password' => 'hashed',
             'is_active' => 'boolean',
+            'additional_modules' => 'array',
         ];
     }
 
