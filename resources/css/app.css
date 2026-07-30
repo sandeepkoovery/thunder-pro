@@ -485,14 +485,18 @@ body:has(.mp-wrapper) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: var(--theme-danger);
+  background: var(--theme-danger, #ff4d4f);
   color: #ffffff !important;
-  font-size: 10px !important;
+  font-size: 11px !important;
   font-weight: 700 !important;
-  padding: 2px 8px;
-  border-radius: 999px;
+  min-width: 20px;
+  height: 20px;
+  line-height: 1;
+  padding: 0 6px;
+  border-radius: 9999px;
   margin-left: auto;
   flex-shrink: 0;
+  box-sizing: border-box;
 }
 
 .mp-badge-beta {
