@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, router, useForm } from '@inertiajs/react';
-import { Filter, Edit, RotateCcw, MapPin, Smartphone, Monitor, Info, X, Download } from 'lucide-react';
+import { Filter, Edit, RotateCcw, MapPin, Smartphone, Monitor, Info, X, Download, Coffee, Clock, Plus } from 'lucide-react';
 import Modal from '@/Components/Modal';
 import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
@@ -845,24 +845,39 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             {/* Break History Modal */}
             <Modal show={!!viewingBreaks} onClose={() => { setViewingBreaks(null); setEditingBreakId(null); setShowAddBreak(false); }} maxWidth="md">
                 <div className="p-6">
-                    <div className="flex justify-between items-center mb-6">
-                        <div className="flex flex-col">
-                            <h3 className="text-lg font-bold text-gray-900">
-                                Break History
-                            </h3>
-                            <p className="text-xs text-gray-400 font-bold uppercase tracking-widest mt-0.5">
-                                {viewType === 'daily' ? viewingBreaks?.name : viewingBreaks && formatDate(viewingBreaks.date)}
-                            </p>
-                        </div>
+                    {/* Header */}
+                    <div className="flex items-center justify-between pb-5 mb-5 border-b border-gray-100">
                         <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600 shadow-2xs">
+                                <Coffee className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black text-gray-900 tracking-tight">
+                                    Break History
+                                </h3>
+                                <p className="text-xs font-semibold text-gray-400 mt-0.5">
+                                    {viewType === 'daily' ? viewingBreaks?.name : viewingBreaks && formatDate(viewingBreaks.date)}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setShowAddBreak(!showAddBreak)}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${showAddBreak ? 'bg-gray-100 text-gray-600' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-sm hover:shadow-md'}`}
+                                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                                    showAddBreak 
+                                        ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' 
+                                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-2xs hover:shadow-xs'
+                                }`}
                             >
-                                {showAddBreak ? 'Close Form' : '+ Add Break'}
+                                <Plus className="w-3.5 h-3.5" />
+                                {showAddBreak ? 'Close' : 'Add Break'}
                             </button>
-                            <button onClick={() => { setViewingBreaks(null); setEditingBreakId(null); setShowAddBreak(false); }} className="text-gray-400 hover:text-gray-500 p-1 hover:bg-gray-100 rounded-lg transition-colors">
-                                <X className="w-5 h-5" />
+                            <button 
+                                onClick={() => { setViewingBreaks(null); setEditingBreakId(null); setShowAddBreak(false); }} 
+                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                            >
+                                <X className="w-4 h-4" />
                             </button>
                         </div>
                     </div>
@@ -877,72 +892,83 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                         )}
 
                         {viewingBreaks && viewingBreaks.breaks && viewingBreaks.breaks.length > 0 ? (
-                            viewingBreaks.breaks.slice().sort((a, b) => b.id - a.id).map((brk, index) => {
-                                const parseDate = (d) => {
-                                    if (!d) return null;
-                                    const s = d.toString().replace(/\s/, 'T');
-                                    return new Date(s);
-                                };
+                            <div className="space-y-2.5 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar">
+                                {viewingBreaks.breaks.slice().sort((a, b) => b.id - a.id).map((brk, index) => {
+                                    const parseDate = (d) => {
+                                        if (!d) return null;
+                                        const s = d.toString().replace(/\s/, 'T');
+                                        return new Date(s);
+                                    };
 
-                                const isEditing = editingBreakId === brk.id;
+                                    const isEditing = editingBreakId === brk.id;
 
-                                if (isEditing) {
-                                    // Edit Mode
+                                    if (isEditing) {
+                                        return (
+                                            <BreakEditForm
+                                                key={brk.id}
+                                                breakRecord={brk}
+                                                attendanceRecord={viewingBreaks}
+                                                onCancel={() => setEditingBreakId(null)}
+                                                onSuccess={() => setEditingBreakId(null)}
+                                            />
+                                        );
+                                    }
+
+                                    const start = parseDate(brk.start_time);
+                                    const end = parseDate(brk.end_time);
+
                                     return (
-                                        <BreakEditForm
-                                            key={brk.id}
-                                            breakRecord={brk}
-                                            attendanceRecord={viewingBreaks}
-                                            onCancel={() => setEditingBreakId(null)}
-                                            onSuccess={() => setEditingBreakId(null)}
-                                        />
+                                        <div key={brk.id || index} className="flex items-center justify-between p-3.5 bg-gray-50/70 hover:bg-gray-50 rounded-2xl border border-gray-100 transition-all group">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-7 h-7 rounded-xl bg-white border border-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 shadow-2xs">
+                                                    {viewingBreaks.breaks.length - index}
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-gray-800">
+                                                        {start ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '??'} – {end ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Ongoing'}
+                                                    </p>
+                                                    <p className="text-[11px] font-medium text-gray-400 mt-0.5">
+                                                        Recorded break
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2">
+                                                <span className="px-2.5 py-1 bg-white text-blue-600 rounded-xl text-xs font-bold shadow-2xs border border-gray-100">
+                                                    {brk.total_minutes} min
+                                                </span>
+                                                <button
+                                                    onClick={() => setEditingBreakId(brk.id)}
+                                                    className="w-7 h-7 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-white rounded-xl transition-all opacity-0 group-hover:opacity-100 border border-transparent hover:border-gray-200"
+                                                    title="Edit Break"
+                                                >
+                                                    <Edit className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
+                                        </div>
                                     );
-                                }
-
-                                const start = parseDate(brk.start_time);
-                                const end = parseDate(brk.end_time);
-
-                                return (
-                                    <div key={brk.id || index} className="flex justify-between items-center p-3 bg-gray-50 rounded-xl border border-gray-100 group">
-                                        <div>
-                                            <p className="text-sm font-bold text-gray-800">
-                                                Break {viewingBreaks.breaks.length - index}
-                                            </p>
-                                            <p className="text-xs text-gray-500">
-                                                {start ? start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '??'} -
-                                                {end ? end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ' Ongoing'}
-                                            </p>
-                                        </div>
-                                        <div className="flex items-center gap-2">
-                                            <span className="px-2 py-1 bg-white text-gray-600 rounded-lg text-xs font-bold shadow-sm border border-gray-100">
-                                                {brk.total_minutes} min
-                                            </span>
-                                            <button
-                                                onClick={() => setEditingBreakId(brk.id)}
-                                                className="w-6 h-6 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded transition-all opacity-0 group-hover:opacity-100"
-                                                title="Edit Break"
-                                            >
-                                                <Edit className="w-3 h-3" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })
+                                })}
+                            </div>
                         ) : (
-                            <div className="text-center py-6 px-4 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
-                                <p className="text-sm font-medium text-gray-500">No detailed break history available.</p>
-                                {viewingBreaks?.total_break_minutes > 0 && (
-                                    <p className="text-[11px] text-gray-400 mt-1 italic">
-                                        This record contains legacy break totals from an earlier version.
-                                    </p>
-                                )}
+                            <div className="py-10 px-6 bg-gray-50/60 rounded-2xl text-center border border-gray-100 flex flex-col items-center justify-center">
+                                <div className="w-12 h-12 rounded-2xl bg-white border border-gray-100 shadow-2xs flex items-center justify-center text-gray-400 mb-3">
+                                    <Clock className="w-6 h-6 stroke-[1.5]" />
+                                </div>
+                                <p className="text-sm font-bold text-gray-700">No detailed break history available</p>
+                                <p className="text-xs text-gray-400 mt-1 max-w-xs font-medium">
+                                    {viewingBreaks?.total_break_minutes > 0 
+                                        ? "This record contains legacy break totals from an earlier version." 
+                                        : "Click '+ Add Break' above to record a break for this session."}
+                                </p>
                             </div>
                         )}
 
+                        {/* Footer Summary */}
                         {viewingBreaks && (
-                            <div className="flex justify-between items-center pt-4 border-t border-gray-100 mt-4">
-                                <span className="font-bold text-gray-900">Total Break Time</span>
-                                <span className="font-bold text-blue-600">{viewingBreaks.break_time}</span>
+                            <div className="flex items-center justify-between pt-4 border-t border-gray-100 mt-5">
+                                <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Total Break Time</span>
+                                <span className="px-3 py-1 rounded-xl bg-blue-50 text-blue-600 text-sm font-black tracking-tight border border-blue-100/50">
+                                    {viewingBreaks.break_time || "0h 0m"}
+                                </span>
                             </div>
                         )}
                     </div>
