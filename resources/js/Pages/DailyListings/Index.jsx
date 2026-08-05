@@ -26,8 +26,10 @@ export default function Index({ worksheets = [], settings, users = [] }) {
     const Layout = isUser ? UserLayout : AdminLayout;
 
     // View Mode & Filters
+    const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
     const [viewMode, setViewMode] = useState('DAILY'); // 'DAILY' | 'MONTHLY'
-    const [selectedDate, setSelectedDate] = useState('2026-07-30');
+    const [selectedDate, setSelectedDate] = useState(todayStr);
+    const [selectedMonth, setSelectedMonth] = useState(todayStr.slice(0, 7));
     const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState('');
 
     // Collapsible Accordion State for Admin (track which employee accordions are open)
@@ -107,15 +109,25 @@ export default function Index({ worksheets = [], settings, users = [] }) {
     // Filtered Worksheets
     const filteredWorksheets = useMemo(() => {
         return worksheets.filter(w => {
-            if (selectedDate && w.date !== selectedDate) {
-                return false;
+            if (!w.date) return false;
+
+            if (viewMode === 'DAILY') {
+                if (selectedDate && w.date !== selectedDate) {
+                    return false;
+                }
+            } else if (viewMode === 'MONTHLY') {
+                const targetMonth = selectedMonth || (selectedDate ? selectedDate.slice(0, 7) : todayStr.slice(0, 7));
+                if (!w.date.startsWith(targetMonth)) {
+                    return false;
+                }
             }
+
             if (selectedEmployeeFilter && String(w.user_id) !== String(selectedEmployeeFilter)) {
                 return false;
             }
             return true;
         });
-    }, [worksheets, selectedDate, selectedEmployeeFilter]);
+    }, [worksheets, viewMode, selectedDate, selectedMonth, selectedEmployeeFilter, todayStr]);
 
     // KPI Counts
     const stats = useMemo(() => {
@@ -241,14 +253,28 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                             </button>
                         </div>
 
-                        {/* Date Picker */}
+                        {/* Date / Month Picker */}
                         <div className="relative">
-                            <input
-                                type="date"
-                                value={selectedDate}
-                                onChange={(e) => setSelectedDate(e.target.value)}
-                                className="pl-4 pr-3 py-2 rounded-2xl border border-gray-200 bg-white text-xs font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                            />
+                            {viewMode === 'DAILY' ? (
+                                <input
+                                    type="date"
+                                    value={selectedDate}
+                                    onChange={(e) => {
+                                        setSelectedDate(e.target.value);
+                                        if (e.target.value) {
+                                            setSelectedMonth(e.target.value.slice(0, 7));
+                                        }
+                                    }}
+                                    className="pl-4 pr-3 py-2 rounded-2xl border border-gray-200 bg-white text-xs font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                />
+                            ) : (
+                                <input
+                                    type="month"
+                                    value={selectedMonth}
+                                    onChange={(e) => setSelectedMonth(e.target.value)}
+                                    className="pl-4 pr-3 py-2 rounded-2xl border border-gray-200 bg-white text-xs font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                />
+                            )}
                         </div>
 
                         {/* Employee Filter (Admin Side) */}

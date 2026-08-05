@@ -26,13 +26,12 @@ export default function Show() {
         <div className="grid gap-6 lg:grid-cols-[1fr_2fr]">
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
             <div className="flex flex-col items-center gap-4 text-center">
-              {user.image_url ? (
-                <img src={user.image_url} alt={user.name} className="w-28 h-28 rounded-full object-cover" />
-              ) : (
-                <div className="w-28 h-28 rounded-full bg-gray-200 flex items-center justify-center text-3xl text-gray-600">
-                  {user.name?.charAt(0) || 'U'}
-                </div>
-              )}
+              <img 
+                src={user.image_url || '/images/default-avatar.jpg'} 
+                alt={user.name} 
+                className="w-28 h-28 rounded-full object-cover border border-gray-100 shadow-sm" 
+                onError={(e) => { e.target.src = '/images/default-avatar.jpg'; }}
+              />
               <div>
                 <h2 className="text-xl font-semibold">{user.name}</h2>
                 <p className="text-sm text-gray-500">{user.designation || 'Employee'}</p>

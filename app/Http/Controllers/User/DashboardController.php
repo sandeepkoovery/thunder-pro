@@ -17,11 +17,14 @@ class DashboardController extends Controller
         $user = auth()->user();
         $today = Carbon::today();
 
+        // Tasks query excluding those attached to soft-deleted projects
+        $tasksQuery = $user->tasks()->whereHas('project');
+
         $stats = [
-            'total_tasks' => $user->tasks()->count(),
-            'pending_tasks' => $user->tasks()->where('status', 'pending')->count(),
-            'in_progress_tasks' => $user->tasks()->where('status', 'in progress')->count(),
-            'completed_tasks' => $user->tasks()->where('status', 'completed')->count(),
+            'total_tasks' => (clone $tasksQuery)->count(),
+            'pending_tasks' => (clone $tasksQuery)->where('status', 'pending')->count(),
+            'in_progress_tasks' => (clone $tasksQuery)->where('status', 'in progress')->count(),
+            'completed_tasks' => (clone $tasksQuery)->where('status', 'completed')->count(),
             'approved_leaves' => $user->leaves()->where('status', 'approved')->count(),
             'pending_leaves' => $user->leaves()->where('status', 'pending')->count(),
         ];
@@ -30,7 +33,7 @@ class DashboardController extends Controller
             ->whereDate('date', $today->toDateString())
             ->first();
 
-        $recentTasks = $user->tasks()
+        $recentTasks = (clone $tasksQuery)
             ->with('project')
             ->latest()
             ->take(5)

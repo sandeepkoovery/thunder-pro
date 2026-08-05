@@ -35,10 +35,10 @@ class DashboardController extends Controller
                 ? Leave::whereIn('user_id', $tenantUserIds)->where('status', 'pending')->count() 
                 : 0,
             'total_projects' => !$isSuperAdmin ? Project::where('admin_id', $tenantAdminId)->count() : 0,
-            'total_tasks' => !$isSuperAdmin ? Task::whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->count() : 0,
-            'pending_tasks' => !$isSuperAdmin ? Task::whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'pending')->count() : 0,
-            'in_progress_tasks' => !$isSuperAdmin ? Task::whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'in progress')->count() : 0,
-            'completed_tasks' => !$isSuperAdmin ? Task::whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'completed')->count() : 0,
+            'total_tasks' => !$isSuperAdmin ? Task::whereHas('project')->whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->count() : 0,
+            'pending_tasks' => !$isSuperAdmin ? Task::whereHas('project')->whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'pending')->count() : 0,
+            'in_progress_tasks' => !$isSuperAdmin ? Task::whereHas('project')->whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'in progress')->count() : 0,
+            'completed_tasks' => !$isSuperAdmin ? Task::whereHas('project')->whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'completed')->count() : 0,
             'total_admins' => $isSuperAdmin ? \App\Models\Admin::where('role', 'admin')->count() : 0,
         ];
 

@@ -22,8 +22,30 @@ class DesignersWorklistController extends Controller
         return $user->admin_id ?? null;
     }
 
+    private function isDesignerUser($user)
+    {
+        if (!$user) return false;
+        if ($user instanceof \App\Models\Admin) return true;
+        if (in_array(strtolower($user->role ?? ''), ['admin', 'superadmin', 'designer'])) return true;
+        if (!empty($user->designation) && stripos($user->designation, 'design') !== false) return true;
+        if ($user->department_id) {
+            $dept = \App\Models\Department::find($user->department_id);
+            if ($dept && stripos($dept->name, 'design') !== false) return true;
+        }
+        return false;
+    }
+
+    private function authorizeDesigner()
+    {
+        if (!$this->isDesignerUser(auth()->user())) {
+            abort(403, 'Access denied. Designers Worklist is restricted to designers and administrators only.');
+        }
+    }
+
     public function index()
     {
+        $this->authorizeDesigner();
+
         $user = auth()->user();
         $adminId = $this->getTenantAdminId();
 
@@ -54,6 +76,8 @@ class DesignersWorklistController extends Controller
 
     public function store(Request $request)
     {
+        $this->authorizeDesigner();
+
         $validated = $request->validate([
             'client_name' => 'required|string|max:255',
             'task_date' => 'nullable|date',
@@ -84,6 +108,8 @@ class DesignersWorklistController extends Controller
 
     public function update(Request $request, $id)
     {
+        $this->authorizeDesigner();
+
         $validated = $request->validate([
             'client_name' => 'required|string|max:255',
             'task_date' => 'nullable|date',
@@ -111,6 +137,8 @@ class DesignersWorklistController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
+        $this->authorizeDesigner();
+
         $validated = $request->validate([
             'status' => 'required|string|max:255',
         ]);
@@ -123,6 +151,8 @@ class DesignersWorklistController extends Controller
 
     public function destroy($id)
     {
+        $this->authorizeDesigner();
+
         $worklist = DesignersWorklist::findOrFail($id);
         $worklist->delete();
 

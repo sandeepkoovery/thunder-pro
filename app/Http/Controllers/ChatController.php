@@ -171,7 +171,10 @@ class ChatController extends Controller
             $filePath = $request->file('file')->store('chat_files', 'public');
         }
 
+        $tenantAdminId = $isTenantAdmin ? $currentUser->id : ($currentUser->admin_id ?? null);
+
         $message = Message::create([
+            'admin_id' => $tenantAdminId,
             'sender_id' => $senderId,
             'receiver_id' => (string) $request->receiver_id,
             'message' => $request->message ?? '',

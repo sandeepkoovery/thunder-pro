@@ -10,6 +10,7 @@ class Domain extends Model
     use HasFactory;
 
     protected $fillable = [
+        'admin_id',
         'domain_name',
         'status',
         'expiration_date',
@@ -21,4 +22,9 @@ class Domain extends Model
         'expiration_date' => 'date',
         'auto_renewal' => 'boolean',
     ];
+
+    public function tenantAdmin()
+    {
+        return $this->belongsTo(\App\Models\Admin::class, 'admin_id');
+    }
 }

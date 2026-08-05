@@ -318,66 +318,7 @@ export default function Dashboard({ stats = {}, todayAttendance, recentTasks = [
         </div>
       </div>
 
-      {/* RECENT ACTIVITY / PRODUCT TRACKING TABLE */}
-      {recentTasks.length > 0 && (
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-          <div className="flex items-center justify-between border-b border-gray-50 pb-4 mb-4">
-            <div>
-              <h2 className="text-lg font-bold text-gray-800">Recent Assignments</h2>
-              <p className="text-xs text-gray-400 mt-0.5">List of recently created or assigned tasks</p>
-            </div>
-            <Link
-              href={route("tasks.index")}
-              className="text-xs font-semibold text-[#7460ee] hover:underline flex items-center gap-0.5"
-            >
-              View All Tasks <ChevronRight size={14} />
-            </Link>
-          </div>
 
-          <div className="overflow-x-auto mp-table-scroll">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-gray-100 text-gray-400 font-semibold uppercase tracking-wider">
-                  <th className="pb-3 font-semibold">Task Title</th>
-                  <th className="pb-3 font-semibold">Project</th>
-                  <th className="pb-3 font-semibold">Status</th>
-                  <th className="pb-3 font-semibold">Due Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {recentTasks.map((task) => (
-                  <tr key={task.id} className="text-gray-600 hover:bg-gray-50/50 transition-colors">
-                    <td className="py-3.5 font-semibold text-gray-800">
-                      <Link href={route("tasks.index")} className="hover:text-[#7460ee]">
-                        {task.title}
-                      </Link>
-                    </td>
-                    <td className="py-3.5 text-gray-500">
-                      {task.project?.name || <span className="italic text-gray-400">No Project</span>}
-                    </td>
-                    <td className="py-3.5">
-                      <span
-                        className={`px-2 py-1 rounded-md text-[10px] font-bold border ${
-                          task.status === "completed"
-                            ? "bg-green-50 border-green-150 text-green-600"
-                            : task.status === "in progress"
-                            ? "bg-yellow-50 border-yellow-150 text-yellow-600"
-                            : "bg-blue-50 border-blue-150 text-blue-600"
-                        }`}
-                      >
-                        {task.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 text-gray-400">
-                      {task.due_date ? new Date(task.due_date).toLocaleDateString() : "No Date"}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

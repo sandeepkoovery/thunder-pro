@@ -212,11 +212,15 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
                 aria-expanded={isProfileOpen}
               >
                 <div className="relative">
-                  {auth?.user?.image_url ? (
-                    <img src={auth.user.image_url} alt={auth.user.name} className="mp-avatar" />
-                  ) : (
-                    <div className="mp-avatar-letter">{auth?.user?.name?.charAt(0)}</div>
-                  )}
+                  <img 
+                    src={auth?.user?.image_url || getAssetUrl('images/default-avatar.jpg')} 
+                    alt={auth?.user?.name || 'User'} 
+                    className="mp-avatar object-cover" 
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = getAssetUrl('images/default-avatar.jpg');
+                    }}
+                  />
                   <span className="mp-status-indicator" />
                 </div>
                 <span className="mp-user-chip-name">{auth?.user?.name}</span>
@@ -226,11 +230,15 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
               {isProfileOpen && (
                 <div className="mp-profile-dropdown">
                   <div className="mp-profile-dropdown-header">
-                    {auth?.user?.image_url ? (
-                      <img src={auth.user.image_url} alt={auth.user.name} className="mp-profile-dropdown-avatar" />
-                    ) : (
-                      <div className="mp-profile-dropdown-avatar-letter">{auth?.user?.name?.charAt(0)}</div>
-                    )}
+                    <img 
+                      src={auth?.user?.image_url || getAssetUrl('images/default-avatar.jpg')} 
+                      alt={auth?.user?.name || 'User'} 
+                      className="mp-profile-dropdown-avatar object-cover" 
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = getAssetUrl('images/default-avatar.jpg');
+                      }}
+                    />
                     <div className="mp-profile-dropdown-info">
                       <h4 className="mp-profile-dropdown-name">{auth?.user?.name}</h4>
                       <p className="mp-profile-dropdown-role">{auth?.user?.role || 'Admin'}</p>

@@ -27,11 +27,18 @@ class DailyListingsController extends Controller
     {
         $user = auth()->user();
         $adminId = $this->getTenantAdminId();
+        $isAdmin = ($user instanceof \App\Models\Admin) || in_array($user->role, ['admin', 'superadmin']);
 
         $query = DailyWorksheet::with('user');
         if ($adminId) {
             $query->where('admin_id', $adminId);
         }
+
+        // Regular users only see their own works
+        if (!$isAdmin) {
+            $query->where('user_id', $user->id);
+        }
+
         $worksheets = $query->orderBy('date', 'desc')->orderBy('id', 'desc')->get();
 
         $isAdmin = ($user instanceof \App\Models\Admin) || in_array($user->role, ['admin', 'superadmin']);
@@ -134,6 +141,12 @@ class DailyListingsController extends Controller
         ]);
 
         $item = DailyWorksheet::findOrFail($id);
+        $user = auth()->user();
+        $isAdmin = ($user instanceof \App\Models\Admin) || in_array($user->role, ['admin', 'superadmin']);
+        if (!$isAdmin && $item->user_id != $user->id) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $item->update($validated);
 
         return back()->with('success', 'Worksheet entry updated successfully.');
@@ -142,6 +155,12 @@ class DailyListingsController extends Controller
     public function destroy($id)
     {
         $item = DailyWorksheet::findOrFail($id);
+        $user = auth()->user();
+        $isAdmin = ($user instanceof \App\Models\Admin) || in_array($user->role, ['admin', 'superadmin']);
+        if (!$isAdmin && $item->user_id != $user->id) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $item->delete();
 
         return back()->with('success', 'Worksheet entry deleted successfully.');

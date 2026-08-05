@@ -33,6 +33,16 @@ class User extends Authenticatable
                 $user->employee_id = 'EMP' . str_pad($nextNumber, 3, '0', STR_PAD_LEFT);
             }
         });
+
+        static::saving(function ($user) {
+            if (!empty($user->first_name) || !empty($user->last_name)) {
+                $user->name = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
+            } else if (!empty($user->name)) {
+                $parts = explode(' ', trim($user->name), 2);
+                $user->first_name = $parts[0] ?? '';
+                $user->last_name = $parts[1] ?? '';
+            }
+        });
     }
 
     /**
@@ -98,6 +108,30 @@ class User extends Authenticatable
         ];
     }
 
+    public function getFirstNameAttribute($value): string
+    {
+        if (!empty($value)) {
+            return $value;
+        }
+        if (!empty($this->attributes['name'])) {
+            $parts = explode(' ', trim($this->attributes['name']), 2);
+            return $parts[0] ?? '';
+        }
+        return '';
+    }
+
+    public function getLastNameAttribute($value): string
+    {
+        if (!empty($value)) {
+            return $value;
+        }
+        if (!empty($this->attributes['name'])) {
+            $parts = explode(' ', trim($this->attributes['name']), 2);
+            return $parts[1] ?? '';
+        }
+        return '';
+    }
+
     /**
      * Get the user's full name (first_name + last_name or fallback to name).
      */
@@ -120,11 +154,12 @@ class User extends Authenticatable
     /**
      * Get the user's full image URL.
      */
-    public function getImageUrlAttribute(): ?string
+    public function getImageUrlAttribute(): string
     {
+        $defaultUrl = asset('images/default-avatar.jpg');
         $path = $this->thumb ?: $this->image;
         if (!$path) {
-            return null;
+            return $defaultUrl;
         }
 
         // If it's already a full URL (e.g. from Google Drive), return it
@@ -132,13 +167,20 @@ class User extends Authenticatable
             return $path;
         }
 
-        // If it starts with 'uploads/', it's a public upload
-        if (str_starts_with($path, 'uploads/')) {
-            return asset($path);
+        // If it starts with 'uploads/' or 'images/', check file
+        if (str_starts_with($path, 'uploads/') || str_starts_with($path, 'images/')) {
+            if (file_exists(public_path($path))) {
+                return asset($path);
+            }
+            return $defaultUrl;
         }
 
-        // Fallback for old storage paths (though we are moving away from them)
-        return asset('storage/' . $this->image);
+        // Check storage path
+        if (file_exists(storage_path('app/public/' . $path)) || file_exists(public_path('storage/' . $path))) {
+            return asset('storage/' . $path);
+        }
+
+        return $defaultUrl;
     }
 
     public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo

@@ -9,13 +9,32 @@ use Inertia\Inertia;
 
 class CalendarController extends Controller
 {
+    /**
+     * Resolve the tenant admin ID for the current authenticated user.
+     */
+    private function tenantAdminId(): ?int
+    {
+        $user = auth()->user();
+        if ($user->role === 'superadmin') {
+            return null; // superadmin sees all tenants
+        }
+        return $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+    }
+
     public function index(Request $request)
     {
         $user = auth()->user();
+        $tenantAdminId = $this->tenantAdminId();
+
         $query = Event::with('user');
 
-        // Non-admin/manager/editor users only see their own created events or events where they are guests
-        if (!in_array($user->role, ['admin', 'manager', 'editor'])) {
+        // Scope events to this tenant (admin_id)
+        if ($tenantAdminId !== null) {
+            $query->where('admin_id', $tenantAdminId);
+        }
+
+        // Non-admin/manager/editor users only see their own events or events where they are guests
+        if (!in_array($user->role, ['admin', 'superadmin', 'manager', 'editor'])) {
             $query->where(function ($q) use ($user) {
                 $q->where('user_id', $user->id)
                   ->orWhereJsonContains('guest_ids', (string)$user->id)
@@ -25,38 +44,49 @@ class CalendarController extends Controller
 
         $events = $query->get()->map(function ($event) {
             return [
-                'id' => $event->id,
-                'title' => $event->title,
-                'start' => $event->start_date->toIso8601String(),
-                'end' => $event->end_date->toIso8601String(),
-                'allDay' => (bool)$event->all_day,
+                'id'       => $event->id,
+                'title'    => $event->title,
+                'start'    => $event->start_date->toIso8601String(),
+                'end'      => $event->end_date->toIso8601String(),
+                'allDay'   => (bool)$event->all_day,
                 'resource' => [
-                    'id' => $event->id,
-                    'title' => $event->title,
+                    'id'          => $event->id,
+                    'title'       => $event->title,
                     'description' => $event->description,
-                    'category' => $event->category,
-                    'location' => $event->location,
-                    'event_url' => $event->event_url,
-                    'guest_ids' => $event->guest_ids ?? [],
-                    'user_id' => $event->user_id,
-                    'creator' => $event->user ? $event->user->name : 'Unknown',
+                    'category'    => $event->category,
+                    'location'    => $event->location,
+                    'event_url'   => $event->event_url,
+                    'guest_ids'   => $event->guest_ids ?? [],
+                    'user_id'     => $event->user_id,
+                    'creator'     => $event->user ? $event->user->name : 'Unknown',
                 ],
-                'status' => $event->category === 'holiday' ? 'completed' : ($event->category === 'etc' ? 'on hold' : 'in progress'), // Map categories back for visual compatibility
+                'status'   => $event->category === 'holiday' ? 'completed' : ($event->category === 'etc' ? 'on hold' : 'in progress'),
                 'priority' => $event->category === 'business' ? 'high' : ($event->category === 'family' ? 'medium' : 'low'),
             ];
         });
 
+        // Scope users list to same tenant for guest selection
+        $usersQuery = User::where('is_active', true);
+        if ($tenantAdminId !== null) {
+            $usersQuery->where(function ($q) use ($tenantAdminId) {
+                $q->where('admin_id', $tenantAdminId)
+                  ->orWhere('id', $tenantAdminId); // include the admin user themselves
+            });
+        }
+
         return Inertia::render('Calendar/Index', [
             'events' => $events,
-            'users' => User::where('is_active', true)->get(),
+            'users'  => $usersQuery->get(),
         ]);
     }
 
     public function store(Request $request)
     {
         $user = auth()->user();
+        $tenantAdminId = $this->tenantAdminId();
+
         $allowedCategories = ['personal']; // Default for Employee
-        
+
         if (in_array($user->role, ['admin', 'superadmin', 'editor'])) {
             $allowedCategories = ['holiday', 'leave', 'meeting', 'training', 'project', 'personal', 'company_event'];
         } elseif ($user->role === 'manager') {
@@ -64,29 +94,30 @@ class CalendarController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|in:' . implode(',', $allowedCategories),
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'all_day' => 'boolean',
+            'title'       => 'required|string|max:255',
+            'category'    => 'required|string|in:' . implode(',', $allowedCategories),
+            'start_date'  => 'required|date',
+            'end_date'    => 'required|date|after_or_equal:start_date',
+            'all_day'     => 'boolean',
             'description' => 'nullable|string',
-            'location' => 'nullable|string',
-            'event_url' => 'nullable|url',
-            'guest_ids' => 'nullable|array',
+            'location'    => 'nullable|string',
+            'event_url'   => 'nullable|url',
+            'guest_ids'   => 'nullable|array',
             'guest_ids.*' => 'exists:users,id',
         ]);
 
         Event::create([
-            'title' => $validated['title'],
-            'category' => $validated['category'],
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'],
-            'all_day' => $validated['all_day'] ?? false,
+            'admin_id'    => $tenantAdminId,
+            'title'       => $validated['title'],
+            'category'    => $validated['category'],
+            'start_date'  => $validated['start_date'],
+            'end_date'    => $validated['end_date'],
+            'all_day'     => $validated['all_day'] ?? false,
             'description' => $validated['description'] ?? null,
-            'location' => $validated['location'] ?? null,
-            'event_url' => $validated['event_url'] ?? null,
-            'guest_ids' => $validated['guest_ids'] ?? [],
-            'user_id' => auth()->id(),
+            'location'    => $validated['location'] ?? null,
+            'event_url'   => $validated['event_url'] ?? null,
+            'guest_ids'   => $validated['guest_ids'] ?? [],
+            'user_id'     => auth()->id(),
         ]);
 
         return redirect()->route('calendar.index')->with('success', 'Event created successfully.');
@@ -94,15 +125,21 @@ class CalendarController extends Controller
 
     public function update(Request $request, $id)
     {
+        $tenantAdminId = $this->tenantAdminId();
         $event = Event::findOrFail($id);
 
-        if ($event->user_id !== auth()->id() && !in_array(auth()->user()->role, ['admin', 'manager', 'editor'])) {
+        // Ensure event belongs to this tenant (superadmin can edit any)
+        if ($tenantAdminId !== null && $event->admin_id !== null && $event->admin_id !== $tenantAdminId) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if ($event->user_id !== auth()->id() && !in_array(auth()->user()->role, ['admin', 'superadmin', 'manager', 'editor'])) {
             abort(403, 'Unauthorized action.');
         }
 
         $user = auth()->user();
-        $allowedCategories = ['personal']; // Default for Employee
-        
+        $allowedCategories = ['personal'];
+
         if (in_array($user->role, ['admin', 'superadmin', 'editor'])) {
             $allowedCategories = ['holiday', 'leave', 'meeting', 'training', 'project', 'personal', 'company_event'];
         } elseif ($user->role === 'manager') {
@@ -110,28 +147,28 @@ class CalendarController extends Controller
         }
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'category' => 'required|string|in:' . implode(',', $allowedCategories),
-            'start_date' => 'required|date',
-            'end_date' => 'required|date|after_or_equal:start_date',
-            'all_day' => 'boolean',
+            'title'       => 'required|string|max:255',
+            'category'    => 'required|string|in:' . implode(',', $allowedCategories),
+            'start_date'  => 'required|date',
+            'end_date'    => 'required|date|after_or_equal:start_date',
+            'all_day'     => 'boolean',
             'description' => 'nullable|string',
-            'location' => 'nullable|string',
-            'event_url' => 'nullable|url',
-            'guest_ids' => 'nullable|array',
+            'location'    => 'nullable|string',
+            'event_url'   => 'nullable|url',
+            'guest_ids'   => 'nullable|array',
             'guest_ids.*' => 'exists:users,id',
         ]);
 
         $event->update([
-            'title' => $validated['title'],
-            'category' => $validated['category'],
-            'start_date' => $validated['start_date'],
-            'end_date' => $validated['end_date'],
-            'all_day' => $validated['all_day'] ?? false,
+            'title'       => $validated['title'],
+            'category'    => $validated['category'],
+            'start_date'  => $validated['start_date'],
+            'end_date'    => $validated['end_date'],
+            'all_day'     => $validated['all_day'] ?? false,
             'description' => $validated['description'] ?? null,
-            'location' => $validated['location'] ?? null,
-            'event_url' => $validated['event_url'] ?? null,
-            'guest_ids' => $validated['guest_ids'] ?? [],
+            'location'    => $validated['location'] ?? null,
+            'event_url'   => $validated['event_url'] ?? null,
+            'guest_ids'   => $validated['guest_ids'] ?? [],
         ]);
 
         return redirect()->route('calendar.index')->with('success', 'Event updated successfully.');
@@ -139,9 +176,15 @@ class CalendarController extends Controller
 
     public function destroy($id)
     {
+        $tenantAdminId = $this->tenantAdminId();
         $event = Event::findOrFail($id);
 
-        if ($event->user_id !== auth()->id() && !in_array(auth()->user()->role, ['admin', 'manager', 'editor'])) {
+        // Ensure event belongs to this tenant (superadmin can delete any)
+        if ($tenantAdminId !== null && $event->admin_id !== null && $event->admin_id !== $tenantAdminId) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        if ($event->user_id !== auth()->id() && !in_array(auth()->user()->role, ['admin', 'superadmin', 'manager', 'editor'])) {
             abort(403, 'Unauthorized action.');
         }
 

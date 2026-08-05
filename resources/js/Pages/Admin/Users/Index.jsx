@@ -25,7 +25,7 @@ export default function Index() {
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [entriesPerPage, setEntriesPerPage] = useState(10);
+  const [entriesPerPage, setEntriesPerPage] = useState(25);
   const [currentPage, setCurrentPage] = useState(1);
 
   const [isOpen, setIsOpen] = useState(false);
@@ -200,6 +200,20 @@ export default function Index() {
       });
   };
 
+  // Toggle desktop_only flag
+  const handleDesktopOnlyToggle = (id) => {
+    const url = route("users.toggle.desktop", { user: id });
+    axios.patch(url)
+      .then(() => {
+        router.reload({ only: ['users'] });
+        toast.success("Desktop Only setting updated!");
+      })
+      .catch(error => {
+        console.error("Error toggling desktop only:", error);
+        toast.error(error.response?.data?.error || "Failed to update desktop only setting.");
+      });
+  };
+
   const roles = useMemo(
     () => [...new Set(users.map((user) => user.role).filter(Boolean))].sort(),
     [users]
@@ -255,42 +269,26 @@ export default function Index() {
     );
   };
 
-  // Helper to render user avatar with initials styled nicely
-  const renderAvatar = (user) => {
-    if (user.image_url) {
-      return (
-        <img
-          src={user.image_url}
-          alt={user.name}
-          className="w-9 h-9 rounded-full object-cover border border-gray-100 flex-shrink-0"
-        />
-      );
+  const getDefaultAvatarUrl = () => {
+    if (window.location.pathname.includes('/erp_pro/public')) {
+      return window.location.origin + '/erp_pro/public/images/default-avatar.jpg';
     }
-    const initials = user.name
-      ? user.name
-          .split(" ")
-          .map((n) => n[0])
-          .slice(0, 2)
-          .join("")
-          .toUpperCase()
-          .slice(0, 2)
-      : "U";
+    return '/images/default-avatar.jpg';
+  };
 
-    // Random styling helper for avatar placeholder bg
-    const bgColors = [
-      "bg-emerald-50 text-emerald-600",
-      "bg-sky-50 text-sky-600",
-      "bg-rose-50 text-rose-600",
-      "bg-amber-50 text-amber-600",
-      "bg-indigo-50 text-indigo-600",
-    ];
-    const charCode = user.name ? user.name.charCodeAt(0) : 0;
-    const colorClass = bgColors[charCode % bgColors.length];
-
+  // Helper to render user avatar
+  const renderAvatar = (user) => {
+    const avatarSrc = user.image_url || getDefaultAvatarUrl();
     return (
-      <div className={`w-9 h-9 rounded-full ${colorClass} flex items-center justify-center text-sm font-bold flex-shrink-0`}>
-        {initials}
-      </div>
+      <img
+        src={avatarSrc}
+        alt={user.name || 'User'}
+        className="w-9 h-9 rounded-full object-cover border border-gray-100 flex-shrink-0"
+        onError={(e) => {
+          e.target.onerror = null;
+          e.target.src = getDefaultAvatarUrl();
+        }}
+      />
     );
   };
 
@@ -432,10 +430,12 @@ export default function Index() {
                     />
                   </th>
                   <th className="py-4 px-6">Employee</th>
+                  <th className="py-4 px-6">Emp ID</th>
                   <th className="py-4 px-6">Role</th>
                   <th className="py-4 px-6">Designation</th>
                   <th className="py-4 px-6">Department</th>
                   <th className="py-4 px-6">Status</th>
+                  <th className="py-4 px-6 text-center">Desktop Only</th>
                   <th className="py-4 px-6 text-center">Actions</th>
                 </tr>
               </thead>
@@ -466,6 +466,15 @@ export default function Index() {
                         </div>
                       </div>
                     </td>
+                    <td className="py-4 px-6 text-[14px] text-gray-600 font-mono font-semibold">
+                      {user.employee_id ? (
+                        <span className="bg-gray-50 border border-gray-100 px-2.5 py-1 rounded-lg text-gray-600 text-[13px]">
+                          {user.employee_id}
+                        </span>
+                      ) : (
+                        <span className="text-gray-300">—</span>
+                      )}
+                    </td>
                     <td className="py-4 px-6">{renderRole(user.role)}</td>
                     <td className="py-4 px-6 text-[15px] text-gray-700 font-medium">
                       {user.designation || "-"}
@@ -483,6 +492,22 @@ export default function Index() {
                         }`}
                       >
                         {user.is_active ? "Active" : "Inactive"}
+                      </button>
+                    </td>
+                    {/* Desktop Only Toggle */}
+                    <td className="py-4 px-6 text-center">
+                      <button
+                        onClick={() => handleDesktopOnlyToggle(user.id)}
+                        title={user.desktop_only ? "Desktop Only: ON" : "Desktop Only: OFF"}
+                        className={`relative inline-flex items-center h-6 w-11 rounded-full transition-colors duration-200 ease-in-out focus:outline-none ${
+                          user.desktop_only ? 'bg-blue-600' : 'bg-gray-200'
+                        }`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform duration-200 ease-in-out ${
+                            user.desktop_only ? 'translate-x-6' : 'translate-x-1'
+                          }`}
+                        />
                       </button>
                     </td>
                     <td className="py-4 px-6">
@@ -515,7 +540,7 @@ export default function Index() {
 
                 {filteredUsers.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="py-12 text-center text-gray-400 font-medium">
+                    <td colSpan="9" className="py-12 text-center text-gray-400 font-medium">
                       No matching employees found.
                     </td>
                   </tr>

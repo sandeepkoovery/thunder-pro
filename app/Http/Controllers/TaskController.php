@@ -18,36 +18,32 @@ class TaskController extends Controller
         }
 
         $q = $request->input('q');
-        $projectId = $request->input('project_id'); // 💡 GET THE PROJECT ID
+        $projectId = $request->input('project_id');
+        $status = $request->input('status');
+        $priority = $request->input('priority');
+        $perPage = $request->input('per_page', 25);
         $userId = auth()->id();
 
         $tasks = Task::with(['project', 'assignees'])
             ->withCount('comments')
-            // 1. Filter by Assignee (using the correct pivot table logic)
+            ->whereHas('project')
             ->whereHas('assignees', function ($query) use ($userId) {
                 $query->where('user_id', $userId);
             })
-
-            // 💡 2. FIX: Filter by Project ID if provided
-            ->when(
-                $projectId,
-                fn($query) =>
-                $query->where('project_id', $projectId)
-            )
-
-            // 3. Filter by Search Query
-            ->when(
-                $q,
-                fn($query) =>
-                $query->where('name', 'like', "%{$q}%")
-            )
-            ->orderBy($request->input('sort', 'created_at'), $request->input('direction', 'desc'))
-            ->paginate(10)
+            ->when($projectId, fn($query) => $query->where('project_id', $projectId))
+            ->when($status && $status !== 'all', fn($query) => $query->where('status', $status))
+            ->when($priority && $priority !== 'all', fn($query) => $query->where('priority', $priority))
+            ->when($q, fn($query) => $query->where(function($qBuilder) use ($q) {
+                $qBuilder->where('name', 'like', "%{$q}%")
+                    ->orWhereHas('project', fn($p) => $p->where('name', 'like', "%{$q}%"));
+            }))
+            ->orderBy($request->input('sort', 'id'), $request->input('direction', 'desc'))
+            ->paginate($perPage)
             ->withQueryString();
 
         return Inertia::render('User/Tasks/Index', [
             'tasks' => $tasks,
-            'filters' => $request->only(['q', 'sort', 'direction', 'project_id']), // Include project_id in filters
+            'filters' => $request->only(['q', 'sort', 'direction', 'project_id', 'status', 'priority', 'per_page']),
         ]);
     }
 

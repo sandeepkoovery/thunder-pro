@@ -7,6 +7,7 @@ import {
   Calendar, 
   X, 
   ChevronDown, 
+  ChevronRight,
   Eye, 
   Briefcase, 
   MessageSquare,
@@ -270,6 +271,14 @@ export default function Show() {
         {/* Project Header Info */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
+            {/* Breadcrumb */}
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 mb-2">
+              <Link href={route('dashboard')} className="hover:text-indigo-600 transition-colors">Home</Link>
+              <ChevronRight size={12} className="text-gray-300" />
+              <Link href={route('admin.projects.index')} className="hover:text-indigo-600 transition-colors">Projects</Link>
+              <ChevronRight size={12} className="text-gray-300" />
+              <span className="text-indigo-600 font-bold">{project?.name || "Project Details"}</span>
+            </div>
             <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{project?.name || "Project Details"}</h1>
             <p className="text-sm text-gray-400 mt-0.5">Manage details, task list, and trace progress coordinates</p>
           </div>

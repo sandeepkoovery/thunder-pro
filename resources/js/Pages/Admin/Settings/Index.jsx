@@ -133,31 +133,35 @@ export default function Index({ settings, users }) {
                                     {errors.monthly_working_days && <p className="text-xs text-red-500 font-bold ml-1">{errors.monthly_working_days}</p>}
                                 </div>
 
-                                <div className="space-y-2">
-                                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle Start Day</label>
-                                    <input
-                                        type="number"
-                                        value={data.month_start_day}
-                                        className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
-                                        onChange={(e) => setData('month_start_day', e.target.value)}
-                                        min="1"
-                                        max="31"
-                                    />
-                                    {errors.month_start_day && <p className="text-xs text-red-500 font-bold ml-1">{errors.month_start_day}</p>}
-                                </div>
+                                {!isSuperAdmin && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle Start Day</label>
+                                            <input
+                                                type="number"
+                                                value={data.month_start_day}
+                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                                onChange={(e) => setData('month_start_day', e.target.value)}
+                                                min="1"
+                                                max="31"
+                                            />
+                                            {errors.month_start_day && <p className="text-xs text-red-500 font-bold ml-1">{errors.month_start_day}</p>}
+                                        </div>
 
-                                <div className="space-y-2">
-                                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle End Day</label>
-                                    <input
-                                        type="number"
-                                        value={data.month_end_day}
-                                        className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
-                                        onChange={(e) => setData('month_end_day', e.target.value)}
-                                        min="1"
-                                        max="31"
-                                    />
-                                    {errors.month_end_day && <p className="text-xs text-red-500 font-bold ml-1">{errors.month_end_day}</p>}
-                                </div>
+                                        <div className="space-y-2">
+                                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle End Day</label>
+                                            <input
+                                                type="number"
+                                                value={data.month_end_day}
+                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                                onChange={(e) => setData('month_end_day', e.target.value)}
+                                                min="1"
+                                                max="31"
+                                            />
+                                            {errors.month_end_day && <p className="text-xs text-red-500 font-bold ml-1">{errors.month_end_day}</p>}
+                                        </div>
+                                    </>
+                                )}
                             </div>
 
                             {isSuperAdmin && (

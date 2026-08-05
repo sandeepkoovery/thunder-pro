@@ -10,6 +10,7 @@ class Event extends Model
     use HasFactory;
 
     protected $fillable = [
+        'admin_id',
         'title',
         'category',
         'start_date',
@@ -32,5 +33,10 @@ class Event extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function tenantAdmin()
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
     }
 }

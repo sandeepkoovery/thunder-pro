@@ -9,13 +9,34 @@ use Inertia\Inertia;
 
 class HostingController extends Controller
 {
+    /**
+     * Resolve the tenant admin ID for the authenticated user.
+     * Returns null for superadmin (sees all).
+     */
+    private function tenantAdminId(): ?int
+    {
+        $user = auth()->user();
+        if ($user->role === 'superadmin') {
+            return null;
+        }
+        return $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+    }
+
     public function index(Request $request)
     {
+        $tenantAdminId = $this->tenantAdminId();
         $query = Hosting::query();
 
+        // Scope to tenant
+        if ($tenantAdminId !== null) {
+            $query->where('admin_id', $tenantAdminId);
+        }
+
         if ($search = $request->input('search')) {
-            $query->where('site_name', 'like', "%{$search}%")
+            $query->where(function ($q) use ($search) {
+                $q->where('site_name', 'like', "%{$search}%")
                   ->orWhere('provider', 'like', "%{$search}%");
+            });
         }
 
         $sort      = $request->input('sort', 'expiration_date');
@@ -49,6 +70,8 @@ class HostingController extends Controller
             'notes'           => 'nullable|string',
         ]);
 
+        $validated['admin_id'] = $this->tenantAdminId();
+
         Hosting::create($validated);
 
         return back()->with('success', 'Hosting added successfully!');
@@ -56,6 +79,12 @@ class HostingController extends Controller
 
     public function update(Request $request, Hosting $hosting)
     {
+        $tenantAdminId = $this->tenantAdminId();
+
+        if ($tenantAdminId !== null && $hosting->admin_id !== null && $hosting->admin_id !== $tenantAdminId) {
+            abort(403, 'Unauthorized.');
+        }
+
         $validated = $request->validate([
             'site_name'       => 'required|string|max:255',
             'provider'        => 'required|string|max:255',
@@ -75,6 +104,12 @@ class HostingController extends Controller
 
     public function destroy(Hosting $hosting)
     {
+        $tenantAdminId = $this->tenantAdminId();
+
+        if ($tenantAdminId !== null && $hosting->admin_id !== null && $hosting->admin_id !== $tenantAdminId) {
+            abort(403, 'Unauthorized.');
+        }
+
         $hosting->delete();
 
         return back()->with('success', 'Hosting deleted successfully!');

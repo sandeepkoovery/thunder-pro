@@ -30,12 +30,12 @@ class LeaveController extends Controller
         $authUser = auth()->user();
         $isSuperAdmin = $authUser->role === 'superadmin';
         $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
-        $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
 
         $query = Leave::with('user')->orderBy('from_date', 'desc');
 
+        // Scope leaves directly by admin_id (simpler & correct with new column)
         if (!$isSuperAdmin) {
-            $query->whereIn('user_id', $tenantUserIds);
+            $query->where('admin_id', $tenantAdminId);
         }
 
         if ($year && !$month) {
@@ -95,7 +95,7 @@ class LeaveController extends Controller
         $stats = [
             'SL' => [
                 'taken' => Leave::query()
-                    ->when(!$isSuperAdmin, fn($q) => $q->whereIn('user_id', $tenantUserIds))
+                    ->when(!$isSuperAdmin, fn($q) => $q->where('admin_id', $tenantAdminId))
                     ->when($year && !$month, fn($q) => $q->whereYear('from_date', $year))
                     ->when($month, function($q) use ($year, $month) {
                         $filterYear = $year ?: now()->year;
@@ -118,7 +118,7 @@ class LeaveController extends Controller
             ],
             'CL' => [
                 'taken' => Leave::query()
-                    ->when(!$isSuperAdmin, fn($q) => $q->whereIn('user_id', $tenantUserIds))
+                    ->when(!$isSuperAdmin, fn($q) => $q->where('admin_id', $tenantAdminId))
                     ->when($year && !$month, fn($q) => $q->whereYear('from_date', $year))
                     ->when($month, function($q) use ($year, $month) {
                         $filterYear = $year ?: now()->year;
@@ -140,7 +140,7 @@ class LeaveController extends Controller
                 'total' => $userId ? 12 : null,
             ],
             'pending' => Leave::query()
-                ->when(!$isSuperAdmin, fn($q) => $q->whereIn('user_id', $tenantUserIds))
+                ->when(!$isSuperAdmin, fn($q) => $q->where('admin_id', $tenantAdminId))
                 ->when($year && !$month, fn($q) => $q->whereYear('from_date', $year))
                 ->when($month, function($q) use ($year, $month) {
                     $filterYear = $year ?: now()->year;

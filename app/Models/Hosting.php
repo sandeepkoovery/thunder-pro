@@ -10,6 +10,7 @@ class Hosting extends Model
     use HasFactory;
 
     protected $fillable = [
+        'admin_id',
         'site_name',
         'provider',
         'plan',
@@ -26,4 +27,9 @@ class Hosting extends Model
         'auto_renewal'    => 'boolean',
         'price'           => 'decimal:2',
     ];
+
+    public function tenantAdmin()
+    {
+        return $this->belongsTo(\App\Models\Admin::class, 'admin_id');
+    }
 }

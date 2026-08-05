@@ -11,6 +11,7 @@ class Leave extends Model
     use HasFactory;
 
     protected $fillable = [
+        'admin_id',
         'user_id',
         'leave_type',
         'day_type',
@@ -42,5 +43,10 @@ class Leave extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public function tenantAdmin()
+    {
+        return $this->belongsTo(Admin::class, 'admin_id');
     }
 }

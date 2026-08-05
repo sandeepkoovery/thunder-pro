@@ -22,6 +22,11 @@ export default function UserLayout({ children, title = "Dashboard" }) {
   const hiddenMenuItems = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
   const isSuperAdmin = auth?.user?.role === "superadmin";
 
+  const user = auth?.user;
+  const userRole = user?.role?.toLowerCase() || '';
+  const userDesignation = user?.designation?.toLowerCase() || '';
+  const isDesigner = isSuperAdmin || userRole === 'admin' || userRole === 'designer' || userDesignation.includes('design');
+
   const isVisible = (module) => {
     if (isSuperAdmin) return true;
     if (hiddenMenuItems.includes(module)) return false;
@@ -53,7 +58,7 @@ export default function UserLayout({ children, title = "Dashboard" }) {
       <NavItem href={route("calendar.index")} icon={CalendarDays} label="Calendar" routeName="calendar" visible={isVisible("calendar")} beta={betaMenuItems.includes("calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("content-calendar.index")} icon={Sparkles} label="Content Calendar" routeName="content-calendar" visible={isVisible("content_calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("daily-listings.index")} icon={List} label="Daily Listings" routeName="daily-listings" visible={isVisible("daily_listings")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-      <NavItem href={route("designers-worklist.index")} icon={Palette} label="Designers Worklist" routeName="designers-worklist" visible={isVisible("designers_worklist")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      <NavItem href={route("designers-worklist.index")} icon={Palette} label="Designers Worklist" routeName="designers-worklist" visible={isDesigner && isVisible("designers_worklist")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("drive.index")} icon={FolderKanban} label="Drive" routeName="drive" visible={!hiddenMenuItems.includes("drive")} beta={false} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("chat.index")} icon={MessageSquare} label="Chat" routeName="chat" visible={isVisible("chat")} beta={betaMenuItems.includes("chat")} badge={sidebarCounts.unread_chats} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       <NavItem href={route("notifications.index")} icon={Bell} label="Notifications" routeName="notifications" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />
