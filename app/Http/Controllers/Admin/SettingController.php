@@ -14,6 +14,17 @@ class SettingController extends Controller
     {
         $settings = Setting::all()->pluck('value', 'key');
 
+        $user = auth()->user();
+        $admin = null;
+        if ($user instanceof \App\Models\Admin) {
+            $admin = $user;
+        } else if (!empty($user->admin_id)) {
+            $admin = \App\Models\Admin::find($user->admin_id);
+        }
+
+        $settings['month_start_day'] = $admin ? ($admin->month_start_day ?? 25) : 25;
+        $settings['month_end_day'] = $admin ? ($admin->month_end_day ?? 24) : 24;
+
         // Automatically calculate working days for current month if not set
         if (!isset($settings['monthly_working_days'])) {
             $settings['monthly_working_days'] = $this->calculateWorkingDays(Carbon::now());
@@ -35,11 +46,27 @@ class SettingController extends Controller
         $data = $request->validate([
             'admin_email' => 'nullable|email',
             'monthly_working_days' => 'nullable|integer|min:0|max:31',
+            'month_start_day' => 'nullable|integer|min:1|max:31',
+            'month_end_day' => 'nullable|integer|min:1|max:31',
             'beta_menu_items' => 'nullable|array',
             'hidden_modules' => 'nullable|array',
         ]);
 
+        $user = auth()->user();
+        if ($user instanceof \App\Models\Admin) {
+            $user->update([
+                'month_start_day' => $data['month_start_day'] ?? 25,
+                'month_end_day' => $data['month_end_day'] ?? 24,
+            ]);
+        } else if (!empty($user->admin_id)) {
+            \App\Models\Admin::where('id', $user->admin_id)->update([
+                'month_start_day' => $data['month_start_day'] ?? 25,
+                'month_end_day' => $data['month_end_day'] ?? 24,
+            ]);
+        }
+
         foreach ($data as $key => $value) {
+            if (in_array($key, ['month_start_day', 'month_end_day'])) continue;
             $val = is_array($value) ? json_encode($value) : $value;
             Setting::updateOrCreate(['key' => $key], ['value' => $val]);
         }

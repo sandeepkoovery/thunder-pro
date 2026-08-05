@@ -24,6 +24,8 @@ class Admin extends Authenticatable
         'image',
         'thumb',
         'is_active',
+        'month_start_day',
+        'month_end_day',
     ];
 
     protected $hidden = [
@@ -37,7 +39,35 @@ class Admin extends Authenticatable
             'password' => 'hashed',
             'is_active' => 'boolean',
             'additional_modules' => 'array',
+            'month_start_day' => 'integer',
+            'month_end_day' => 'integer',
         ];
+    }
+
+    public function getMonthDateRange(string $monthStr): array
+    {
+        $startDay = (int) ($this->month_start_day ?? 25);
+        $endDay = (int) ($this->month_end_day ?? 24);
+
+        try {
+            $baseDate = \Carbon\Carbon::parse($monthStr . '-01');
+        } catch (\Exception $e) {
+            $baseDate = \Carbon\Carbon::now();
+        }
+
+        if ($startDay === 1) {
+            $startDate = $baseDate->copy()->startOfMonth()->format('Y-m-d');
+            $endDate = $baseDate->copy()->endOfMonth()->format('Y-m-d');
+        } else {
+            $prevMonth = $baseDate->copy()->subMonth();
+            $maxStartDay = min($startDay, $prevMonth->daysInMonth);
+            $startDate = $prevMonth->day($maxStartDay)->format('Y-m-d');
+
+            $maxEndDay = min($endDay, $baseDate->daysInMonth);
+            $endDate = $baseDate->copy()->day($maxEndDay)->format('Y-m-d');
+        }
+
+        return [$startDate, $endDate];
     }
 
     public function users()

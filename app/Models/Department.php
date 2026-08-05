@@ -9,11 +9,16 @@ class Department extends \Illuminate\Database\Eloquent\Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'code', 'description', 'is_active'];
+    protected $fillable = ['admin_id', 'name', 'code', 'description', 'is_active'];
 
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function admin(): BelongsTo
+    {
+        return $this->belongsTo(Admin::class);
+    }
 
     public function employees(): \Illuminate\Database\Eloquent\Relations\HasMany
     {

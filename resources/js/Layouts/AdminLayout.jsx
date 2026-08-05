@@ -17,6 +17,7 @@ import {
   Palette,
   List,
   Sparkles,
+  Building2,
 } from "lucide-react";
 import AppShell, { NavItem } from "@/Layouts/AppShell";
 
@@ -58,6 +59,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
           {isAdmin && (
             <>
               <NavItem href={route("admin.users.index")} icon={UsersIcon} label="Employees" routeName="admin.users" visible={isVisible("users")} beta={betaMenuItems.includes("users")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+              <NavItem href={route("admin.departments.index")} icon={Building2} label="Departments" routeName="admin.departments" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />
               <NavItem href={route("admin.leaves.index")} icon={FileText} label="Leaves" routeName="admin.leaves" visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} />
               <NavItem href={route("admin.attendance.index")} icon={Clock} label="Attendance" routeName="admin.attendance" visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
             </>

@@ -28,6 +28,10 @@ class ContentCalendarController extends Controller
     {
         $user = auth()->user();
         $adminId = $this->getTenantAdminId();
+        $admin = $adminId ? \App\Models\Admin::find($adminId) : ($user instanceof \App\Models\Admin ? $user : null);
+
+        $monthStartDay = $admin ? ($admin->month_start_day ?? 25) : 25;
+        $monthEndDay = $admin ? ($admin->month_end_day ?? 24) : 24;
 
         $query = ContentCalendar::with(['project', 'assignedUsers']);
         if ($adminId) {
@@ -58,30 +62,30 @@ class ContentCalendarController extends Controller
             'calendarItems' => $items,
             'users' => $users,
             'projects' => $projects,
+            'monthStartDay' => $monthStartDay,
+            'monthEndDay' => $monthEndDay,
         ]);
     }
 
     public function generateMonth(Request $request)
     {
         $validated = $request->validate([
-            'month' => 'required|string', // e.g. "2026-07" or "Jul 2026"
+            'month' => 'required|string', // e.g. "2026-07"
             'project_id' => 'nullable|exists:projects,id',
         ]);
 
         $adminId = $this->getTenantAdminId();
+        $user = auth()->user();
+        $admin = $adminId ? \App\Models\Admin::find($adminId) : ($user instanceof \App\Models\Admin ? $user : null);
+        $tempAdmin = $admin ?? new \App\Models\Admin(['month_start_day' => 25, 'month_end_day' => 24]);
 
-        try {
-            $date = Carbon::parse($validated['month'] . '-01');
-        } catch (\Exception $e) {
-            $date = Carbon::now();
-        }
+        list($startDate, $endDate) = $tempAdmin->getMonthDateRange($validated['month']);
 
-        $daysInMonth = $date->daysInMonth;
-        $year = $date->year;
-        $month = $date->month;
+        $start = Carbon::parse($startDate);
+        $end = Carbon::parse($endDate);
 
-        for ($day = 1; $day <= $daysInMonth; $day++) {
-            $currentDate = Carbon::createFromDate($year, $month, $day)->format('Y-m-d');
+        while ($start->lte($end)) {
+            $currentDate = $start->format('Y-m-d');
             
             // Check if already exists for this date and project
             $query = ContentCalendar::where('date', $currentDate);
@@ -90,6 +94,8 @@ class ContentCalendarController extends Controller
             }
             if (!empty($validated['project_id'])) {
                 $query->where('project_id', $validated['project_id']);
+            } else {
+                $query->whereNull('project_id');
             }
 
             if (!$query->exists()) {
@@ -98,15 +104,16 @@ class ContentCalendarController extends Controller
                     'project_id' => $validated['project_id'] ?? null,
                     'creative_uid' => 'CR_' . strtoupper(substr(md5($currentDate . rand(100, 999)), 0, 6)),
                     'date' => $currentDate,
-                    'creative_type' => 'POSTER',
-                    'updation' => 'PENDING',
+                    'creative_type' => '',
+                    'updation' => 'STATUS',
                     'creative_caption' => null,
                     'is_additional' => false,
                 ]);
             }
+            $start->addDay();
         }
 
-        return back()->with('success', 'Generated month calendar days successfully.');
+        return back()->with('success', 'Generated month calendar entries from ' . $startDate . ' to ' . $endDate . ' successfully.');
     }
 
     public function store(Request $request)
@@ -149,7 +156,7 @@ class ContentCalendarController extends Controller
     public function update(Request $request, $id)
     {
         $validated = $request->validate([
-            'project_id' => 'nullable|exists:projects,id',
+            'project_id' => 'nullable',
             'creative_uid' => 'nullable|string|max:255',
             'date' => 'nullable|date',
             'creative_type' => 'nullable|string|max:255',
@@ -163,12 +170,10 @@ class ContentCalendarController extends Controller
 
         $item = ContentCalendar::findOrFail($id);
 
-        $updateData = array_filter($validated, fn($val) => $val !== null);
+        $item->update($validated);
 
-        $item->update($updateData);
-
-        if (isset($validated['assigned_user_ids'])) {
-            $item->assignedUsers()->sync($validated['assigned_user_ids']);
+        if (array_key_exists('assigned_user_ids', $validated)) {
+            $item->assignedUsers()->sync($validated['assigned_user_ids'] ?? []);
         }
 
         return back()->with('success', 'Content calendar item updated successfully.');

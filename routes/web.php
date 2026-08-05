@@ -20,6 +20,8 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Admin\PricingController;
 
 
+use App\Http\Controllers\Admin\DepartmentController as AdminDepartmentController;
+
 // Home page
 Route::get('/', function () {
     return Inertia::render('Welcome', [
@@ -175,6 +177,7 @@ Route::middleware(['auth', 'is_admin'])
             Route::patch('users/toggle-desktop/{user}', [AdminUserController::class, 'toggleDesktop'])
                 ->name('users.toggle.desktop');
             Route::resource('users', AdminUserController::class);
+            Route::resource('departments', AdminDepartmentController::class);
 
             // -------------------------
             // ✅ ADMIN LEAVE ROUTES

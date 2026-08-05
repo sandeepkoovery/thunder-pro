@@ -6,10 +6,10 @@
 
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- MaterialPro Font: Poppins -->
+        <!-- Fonts: Poppins & Plus Jakarta Sans -->
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
         <!-- PWA Meta Tags -->
         <meta name="theme-color" content="#00A8FF">
         <link rel="manifest" href="{{ url('/manifest.webmanifest?v=5') }}">
@@ -25,7 +25,7 @@
         @vite(['resources/js/app.jsx', "resources/js/Pages/{$page['component']}.jsx"])
         @inertiaHead
     </head>
-    <body class="font-sans antialiased" style="font-family: 'Poppins', sans-serif !important;">
+    <body class="font-sans antialiased">
         @inertia
     </body>
 </html>

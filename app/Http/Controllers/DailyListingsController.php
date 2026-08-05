@@ -34,20 +34,44 @@ class DailyListingsController extends Controller
         }
         $worksheets = $query->orderBy('date', 'desc')->orderBy('id', 'desc')->get();
 
-        $settings = DailyWorksheetSetting::where('user_id', $user->id)->first();
-        if (!$settings) {
-            $settings = DailyWorksheetSetting::create([
-                'admin_id' => $adminId,
-                'user_id' => $user->id,
-                'client_name_enabled' => true,
-                'task_type_enabled' => true,
-                'status_enabled' => true,
-                'file_name_enabled' => true,
-                'drive_link_enabled' => true,
-                'project_enabled' => true,
-                'task_type_options' => 'Listing, Design, Content, Maintenance, Review',
-                'task_type_freetext' => false,
-            ]);
+        $isAdmin = ($user instanceof \App\Models\Admin) || in_array($user->role, ['admin', 'superadmin']);
+
+        if ($isAdmin) {
+            $settings = DailyWorksheetSetting::where('admin_id', $adminId)
+                ->whereNull('user_id')
+                ->first();
+
+            if (!$settings) {
+                $settings = DailyWorksheetSetting::create([
+                    'admin_id' => $adminId,
+                    'user_id' => null,
+                    'client_name_enabled' => true,
+                    'task_type_enabled' => true,
+                    'status_enabled' => true,
+                    'file_name_enabled' => true,
+                    'drive_link_enabled' => true,
+                    'project_enabled' => true,
+                    'task_type_options' => 'Listing, Design, Content, Maintenance, Review',
+                    'task_type_freetext' => false,
+                ]);
+            }
+        } else {
+            $settings = DailyWorksheetSetting::where('user_id', $user->id)->first();
+            if (!$settings) {
+                $adminSettings = $adminId ? DailyWorksheetSetting::where('admin_id', $adminId)->whereNull('user_id')->first() : null;
+                $settings = DailyWorksheetSetting::create([
+                    'admin_id' => $adminId,
+                    'user_id' => $user->id,
+                    'client_name_enabled' => $adminSettings ? $adminSettings->client_name_enabled : true,
+                    'task_type_enabled' => $adminSettings ? $adminSettings->task_type_enabled : true,
+                    'status_enabled' => $adminSettings ? $adminSettings->status_enabled : true,
+                    'file_name_enabled' => $adminSettings ? $adminSettings->file_name_enabled : true,
+                    'drive_link_enabled' => $adminSettings ? $adminSettings->drive_link_enabled : true,
+                    'project_enabled' => $adminSettings ? $adminSettings->project_enabled : true,
+                    'task_type_options' => $adminSettings ? $adminSettings->task_type_options : 'Listing, Design, Content, Maintenance, Review',
+                    'task_type_freetext' => $adminSettings ? $adminSettings->task_type_freetext : false,
+                ]);
+            }
         }
 
         $userQuery = User::where('is_active', true);
@@ -76,8 +100,11 @@ class DailyListingsController extends Controller
             'user_id' => 'nullable|exists:users,id',
         ]);
 
+        $user = auth()->user();
         $adminId = $this->getTenantAdminId();
-        $userId = $validated['user_id'] ?? auth()->id();
+        $userId = !empty($validated['user_id']) 
+            ? $validated['user_id'] 
+            : ($user instanceof \App\Models\User ? $user->id : null);
 
         DailyWorksheet::create([
             'admin_id' => $adminId,
@@ -136,10 +163,19 @@ class DailyListingsController extends Controller
             'task_type_freetext' => 'boolean',
         ]);
 
-        DailyWorksheetSetting::updateOrCreate(
-            ['user_id' => $user->id],
-            array_merge($validated, ['admin_id' => $adminId])
-        );
+        $isAdmin = ($user instanceof \App\Models\Admin) || in_array($user->role, ['admin', 'superadmin']);
+
+        if ($isAdmin) {
+            DailyWorksheetSetting::updateOrCreate(
+                ['admin_id' => $adminId, 'user_id' => null],
+                $validated
+            );
+        } else {
+            DailyWorksheetSetting::updateOrCreate(
+                ['user_id' => $user->id],
+                array_merge($validated, ['admin_id' => $adminId])
+            );
+        }
 
         return back()->with('success', 'Worksheet column settings updated successfully.');
     }
