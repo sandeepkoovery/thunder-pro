@@ -236,6 +236,14 @@ class User extends Authenticatable
         return $this->admin_id;
     }
 
+    public function passkeys(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(UserPasskey::class);
+    }
 
+    public function hasPasskeys(): bool
+    {
+        return $this->passkeys()->exists();
+    }
 }
 

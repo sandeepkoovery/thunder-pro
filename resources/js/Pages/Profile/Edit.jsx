@@ -10,6 +10,7 @@ import {
 import { useState } from 'react';
 import UpdatePasswordForm from './Partials/UpdatePasswordForm';
 import UpdateProfileInformationForm from './Partials/UpdateProfileInformationForm';
+import PasskeyManager from './Partials/PasskeyManager';
 
 export default function Edit({ mustVerifyEmail, status }) {
     const { auth } = usePage().props;
@@ -90,11 +91,12 @@ export default function Edit({ mustVerifyEmail, status }) {
                 </div>
                 
                 {/* Modern Pill-Style Tab Switcher */}
-                <div className="flex p-1.5 bg-slate-50 border border-slate-100 rounded-2xl gap-1 max-w-lg mx-8 mb-6">
+                <div className="flex p-1.5 bg-slate-50 border border-slate-100 rounded-2xl gap-1 max-w-xl mx-8 mb-6">
                     {[
                         { id: 'Overview', label: 'Profile Overview' },
                         { id: 'Edit Details', label: 'Edit Details' },
-                        { id: 'Change Password', label: 'Change Password' }
+                        { id: 'Change Password', label: 'Change Password' },
+                        ...(!['admin', 'superadmin'].includes(user.role) ? [{ id: 'Passkeys', label: 'Passkeys & Hello' }] : [])
                     ].map(tab => {
                         const isActive = activeTab === tab.id;
                         return (
@@ -244,6 +246,11 @@ export default function Edit({ mustVerifyEmail, status }) {
                 <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-8">
                     <UpdatePasswordForm />
                 </div>
+            )}
+
+            {/* Passkeys & Windows Hello Tab */}
+            {activeTab === 'Passkeys' && !['admin', 'superadmin'].includes(user.role) && (
+                <PasskeyManager />
             )}
         </div>
     );

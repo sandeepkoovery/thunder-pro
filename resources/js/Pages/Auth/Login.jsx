@@ -4,6 +4,10 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import { Fingerprint } from 'lucide-react';
+import { startPasskeyLogin, isWebAuthnSupported } from '@/Utils/webauthn';
+import toast from 'react-hot-toast';
 
 export default function Login({ status, canResetPassword }) {
     const isPwa = typeof window !== 'undefined' && (
@@ -20,11 +24,44 @@ export default function Login({ status, canResetPassword }) {
         is_pwa: isPwa,
     });
 
+    const [passkeyLoading, setPasskeyLoading] = useState(false);
+    const [passkeyError, setPasskeyError] = useState('');
+    const isSupported = isWebAuthnSupported();
+
     const submit = (e) => {
         e.preventDefault();
         post(route('login'), {
             onFinish: () => reset('password'),
         });
+    };
+
+    const handlePasskeyLogin = async () => {
+        setPasskeyError('');
+
+        if (!data.email || !data.email.trim()) {
+            setPasskeyError('Please enter your Email Address above to sign in with Passkey.');
+            return;
+        }
+
+        if (!isSupported) {
+            setPasskeyError('WebAuthn / Windows Hello is not supported in this browser.');
+            return;
+        }
+
+        try {
+            setPasskeyLoading(true);
+            const res = await startPasskeyLogin(data.email.trim());
+            if (res.success && res.redirect) {
+                toast.success('Logged in with Windows Hello!');
+                window.location.href = res.redirect;
+            }
+        } catch (err) {
+            console.error(err);
+            const errMsg = err.response?.data?.message || err.message || 'Windows Hello sign in failed.';
+            setPasskeyError(errMsg);
+        } finally {
+            setPasskeyLoading(false);
+        }
     };
 
     return (
@@ -39,6 +76,12 @@ export default function Login({ status, canResetPassword }) {
             {status && (
                 <div className="mb-6 p-4 bg-green-50 rounded-mp-sm text-sm font-medium text-green-600 border border-green-100">
                     {status}
+                </div>
+            )}
+
+            {passkeyError && (
+                <div className="mb-6 p-4 bg-rose-50 rounded-mp-sm text-sm font-medium text-rose-600 border border-rose-100">
+                    {passkeyError}
                 </div>
             )}
 
@@ -106,7 +149,30 @@ export default function Login({ status, canResetPassword }) {
                     {processing ? 'Signing in...' : 'Sign In'}
                 </button>
 
+                <div className="relative flex py-2 items-center">
+                    <div className="flex-grow border-t border-gray-200"></div>
+                    <span className="flex-shrink mx-4 text-xs font-semibold uppercase tracking-wider text-gray-400">or sign in with</span>
+                    <div className="flex-grow border-t border-gray-200"></div>
+                </div>
 
+                <button
+                    type="button"
+                    onClick={handlePasskeyLogin}
+                    disabled={passkeyLoading}
+                    className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-mp-sm font-medium text-base transition-all shadow-sm flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-50"
+                >
+                    {passkeyLoading ? (
+                        <>
+                            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                            Windows Hello Active...
+                        </>
+                    ) : (
+                        <>
+                            <Fingerprint className="w-5 h-5 text-indigo-400" />
+                            Sign in with Passkey
+                        </>
+                    )}
+                </button>
             </form>
         </GuestLayout>
     );

@@ -122,7 +122,9 @@ class HandleInertiaRequests extends Middleware
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user() ? $request->user()->toArray() : null,
+                'user' => $request->user() ? array_merge($request->user()->toArray(), [
+                    'has_passkey' => ($request->user() instanceof \App\Models\User) ? $request->user()->hasPasskeys() : false,
+                ]) : null,
             ],
             'appUrl' => config('app.url'),
             'flash' => [

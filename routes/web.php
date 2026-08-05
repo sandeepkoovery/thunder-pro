@@ -344,3 +344,6 @@ Route::get('/manifest.webmanifest', function () {
         'Content-Type' => 'application/manifest+json; charset=utf-8'
     ]);
 });
+
+require __DIR__.'/auth.php';
+
