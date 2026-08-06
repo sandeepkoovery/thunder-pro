@@ -45,12 +45,31 @@ class LoginRequest extends FormRequest
         $remember = $this->boolean('remember');
         $credentials = $this->only('email', 'password');
 
-        // Attempt login as Admin first (admins table), then User (users table)
-        if (Auth::guard('admin')->attempt($credentials, $remember)) {
-            Auth::shouldUse('admin');
-        } elseif (Auth::guard('web')->attempt($credentials, $remember)) {
+        // Prevent Admin users from logging in via standard /login route
+        if (\App\Models\Admin::where('email', $credentials['email'])->exists()) {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
+        // Attempt login strictly as standard User (users table)
+        if (Auth::guard('web')->attempt($credentials, $remember)) {
             Auth::shouldUse('web');
         } else {
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => trans('auth.failed'),
+            ]);
+        }
+
+        // Additional safeguard: If a user record in `users` table has an admin role
+        $user = Auth::guard('web')->user();
+        if ($user && in_array($user->role, ['superadmin', 'admin'])) {
+            Auth::guard('web')->logout();
+
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
@@ -83,6 +102,24 @@ class LoginRequest extends FormRequest
 
                 throw ValidationException::withMessages([
                     'email' => 'Your account or company organization has been disabled by administrator.',
+                ]);
+            }
+
+            // Check Desktop Only restriction
+            $userAgent = $this->header('User-Agent') ?? '';
+            $isMobileDevice = (bool) preg_match('/Mobile|Android|iP(hone|od|ad)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i', $userAgent);
+            $isPwaRequest = $this->header('X-PWA-Mode') === 'true' 
+                         || $this->boolean('is_pwa') 
+                         || $this->input('is_pwa') === 'true' 
+                         || $this->query('pwa') === '1' 
+                         || $this->query('source') === 'pwa';
+
+            if ($user instanceof \App\Models\User && !empty($user->desktop_only) && ($isMobileDevice || $isPwaRequest)) {
+                Auth::guard('admin')->logout();
+                Auth::guard('web')->logout();
+
+                throw ValidationException::withMessages([
+                    'email' => 'Your account is restricted to Desktop login only. Access via mobile device or PWA is not permitted.',
                 ]);
             }
 

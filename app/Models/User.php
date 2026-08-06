@@ -172,7 +172,10 @@ class User extends Authenticatable
             if (file_exists(public_path($path))) {
                 return asset($path);
             }
-            return $defaultUrl;
+            if (file_exists(public_path('storage/' . $path)) || file_exists(storage_path('app/public/' . $path))) {
+                return asset('storage/' . $path);
+            }
+            return asset($path);
         }
 
         // Check storage path
@@ -180,7 +183,7 @@ class User extends Authenticatable
             return asset('storage/' . $path);
         }
 
-        return $defaultUrl;
+        return asset('storage/' . $path);
     }
 
     public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Setting;
+use App\Models\DailyWorksheetSetting;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,6 +19,8 @@ class SettingController extends Controller
         $admin = null;
         if ($user instanceof \App\Models\Admin) {
             $admin = $user;
+        } else if ($user->role === 'admin') {
+            $admin = \App\Models\Admin::where('email', $user->email)->first();
         } else if (!empty($user->admin_id)) {
             $admin = \App\Models\Admin::find($user->admin_id);
         }
@@ -25,19 +28,31 @@ class SettingController extends Controller
         $settings['month_start_day'] = $admin ? ($admin->month_start_day ?? 25) : 25;
         $settings['month_end_day'] = $admin ? ($admin->month_end_day ?? 24) : 24;
 
+        if (!isset($settings['designers_task_type_options'])) {
+            $settings['designers_task_type_options'] = 'Poster, Thumbnail, Story, Carousel, Grid, Other';
+        }
+
         // Automatically calculate working days for current month if not set
         if (!isset($settings['monthly_working_days'])) {
             $settings['monthly_working_days'] = $this->calculateWorkingDays(Carbon::now());
         }
 
-        $users = \App\Models\User::where('role', '!=', 'admin')
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get(['id', 'name', 'email']);
+        $userQuery = \App\Models\User::where('is_active', true);
+        if ($admin) {
+            $userQuery->where('admin_id', $admin->id);
+        }
+        $users = $userQuery->orderBy('name')->get(['id', 'name', 'email']);
+
+        $worksheetSettingsQuery = DailyWorksheetSetting::query();
+        if ($admin) {
+            $worksheetSettingsQuery->where('admin_id', $admin->id);
+        }
+        $worksheetSettings = $worksheetSettingsQuery->whereNotNull('user_id')->get()->keyBy('user_id');
 
         return Inertia::render('Admin/Settings/Index', [
             'settings' => $settings,
             'users' => $users,
+            'worksheetSettings' => $worksheetSettings,
         ]);
     }
 
@@ -71,7 +86,56 @@ class SettingController extends Controller
             Setting::updateOrCreate(['key' => $key], ['value' => $val]);
         }
 
+        \Illuminate\Support\Facades\Cache::forget('global_settings_map');
+
         return back()->with('success', 'Settings updated successfully.');
+    }
+
+    public function updateWorksheetSetting(Request $request)
+    {
+        $validated = $request->validate([
+            'user_id' => 'required|exists:users,id',
+            'client_name_enabled' => 'boolean',
+            'task_type_enabled' => 'boolean',
+            'status_enabled' => 'boolean',
+            'file_name_enabled' => 'boolean',
+            'drive_link_enabled' => 'boolean',
+            'project_enabled' => 'boolean',
+            'task_type_freetext' => 'boolean',
+            'task_type_options' => 'nullable|string',
+        ]);
+
+        $user = auth()->user();
+        $admin = null;
+        if ($user instanceof \App\Models\Admin) {
+            $admin = $user;
+        } else if ($user->role === 'admin') {
+            $admin = \App\Models\Admin::where('email', $user->email)->first();
+        } else if (!empty($user->admin_id)) {
+            $admin = \App\Models\Admin::find($user->admin_id);
+        }
+        $adminId = $admin ? $admin->id : null;
+
+        DailyWorksheetSetting::updateOrCreate(
+            ['user_id' => $validated['user_id'], 'admin_id' => $adminId],
+            array_merge($validated, ['admin_id' => $adminId])
+        );
+
+        return back()->with('success', 'User worksheet settings updated successfully.');
+    }
+
+    public function updateDesignersSetting(Request $request)
+    {
+        $validated = $request->validate([
+            'designers_task_type_options' => 'nullable|string',
+        ]);
+
+        Setting::updateOrCreate(
+            ['key' => 'designers_task_type_options'],
+            ['value' => $validated['designers_task_type_options'] ?? 'Poster, Thumbnail, Story, Carousel, Grid, Other']
+        );
+
+        return back()->with('success', 'Designers worklist settings updated successfully.');
     }
 
     private function calculateWorkingDays(Carbon $date)

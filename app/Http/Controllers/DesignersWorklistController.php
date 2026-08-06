@@ -68,9 +68,13 @@ class DesignersWorklistController extends Controller
         }
         $users = $userQuery->orderBy('name')->get(['id', 'name', 'email']);
 
+        $taskTypeOptionsSetting = \App\Models\Setting::where('key', 'designers_task_type_options')->value('value')
+            ?? 'Poster, Thumbnail, Story, Carousel, Grid, Other';
+
         return Inertia::render('DesignersWorklist/Index', [
             'worklists' => $worklists,
             'users' => $users,
+            'taskTypeOptionsSetting' => $taskTypeOptionsSetting,
         ]);
     }
 

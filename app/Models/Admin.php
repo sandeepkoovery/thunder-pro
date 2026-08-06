@@ -33,6 +33,33 @@ class Admin extends Authenticatable
         'remember_token',
     ];
 
+    protected $appends = ['image_url'];
+
+    public function getImageUrlAttribute(): string
+    {
+        $defaultUrl = asset('images/default-avatar.jpg');
+        $path = $this->image ?: $this->thumb;
+        if (!$path) {
+            return $defaultUrl;
+        }
+
+        if (filter_var($path, FILTER_VALIDATE_URL)) {
+            return $path;
+        }
+
+        if (str_starts_with($path, 'uploads/') || str_starts_with($path, 'images/')) {
+            if (file_exists(public_path($path))) {
+                return asset($path);
+            }
+            if (file_exists(public_path('storage/' . $path)) || file_exists(storage_path('app/public/' . $path))) {
+                return asset('storage/' . $path);
+            }
+            return asset($path);
+        }
+
+        return asset('storage/' . $path);
+    }
+
     protected function casts(): array
     {
         return [

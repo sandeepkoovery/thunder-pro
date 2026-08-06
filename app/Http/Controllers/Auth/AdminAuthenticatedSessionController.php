@@ -35,23 +35,48 @@ class AdminAuthenticatedSessionController extends Controller
 
         $remember = $request->boolean('remember');
 
-        // Attempt login strictly using admin guard (admins table)
-        if (!Auth::guard('admin')->attempt($credentials, $remember)) {
+        // Attempt login using admin guard (admins table), then web guard for users with admin role
+        if (Auth::guard('admin')->attempt($credentials, $remember)) {
+            Auth::shouldUse('admin');
+        } elseif (Auth::guard('web')->attempt($credentials, $remember)) {
+            $user = Auth::guard('web')->user();
+            if ($user && in_array($user->role, ['superadmin', 'admin'])) {
+                Auth::shouldUse('web');
+            } else {
+                Auth::guard('web')->logout();
+                throw ValidationException::withMessages([
+                    'email' => 'Only administrators can log in through the Admin Portal.',
+                ]);
+            }
+        } else {
             throw ValidationException::withMessages([
                 'email' => 'Invalid email or password for Admin Portal.',
             ]);
         }
 
-        $admin = Auth::guard('admin')->user();
+        $admin = Auth::user();
 
-        if ($admin && $admin->role !== 'superadmin' && !$admin->is_active) {
-            Auth::guard('admin')->logout();
-            throw ValidationException::withMessages([
-                'email' => 'Your administrator account has been deactivated.',
-            ]);
+        if ($admin) {
+            $isDisabled = false;
+            if ($admin instanceof \App\Models\Admin) {
+                if ($admin->role !== 'superadmin' && !$admin->is_active) {
+                    $isDisabled = true;
+                }
+            } elseif ($admin instanceof \App\Models\User) {
+                if (!$admin->is_active) {
+                    $isDisabled = true;
+                }
+            }
+
+            if ($isDisabled) {
+                Auth::guard('admin')->logout();
+                Auth::guard('web')->logout();
+                throw ValidationException::withMessages([
+                    'email' => 'Your administrator account has been deactivated.',
+                ]);
+            }
         }
 
-        Auth::shouldUse('admin');
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard'));

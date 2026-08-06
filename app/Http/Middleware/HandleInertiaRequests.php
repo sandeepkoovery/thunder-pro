@@ -51,25 +51,32 @@ class HandleInertiaRequests extends Middleware
         $user = $request->user();
         $plan = 'basic';
         $userAdditionalModules = [];
+        $admin = null;
+
         if ($user) {
             if ($user->role === 'superadmin') {
                 $plan = 'premium';
-            } elseif ($user->role === 'admin') {
-                $admin = \App\Models\Admin::where('email', $user->email)->first();
+            } elseif ($user->role === 'admin' || $user instanceof \App\Models\Admin) {
+                $admin = ($user instanceof \App\Models\Admin) ? $user : \App\Models\Admin::where('email', $user->email)->first();
                 $plan = $admin ? ($admin->plan ?? 'basic') : ($user->plan ?? 'basic');
                 $userAdditionalModules = $admin ? ($admin->additional_modules ?? []) : [];
             } else {
                 $tenantAdminId = $user->admin_id ?? null;
-                $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : \App\Models\Admin::first();
+                $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : null;
                 $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
                 $userAdditionalModules = $admin ? ($admin->additional_modules ?? []) : [];
             }
         }
 
+        // Fetch all global settings in a SINGLE cached query instead of 9 separate queries
+        $settingsMap = \Illuminate\Support\Facades\Cache::remember('global_settings_map', 60, function () {
+            return \App\Models\Setting::pluck('value', 'key')->all();
+        });
+
         // Basic Plan active modules
-        $basicFeaturesJson = \App\Models\Setting::where('key', 'basic_plan_features')->value('value');
+        $basicFeaturesJson = $settingsMap['basic_plan_features'] ?? null;
         if ($basicFeaturesJson) {
-            $basicFeatures = json_decode($basicFeaturesJson, true);
+            $basicFeatures = json_decode($basicFeaturesJson, true) ?: [];
             $basicModules = [];
             foreach ($basicFeatures as $feat) {
                 if (($feat['included'] ?? true) === true) {
@@ -77,13 +84,13 @@ class HandleInertiaRequests extends Middleware
                 }
             }
         } else {
-            $basicModules = json_decode(\App\Models\Setting::where('key', 'basic_plan_modules')->value('value') ?? '[]', true);
+            $basicModules = json_decode($settingsMap['basic_plan_modules'] ?? '[]', true) ?: [];
         }
 
         // Premium Plan active modules
-        $premiumFeaturesJson = \App\Models\Setting::where('key', 'premium_plan_features')->value('value');
+        $premiumFeaturesJson = $settingsMap['premium_plan_features'] ?? null;
         if ($premiumFeaturesJson) {
-            $premiumFeatures = json_decode($premiumFeaturesJson, true);
+            $premiumFeatures = json_decode($premiumFeaturesJson, true) ?: [];
             $premiumModules = [];
             foreach ($premiumFeatures as $feat) {
                 if (($feat['included'] ?? true) === true) {
@@ -91,7 +98,7 @@ class HandleInertiaRequests extends Middleware
                 }
             }
         } else {
-            $premiumModules = json_decode(\App\Models\Setting::where('key', 'premium_plan_modules')->value('value') ?? '[]', true);
+            $premiumModules = json_decode($settingsMap['premium_plan_modules'] ?? '[]', true) ?: [];
         }
 
         if (empty($basicModules)) {
@@ -105,7 +112,7 @@ class HandleInertiaRequests extends Middleware
             $premiumModules[] = 'drive';
         }
 
-        $additionalModulesSettingJson = \App\Models\Setting::where('key', 'additional_modules')->value('value');
+        $additionalModulesSettingJson = $settingsMap['additional_modules'] ?? null;
         $additionalModulesSetting = $additionalModulesSettingJson ? json_decode($additionalModulesSettingJson, true) : [
             ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'included' => true],
             ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'included' => true],
@@ -119,11 +126,25 @@ class HandleInertiaRequests extends Middleware
             $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
         }
 
+        // Cache expiring website count for admins for 60 seconds
+        $expiringCount = 0;
+        if ($user && in_array($user->role, ['admin', 'superadmin'])) {
+            $adminKey = $admin ? $admin->id : 'sa';
+            $expiringCount = \Illuminate\Support\Facades\Cache::remember("expiring_websites_count_{$adminKey}", 60, function () {
+                return \App\Models\Domain::where('expiration_date', '<=', \Carbon\Carbon::now()->addDays(30))
+                    ->whereNotIn('status', ['Transferred', 'Inactive'])
+                    ->count() +
+                \App\Models\Hosting::where('expiration_date', '<=', \Carbon\Carbon::now()->addDays(30))
+                    ->whereNotIn('status', ['Transferred', 'Inactive'])
+                    ->count();
+            });
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
-                'user' => $request->user() ? array_merge($request->user()->toArray(), [
-                    'has_passkey' => ($request->user() instanceof \App\Models\User) ? $request->user()->hasPasskeys() : false,
+                'user' => $user ? array_merge($user->toArray(), [
+                    'has_passkey' => ($user instanceof \App\Models\User) ? $user->hasPasskeys() : false,
                 ]) : null,
             ],
             'appUrl' => config('app.url'),
@@ -136,24 +157,17 @@ class HandleInertiaRequests extends Middleware
             'allowedModules' => $allowedModules,
             'userAdditionalModules' => $userAdditionalModules,
             'pricingSettings' => [
-                'basic_plan_price' => \App\Models\Setting::where('key', 'basic_plan_price')->value('value') ?? '999',
-                'premium_plan_price' => \App\Models\Setting::where('key', 'premium_plan_price')->value('value') ?? '2999',
+                'basic_plan_price' => $settingsMap['basic_plan_price'] ?? '999',
+                'premium_plan_price' => $settingsMap['premium_plan_price'] ?? '2999',
                 'basic_plan_modules' => $basicModules,
                 'premium_plan_modules' => $premiumModules,
                 'additional_modules' => $additionalModulesSetting,
             ],
             'sharedSettings' => [
-                'beta_menu_items' => json_decode(\App\Models\Setting::where('key', 'beta_menu_items')->value('value') ?? '[]', true),
-                'hidden_modules' => json_decode(\App\Models\Setting::where('key', 'hidden_modules')->value('value') ?? '[]', true),
+                'beta_menu_items' => json_decode($settingsMap['beta_menu_items'] ?? '[]', true) ?: [],
+                'hidden_modules' => json_decode($settingsMap['hidden_modules'] ?? '[]', true) ?: [],
             ],
-            'expiringWebsitesCount' => $request->user() && in_array($request->user()->role, ['admin', 'superadmin']) ? (
-                \App\Models\Domain::where('expiration_date', '<=', \Carbon\Carbon::now()->addDays(30))
-                    ->whereNotIn('status', ['Transferred', 'Inactive'])
-                    ->count() +
-                \App\Models\Hosting::where('expiration_date', '<=', \Carbon\Carbon::now()->addDays(30))
-                    ->whereNotIn('status', ['Transferred', 'Inactive'])
-                    ->count()
-            ) : 0,
+            'expiringWebsitesCount' => $expiringCount,
         ];
     }
 }

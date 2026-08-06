@@ -17,10 +17,15 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function Index({ worklists = [], users = [] }) {
+export default function Index({ worklists = [], users = [], taskTypeOptionsSetting = 'Poster, Thumbnail, Story, Carousel, Grid, Other' }) {
     const { auth } = usePage().props;
     const isUser = auth?.user?.role === 'user';
     const Layout = isUser ? UserLayout : AdminLayout;
+
+    const taskOptions = useMemo(() => {
+        if (!taskTypeOptionsSetting) return ['Poster', 'Thumbnail', 'Story', 'Carousel', 'Grid', 'Other'];
+        return taskTypeOptionsSetting.split(',').map(s => s.trim()).filter(Boolean);
+    }, [taskTypeOptionsSetting]);
 
     // Filter States
     const [selectedDateFilter, setSelectedDateFilter] = useState('');
@@ -35,7 +40,7 @@ export default function Index({ worklists = [], users = [] }) {
     const form = useForm({
         client_name: '',
         task_date: new Date().toISOString().split('T')[0],
-        task_type: 'POSTER',
+        task_type: taskOptions[0] || 'Poster',
         description: '',
         status: 'Not Done',
         assigned_user_ids: [],
@@ -429,14 +434,16 @@ export default function Index({ worklists = [], users = [] }) {
                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Task Type *</label>
-                                        <input
-                                            type="text"
+                                        <select
                                             required
                                             value={form.data.task_type}
                                             onChange={(e) => form.setData('task_type', e.target.value)}
-                                            placeholder="POSTER / STORY / THUMBNAIL"
-                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm uppercase font-bold"
-                                        />
+                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold uppercase cursor-pointer"
+                                        >
+                                            {taskOptions.map((opt, idx) => (
+                                                <option key={idx} value={opt}>{opt}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                 </div>
 

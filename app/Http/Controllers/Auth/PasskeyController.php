@@ -104,6 +104,23 @@ class PasskeyController extends Controller
                 ], 403);
             }
 
+            if ($user instanceof \App\Models\User && !empty($user->desktop_only)) {
+                $userAgent = $request->header('User-Agent') ?? '';
+                $isMobileDevice = (bool) preg_match('/Mobile|Android|iP(hone|od|ad)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i', $userAgent);
+                $isPwaRequest = $request->header('X-PWA-Mode') === 'true'
+                             || $request->boolean('is_pwa')
+                             || $request->input('is_pwa') === 'true'
+                             || $request->query('pwa') === '1'
+                             || $request->query('source') === 'pwa';
+
+                if ($isMobileDevice || $isPwaRequest) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Your account is restricted to Desktop login only. Access via mobile device or PWA is not permitted.',
+                    ], 403);
+                }
+            }
+
             Auth::login($user, true);
             $request->session()->regenerate();
 

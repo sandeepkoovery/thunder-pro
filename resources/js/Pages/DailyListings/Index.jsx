@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
+import html2canvas from 'html2canvas';
 import { 
     Calendar as CalendarIcon, 
     Plus, 
@@ -16,7 +17,8 @@ import {
     ChevronUp,
     Download,
     CheckSquare,
-    Sparkles
+    Sparkles,
+    FileImage
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -38,6 +40,93 @@ export default function Index({ worksheets = [], settings, users = [] }) {
     // Modals
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
+    const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+    const [isCapturing, setIsCapturing] = useState(false);
+    const previewCardRef = useRef(null);
+
+    // Format Date Header for Image Preview (e.g. Wednesday, August 5, 2026)
+    const formatFullDateHeader = (dateStr) => {
+        if (!dateStr) return '';
+        try {
+            const parts = dateStr.split('-');
+            if (parts.length === 3) {
+                const year = parseInt(parts[0], 10);
+                const month = parseInt(parts[1], 10) - 1;
+                const day = parseInt(parts[2], 10);
+                const d = new Date(year, month, day);
+                return d.toLocaleDateString('en-US', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                });
+            }
+            return dateStr;
+        } catch (e) {
+            return dateStr;
+        }
+    };
+
+    // Download Preview Image Handler using html2canvas
+    const handleDownloadImage = async () => {
+        if (!previewCardRef.current) return;
+        try {
+            setIsCapturing(true);
+
+            if (document.fonts) {
+                await document.fonts.ready;
+            }
+
+            const canvas = await html2canvas(previewCardRef.current, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false,
+                onclone: (clonedDoc) => {
+                    const badges = clonedDoc.querySelectorAll('.pill-badge');
+                    badges.forEach(b => {
+                        b.style.display = 'inline-flex';
+                        b.style.alignItems = 'center';
+                        b.style.justifyContent = 'center';
+                        b.style.whiteSpace = 'nowrap';
+                        b.style.wordBreak = 'keep-all';
+                        b.style.paddingTop = '2px';
+                        b.style.paddingBottom = '4px';
+                        b.style.paddingLeft = '12px';
+                        b.style.paddingRight = '12px';
+                        b.style.height = '24px';
+                        b.style.borderRadius = '9999px';
+                        b.style.boxSizing = 'border-box';
+                    });
+
+                    const texts = clonedDoc.querySelectorAll('.pill-text');
+                    texts.forEach(t => {
+                        t.style.position = 'relative';
+                        t.style.top = '-3px';
+                        t.style.lineHeight = '1';
+                        t.style.display = 'inline-block';
+                        t.style.verticalAlign = 'middle';
+                    });
+                }
+            });
+            const empName = selectedEmployeeObj?.name || 'export';
+            const empSlug = empName.toLowerCase().replace(/[^a-z0-9]/g, '_');
+            const imageUri = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.setAttribute('href', imageUri);
+            link.setAttribute('download', `daily_worklist_${empSlug}_${selectedDate || 'export'}.png`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            toast.success('Worklist image downloaded successfully!');
+        } catch (err) {
+            console.error('Failed to capture image', err);
+            toast.error('Failed to download worklist image');
+        } finally {
+            setIsCapturing(false);
+        }
+    };
 
     // Form
     const form = useForm({
@@ -128,6 +217,12 @@ export default function Index({ worksheets = [], settings, users = [] }) {
             return true;
         });
     }, [worksheets, viewMode, selectedDate, selectedMonth, selectedEmployeeFilter, todayStr]);
+
+    const selectedEmployeeObj = useMemo(() => {
+        if (isUser) return auth?.user;
+        if (!selectedEmployeeFilter) return null;
+        return users.find(u => String(u.id) === String(selectedEmployeeFilter)) || null;
+    }, [isUser, auth, users, selectedEmployeeFilter]);
 
     // KPI Counts
     const stats = useMemo(() => {
@@ -294,31 +389,44 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                             </div>
                         )}
 
-                        {/* + ADD TASK & EXPORT Buttons (User Side) */}
                         {isUser && (
-                            <>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setEditingItem(null);
-                                        form.reset();
-                                        form.setData('date', selectedDate);
-                                        setIsCreateModalOpen(true);
-                                    }}
-                                    className="px-5 py-2.5 rounded-2xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
-                                >
-                                    <Plus size={16} /> ADD TASK
-                                </button>
-
-                                <button
-                                    type="button"
-                                    onClick={handleExport}
-                                    className="px-4 py-2.5 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer"
-                                >
-                                    <Download size={16} /> EXPORT
-                                </button>
-                            </>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setEditingItem(null);
+                                    form.reset();
+                                    form.setData('date', selectedDate);
+                                    setIsCreateModalOpen(true);
+                                }}
+                                className="px-5 py-2.5 rounded-2xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                            >
+                                <Plus size={16} /> ADD TASK
+                            </button>
                         )}
+
+                        {viewMode === 'DAILY' && (isUser || (selectedEmployeeFilter && selectedEmployeeFilter !== '')) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    if (filteredWorksheets.length === 0) {
+                                        toast.error('No tasks to preview');
+                                        return;
+                                    }
+                                    setIsImagePreviewOpen(true);
+                                }}
+                                className="px-4 py-2.5 rounded-2xl bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-sm"
+                            >
+                                <FileImage size={16} /> PREVIEW IMAGE
+                            </button>
+                        )}
+
+                        <button
+                            type="button"
+                            onClick={handleExport}
+                            className="px-4 py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer"
+                        >
+                            <Download size={16} /> CSV
+                        </button>
                     </div>
                 </div>
 
@@ -454,14 +562,14 @@ export default function Index({ worksheets = [], settings, users = [] }) {
 
                                                                     {/* TASK TYPE */}
                                                                     <td className="py-4 px-6">
-                                                                        <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-gray-100 text-gray-700">
+                                                                        <span className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase bg-gray-100 text-gray-700 leading-none text-center">
                                                                             {item.task_type || 'TASK'}
                                                                         </span>
                                                                     </td>
 
                                                                     {/* STATUS */}
                                                                     <td className="py-4 px-6">
-                                                                        <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase border text-center ${
+                                                                        <span className={`inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border text-center leading-none ${
                                                                             statusUpper === 'DONE' || statusUpper === 'COMPLETED'
                                                                                 ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                                                                                 : 'bg-red-50 text-red-600 border-red-100'
@@ -678,6 +786,211 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                     </button>
                                 </div>
                             </form>
+                        </div>
+                    </div>
+                )}
+
+                {/* IMAGE PREVIEW & DOWNLOAD MODAL (Matching Screenshot Design) */}
+                {isImagePreviewOpen && (
+                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+                        <div className="bg-white rounded-[32px] max-w-5xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 max-h-[90vh] flex flex-col my-auto">
+                            
+                            {/* Modal Header Bar */}
+                            <div className="flex items-center justify-between border-b border-gray-100 pb-4 shrink-0">
+                                <div>
+                                    <h3 className="text-lg font-black text-gray-900">Worklist Image Preview</h3>
+                                    <p className="text-xs text-gray-500 font-medium">Review your daily worklist image before downloading</p>
+                                </div>
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        onClick={handleDownloadImage}
+                                        disabled={isCapturing}
+                                        className="px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                    >
+                                        <Download size={16} /> {isCapturing ? 'GENERATING...' : 'DOWNLOAD IMAGE'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsImagePreviewOpen(false)}
+                                        className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-colors cursor-pointer"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Scrollable Container for Image Preview Canvas */}
+                            <div className="overflow-y-auto custom-scrollbar p-3 bg-slate-50/50 rounded-2xl">
+                                
+                                {/* TARGET CARD TO CAPTURE WITH html2canvas */}
+                                <div
+                                    ref={previewCardRef}
+                                    className="bg-white p-8 sm:p-12 rounded-[28px] border border-gray-100 shadow-sm space-y-8 max-w-4xl mx-auto font-sans"
+                                    style={{ backgroundColor: '#ffffff' }}
+                                >
+                                    {/* Header Title & Date */}
+                                    <div className="text-center space-y-1.5">
+                                        <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">
+                                            {selectedEmployeeObj ? `${selectedEmployeeObj.name} - DAILY WORKLIST` : 'DAILY WORKLIST'}
+                                        </h1>
+                                        <p className="text-base font-bold text-blue-600">
+                                            {formatFullDateHeader(selectedDate)}
+                                        </p>
+                                    </div>
+
+                                    {/* 4 Summary Stat Cards Row */}
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                        {/* TOTAL TASKS */}
+                                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-100 shadow-2xs">
+                                            <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+                                                <ListFilter size={18} />
+                                            </div>
+                                            <div>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">TOTAL TASKS</span>
+                                                <span className="text-xl font-black text-slate-900 leading-none mt-0.5 block">{stats.total}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* COMPLETED */}
+                                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-100 shadow-2xs">
+                                            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 shrink-0">
+                                                <CheckCircle2 size={18} />
+                                            </div>
+                                            <div>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">COMPLETED</span>
+                                                <span className="text-xl font-black text-slate-900 leading-none mt-0.5 block">{stats.completed}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* IN PROGRESS */}
+                                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-100 shadow-2xs">
+                                            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500 shrink-0">
+                                                <Clock size={18} />
+                                            </div>
+                                            <div>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">IN PROGRESS</span>
+                                                <span className="text-xl font-black text-slate-900 leading-none mt-0.5 block">{stats.inProgress}</span>
+                                            </div>
+                                        </div>
+
+                                        {/* APPROVED */}
+                                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-100 shadow-2xs">
+                                            <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-500 shrink-0">
+                                                <CheckSquare size={18} />
+                                            </div>
+                                            <div>
+                                                <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">APPROVED</span>
+                                                <span className="text-xl font-black text-slate-900 leading-none mt-0.5 block">{stats.approved}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Data Table */}
+                                    <div className="overflow-hidden rounded-2xl border border-gray-100">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">
+                                                    <th className="py-4 px-6">CLIENT</th>
+                                                    <th className="py-4 px-6">TASK TYPE</th>
+                                                    <th className="py-4 px-6">STATUS</th>
+                                                    <th className="py-4 px-6">FILE NAME</th>
+                                                    <th className="py-4 px-6">LINK</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-50 text-sm">
+                                                {filteredWorksheets.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan="5" className="py-8 text-center text-gray-400 font-bold uppercase text-xs">
+                                                            No daily tasks logged for this date
+                                                        </td>
+                                                    </tr>
+                                                ) : (
+                                                    filteredWorksheets.map((row, idx) => {
+                                                        const isDone = (row.status || '').toUpperCase() === 'DONE' || (row.status || '').toUpperCase() === 'COMPLETED';
+                                                        const isInProgress = (row.status || '').toUpperCase() === 'IN PROGRESS';
+                                                        return (
+                                                            <tr key={row.id || idx} className="hover:bg-gray-50/50">
+                                                                <td className="py-4 px-6 font-black text-slate-900 uppercase">
+                                                                    {row.client_name || '-'}
+                                                                </td>
+                                                                <td className="py-4 px-6">
+                                                                    <span
+                                                                        className="pill-badge whitespace-nowrap inline-flex items-center justify-center rounded-full text-[10px] font-extrabold uppercase bg-gray-100 text-gray-700 text-center"
+                                                                        style={{
+                                                                            display: 'inline-flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            whiteSpace: 'nowrap',
+                                                                            borderRadius: '9999px',
+                                                                            padding: '3px 12px',
+                                                                            height: '24px',
+                                                                        }}
+                                                                    >
+                                                                        <span className="pill-text relative -top-[1px] inline-block leading-none">
+                                                                            {row.task_type || 'TASK'}
+                                                                        </span>
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-4 px-6">
+                                                                    <span
+                                                                        className={`pill-badge whitespace-nowrap inline-flex items-center justify-center rounded-full text-[10px] font-extrabold uppercase text-center ${
+                                                                            isDone 
+                                                                                ? 'bg-emerald-50 text-emerald-600' 
+                                                                                : isInProgress 
+                                                                                    ? 'bg-blue-50 text-blue-600' 
+                                                                                    : 'bg-red-50 text-red-600'
+                                                                        }`}
+                                                                        style={{
+                                                                            display: 'inline-flex',
+                                                                            alignItems: 'center',
+                                                                            justifyContent: 'center',
+                                                                            whiteSpace: 'nowrap',
+                                                                            borderRadius: '9999px',
+                                                                            padding: '3px 12px',
+                                                                            height: '24px',
+                                                                        }}
+                                                                    >
+                                                                        <span className="pill-text relative -top-[1px] inline-block leading-none">
+                                                                            {row.status || 'PENDING'}
+                                                                        </span>
+                                                                    </span>
+                                                                </td>
+                                                                <td className="py-4 px-6 font-bold text-slate-700 text-xs uppercase">
+                                                                    {row.file_name || '-'}
+                                                                </td>
+                                                                <td className="py-4 px-6 text-xs text-blue-600 font-semibold truncate max-w-[150px]">
+                                                                    {row.drive_link ? 'Link Available' : '-'}
+                                                                </td>
+                                                            </tr>
+                                                        );
+                                                    })
+                                                )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            {/* Modal Bottom Footer Actions */}
+                            <div className="flex items-center justify-end gap-3 pt-2 shrink-0 border-t border-gray-100">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsImagePreviewOpen(false)}
+                                    className="px-6 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold uppercase transition-all cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadImage}
+                                    disabled={isCapturing}
+                                    className="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                                >
+                                    <Download size={16} /> {isCapturing ? 'Generating Image...' : 'Download Image'}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

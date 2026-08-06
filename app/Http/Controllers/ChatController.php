@@ -33,6 +33,26 @@ class ChatController extends Controller
         ]);
     }
 
+    private function getIdVariants($id): array
+    {
+        if (is_null($id)) return [];
+        $idStr = (string) $id;
+        $raw = str_replace('admin_', '', $idStr);
+        $prefixed = 'admin_' . $raw;
+
+        $variants = [$idStr, $raw, $prefixed];
+
+        // Legacy compatibility for migrated admin IDs (1, admin_1, 8, admin_8)
+        if ($raw === '8' || $raw === '1' || str_contains($idStr, 'admin')) {
+            $variants[] = '1';
+            $variants[] = 'admin_1';
+            $variants[] = '8';
+            $variants[] = 'admin_8';
+        }
+
+        return array_values(array_unique($variants));
+    }
+
     private function getUsersList()
     {
         $currentUser = Auth::user();
@@ -63,8 +83,9 @@ class ChatController extends Controller
                     'email' => $adminUser->email,
                     'role' => 'admin',
                     'designation' => $adminUser->company_name ? $adminUser->company_name . ' Admin' : 'Tenant Administrator',
-                    'image' => $adminUser->image ? asset('storage/' . $adminUser->image) : null,
-                    'thumb' => $adminUser->thumb ? asset('storage/' . $adminUser->thumb) : null,
+                    'image' => $adminUser->image,
+                    'thumb' => $adminUser->thumb,
+                    'image_url' => $adminUser->image_url,
                     'is_active' => true,
                 ]);
             }
@@ -85,8 +106,9 @@ class ChatController extends Controller
                     'email' => $u->email,
                     'role' => $u->role,
                     'designation' => $u->designation ?? ucfirst($u->role),
-                    'image' => $u->image ? asset('storage/' . $u->image) : null,
-                    'thumb' => $u->thumb ? asset('storage/' . $u->thumb) : null,
+                    'image' => $u->image,
+                    'thumb' => $u->thumb,
+                    'image_url' => $u->image_url,
                     'is_active' => $u->is_active,
                 ];
             });
@@ -94,22 +116,27 @@ class ChatController extends Controller
         $contacts = $contacts->concat($employees);
 
         $currentUserId = $isTenantAdmin ? 'admin_' . $currentUser->id : (string) $currentUser->id;
+        $currentIds = array_values(array_unique(array_merge(
+            $this->getIdVariants($currentUserId),
+            $this->getIdVariants($currentUser->id)
+        )));
 
         // 4. Calculate unread counts and last message per contact
-        return $contacts->map(function ($user) use ($currentUserId) {
+        return $contacts->map(function ($user) use ($currentIds) {
             $contactId = (string) $user['id'];
+            $contactIds = $this->getIdVariants($contactId);
 
-            $user['unread_count'] = Message::where('sender_id', $contactId)
-                ->where('receiver_id', $currentUserId)
+            $user['unread_count'] = Message::whereIn('sender_id', $contactIds)
+                ->whereIn('receiver_id', $currentIds)
                 ->where('is_read', false)
                 ->count();
 
-            $user['last_message'] = Message::where(function ($query) use ($currentUserId, $contactId) {
-                $query->where('sender_id', $currentUserId)
-                    ->where('receiver_id', $contactId);
-            })->orWhere(function ($query) use ($currentUserId, $contactId) {
-                $query->where('sender_id', $contactId)
-                    ->where('receiver_id', $currentUserId);
+            $user['last_message'] = Message::where(function ($query) use ($currentIds, $contactIds) {
+                $query->whereIn('sender_id', $currentIds)
+                    ->whereIn('receiver_id', $contactIds);
+            })->orWhere(function ($query) use ($currentIds, $contactIds) {
+                $query->whereIn('sender_id', $contactIds)
+                    ->whereIn('receiver_id', $currentIds);
             })
                 ->orderBy('created_at', 'desc')
                 ->first();
@@ -128,19 +155,26 @@ class ChatController extends Controller
         $isTenantAdmin = $currentUser instanceof Admin || $currentUser->role === 'admin';
         $currentUserId = $isTenantAdmin ? 'admin_' . $currentUser->id : (string) $currentUser->id;
 
-        $messages = Message::where(function ($query) use ($currentUserId, $contactId) {
-            $query->where('sender_id', $currentUserId)
-                ->where('receiver_id', $contactId);
-        })->orWhere(function ($query) use ($currentUserId, $contactId) {
-            $query->where('sender_id', $contactId)
-                ->where('receiver_id', $currentUserId);
+        $currentIds = array_values(array_unique(array_merge(
+            $this->getIdVariants($currentUserId),
+            $this->getIdVariants($currentUser->id)
+        )));
+
+        $contactIds = $this->getIdVariants($contactId);
+
+        $messages = Message::where(function ($query) use ($currentIds, $contactIds) {
+            $query->whereIn('sender_id', $currentIds)
+                ->whereIn('receiver_id', $contactIds);
+        })->orWhere(function ($query) use ($currentIds, $contactIds) {
+            $query->whereIn('sender_id', $contactIds)
+                ->whereIn('receiver_id', $currentIds);
         })
             ->orderBy('created_at', 'asc')
             ->get();
 
         // Mark as read
-        Message::where('sender_id', $contactId)
-            ->where('receiver_id', $currentUserId)
+        Message::whereIn('sender_id', $contactIds)
+            ->whereIn('receiver_id', $currentIds)
             ->where('is_read', false)
             ->update(['is_read' => true]);
 

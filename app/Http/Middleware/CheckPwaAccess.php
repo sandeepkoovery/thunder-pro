@@ -20,9 +20,27 @@ class CheckPwaAccess
                      || $request->query('pwa') === '1'
                      || $request->query('source') === 'pwa';
 
-        if ($isPwaRequest) {
-            $user = $request->user();
-            if ($user) {
+        $user = $request->user();
+        if ($user) {
+            $userAgent = $request->header('User-Agent') ?? '';
+            $isMobileDevice = (bool) preg_match('/Mobile|Android|iP(hone|od|ad)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i', $userAgent);
+            $isPwaRequest = $request->header('X-PWA-Mode') === 'true'
+                         || $request->boolean('is_pwa')
+                         || $request->input('is_pwa') === 'true'
+                         || $request->query('pwa') === '1'
+                         || $request->query('source') === 'pwa';
+
+            // Restrict Desktop Only users from mobile devices & PWA
+            if ($user instanceof \App\Models\User && !empty($user->desktop_only) && ($isMobileDevice || $isPwaRequest)) {
+                Auth::guard('admin')->logout();
+                Auth::guard('web')->logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return redirect()->route('login')->with('error', 'Your account is restricted to Desktop login only. Access via mobile device or PWA is not permitted.');
+            }
+
+            if ($isPwaRequest) {
                 $effectivePlan = 'basic';
                 if ($user->role === 'superadmin') {
                     $effectivePlan = 'premium';

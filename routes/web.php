@@ -205,6 +205,8 @@ Route::middleware(['auth', 'is_admin'])
             // -------------------------
             Route::get('settings', [\App\Http\Controllers\Admin\SettingController::class, 'index'])->name('settings.index');
             Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
+            Route::post('settings/worksheet', [\App\Http\Controllers\Admin\SettingController::class, 'updateWorksheetSetting'])->name('settings.worksheet.update');
+            Route::post('settings/designers', [\App\Http\Controllers\Admin\SettingController::class, 'updateDesignersSetting'])->name('settings.designers.update');
 
             // -------------------------
             // ✅ PRICING ROUTES

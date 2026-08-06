@@ -2,9 +2,11 @@ import React, { useState, useEffect, useRef } from 'react';
 import { usePage, Head } from '@inertiajs/react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
-import { Search, MoreVertical, Send, ArrowLeft } from 'lucide-react';
+import { Search, MoreVertical, Send, ArrowLeft, Smile } from 'lucide-react';
 import axios from 'axios';
 import moment from 'moment';
+
+const EMOJIS = ['😊', '😂', '😍', '😎', '👍', '❤️', '🙏', '🎉', '👋', '🔥', '✨', '💯', '👏', '🚀', '🙌', '👌', '🤝', '😁', '🥰', '😜'];
 
 export default function ChatIndex() {
     const { auth, users: initialUsers } = usePage().props;
@@ -15,6 +17,7 @@ export default function ChatIndex() {
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
     const [searchTerm, setSearchTerm] = useState('');
+    const [showEmojiPicker, setShowEmojiPicker] = useState(false);
     const messagesEndRef = useRef(null);
     const pollInterval = useRef(null);
     const usersPollInterval = useRef(null);
@@ -78,6 +81,7 @@ export default function ChatIndex() {
     const handleSend = async (e) => {
         e.preventDefault();
         if (!newMessage.trim() || !selectedUser) return;
+        setShowEmojiPicker(false);
         try {
             const res = await axios.post(route('chat.send'), {
                 receiver_id: selectedUser.id,
@@ -92,7 +96,46 @@ export default function ChatIndex() {
         } catch (e) { console.error(e); }
     };
 
-    const avatar = (name, url) => url || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=e8f4fd&color=26c6da&bold=true`;
+    const checkIsMine = (senderId, currentUserId) => {
+        if (!senderId || !currentUserId) return false;
+        const s = String(senderId).replace('admin_', '');
+        const c = String(currentUserId).replace('admin_', '');
+        const isAdminS = (s === '1' || s === '8');
+        const isAdminC = (c === '1' || c === '8');
+        if (isAdminS && isAdminC) return true;
+        return s === c || String(senderId) === String(currentUserId);
+    };
+
+    const getDefaultAvatarUrl = () => {
+        if (typeof window !== 'undefined' && window.location.pathname.includes('/erp_pro/public')) {
+            return window.location.origin + '/erp_pro/public/images/default-avatar.jpg';
+        }
+        return '/images/default-avatar.jpg';
+    };
+
+    const avatar = (obj) => {
+        if (typeof obj === 'string') return obj;
+        const url = obj?.image_url || obj?.image || obj?.thumb || obj?.avatar || obj?.profile_photo_url;
+        if (url) {
+            if (!url.startsWith('http') && !url.startsWith('/')) {
+                if (url.startsWith('uploads/') || url.startsWith('images/')) {
+                    return '/' + url;
+                }
+                return '/storage/' + url;
+            }
+            return url;
+        }
+        return getDefaultAvatarUrl();
+    };
+
+    const handleImgError = (e) => {
+        e.target.onerror = null;
+        e.target.src = getDefaultAvatarUrl();
+    };
+
+    const addEmoji = (emoji) => {
+        setNewMessage(prev => prev + emoji);
+    };
 
     const formatTime = (dt) => {
         const m = moment(dt);
@@ -125,7 +168,7 @@ export default function ChatIndex() {
                     {/* My Profile header */}
                     <div style={styles.profileHeader}>
                         <div style={styles.avatarWrap}>
-                            <img src={avatar(currentUser.name, currentUser.image_url)} alt="me" style={styles.myAvatar} />
+                            <img src={avatar(currentUser)} alt="me" style={styles.myAvatar} onError={handleImgError} />
                             <span style={styles.onlineDot} />
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -167,7 +210,7 @@ export default function ChatIndex() {
                                     }}
                                 >
                                     <div style={styles.avatarWrap}>
-                                        <img src={avatar(user.name, user.image_url)} alt={user.name} style={styles.userAvatar} />
+                                        <img src={avatar(user)} alt={user.name} style={styles.userAvatar} onError={handleImgError} />
                                         <span style={{ ...styles.statusDot, background: '#26c6da' }} />
                                     </div>
                                     <div style={{ flex: 1, minWidth: 0 }}>
@@ -177,7 +220,7 @@ export default function ChatIndex() {
                                         </div>
                                         <div style={{ ...styles.userPreview, fontWeight: hasUnread ? 600 : 400, color: hasUnread ? '#26c6da' : '#aaa' }}>
                                             {lastMsg
-                                                ? (lastMsg.sender_id === currentUser.id ? `You: ${lastMsg.type === 'text' ? lastMsg.message : 'Sent a file'}` : (lastMsg.type === 'text' ? lastMsg.message : 'Sent a file'))
+                                                ? (checkIsMine(lastMsg.sender_id, currentUser.id) ? `You: ${lastMsg.type === 'text' ? lastMsg.message : 'Sent a file'}` : (lastMsg.type === 'text' ? lastMsg.message : 'Sent a file'))
                                                 : 'Tap to chat...'}
                                         </div>
                                     </div>
@@ -211,7 +254,7 @@ export default function ChatIndex() {
                                     </button>
                                 )}
                                 <div style={styles.avatarWrap}>
-                                    <img src={avatar(selectedUser.name, selectedUser.image_url)} alt={selectedUser.name} style={styles.userAvatar} />
+                                    <img src={avatar(selectedUser)} alt={selectedUser.name} style={styles.userAvatar} onError={handleImgError} />
                                     <span style={{ ...styles.statusDot, background: '#26c6da' }} />
                                 </div>
                                 <div>
@@ -231,14 +274,14 @@ export default function ChatIndex() {
                                     </div>
                                 )}
                                 {messages.map((msg, idx) => {
-                                    const isMine = msg.sender_id === currentUser.id;
+                                    const isMine = checkIsMine(msg.sender_id, currentUser.id);
                                     const sender = isMine ? currentUser : selectedUser;
                                     // Show sender label + avatar only for received messages
                                     return (
                                         <div key={msg.id || idx} style={{ marginBottom: 20 }}>
                                             {!isMine && (
                                                 <div style={styles.receivedLabel}>
-                                                    <img src={avatar(sender.name, sender.image_url)} alt={sender.name} style={styles.msgAvatar} />
+                                                    <img src={avatar(sender)} alt={sender.name} style={styles.msgAvatar} onError={handleImgError} />
                                                     <span style={styles.msgSenderName}>{sender.name}, {moment(msg.created_at).fromNow()}</span>
                                                 </div>
                                             )}
@@ -266,13 +309,72 @@ export default function ChatIndex() {
                             </div>
 
                             {/* Input */}
-                            <div style={styles.inputBar}>
+                            <div style={{ ...styles.inputBar, position: 'relative' }}>
+                                {showEmojiPicker && (
+                                    <div style={{
+                                        position: 'absolute',
+                                        bottom: '60px',
+                                        left: '12px',
+                                        background: '#ffffff',
+                                        borderRadius: '16px',
+                                        padding: '12px',
+                                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                                        border: '1px solid #e2e8f0',
+                                        zIndex: 50,
+                                        display: 'grid',
+                                        gridTemplateColumns: 'repeat(5, 1fr)',
+                                        gap: '8px',
+                                        width: '210px',
+                                    }}>
+                                        {EMOJIS.map(emoji => (
+                                            <button
+                                                key={emoji}
+                                                type="button"
+                                                onClick={() => addEmoji(emoji)}
+                                                style={{
+                                                    fontSize: '20px',
+                                                    padding: '6px',
+                                                    borderRadius: '8px',
+                                                    border: 'none',
+                                                    background: 'transparent',
+                                                    cursor: 'pointer',
+                                                    transition: 'transform 0.1s',
+                                                }}
+                                                onMouseDown={(e) => e.preventDefault()}
+                                            >
+                                                {emoji}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+
                                 <form onSubmit={handleSend} style={{ flex: 1, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+                                        style={{
+                                            background: showEmojiPicker ? '#e0f2fe' : 'transparent',
+                                            border: 'none',
+                                            borderRadius: '50%',
+                                            padding: '8px',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            color: showEmojiPicker ? '#0284c7' : '#64748b',
+                                            transition: 'all 0.2s',
+                                        }}
+                                        title="Choose Emoji"
+                                    >
+                                        <Smile size={20} />
+                                    </button>
+
                                     <input
                                         type="text"
                                         placeholder="Type a Message"
                                         value={newMessage}
                                         onChange={e => setNewMessage(e.target.value)}
+                                        onFocus={() => setShowEmojiPicker(false)}
                                         onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(e); } }}
                                         style={styles.msgInput}
                                     />
