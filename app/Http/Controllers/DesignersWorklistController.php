@@ -68,7 +68,25 @@ class DesignersWorklistController extends Controller
         if ($adminId) {
             $userQuery->where('admin_id', $adminId);
         }
+
+        $userQuery->where(function ($q) {
+            $q->where('role', 'designer')
+              ->orWhere('designation', 'LIKE', '%design%')
+              ->orWhereHas('department', function ($dq) {
+                  $dq->where('name', 'LIKE', '%design%');
+              });
+        });
+
         $users = $userQuery->orderBy('name')->get(['id', 'name', 'email']);
+
+        // Fallback if no users explicitly match designer keywords
+        if ($users->isEmpty()) {
+            $fallbackQuery = User::where('is_active', true);
+            if ($adminId) {
+                $fallbackQuery->where('admin_id', $adminId);
+            }
+            $users = $fallbackQuery->whereIn('role', ['designer', 'editor'])->orderBy('name')->get(['id', 'name', 'email']);
+        }
 
         $taskTypeOptionsSetting = \App\Models\Setting::where('key', 'designers_task_type_options')->value('value')
             ?? 'Poster, Thumbnail, Story, Carousel, Grid, Other';
