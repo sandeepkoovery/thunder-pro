@@ -45,7 +45,7 @@ Route::post('/payment/verify', [PaymentController::class, 'verifyPayment'])->nam
 Route::middleware(['auth'])->get('/dashboard', function () {
     $user = auth()->user();
 
-    if (in_array($user->role, ['superadmin', 'admin', 'manager', 'editor'])) {
+    if ($user instanceof \App\Models\Admin || in_array($user->role, ['superadmin', 'admin'])) {
         return app(\App\Http\Controllers\Admin\DashboardController::class)->index();
     }
 
