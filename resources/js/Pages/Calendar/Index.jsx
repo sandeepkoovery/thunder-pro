@@ -580,10 +580,12 @@ export default function Index({ events: initialEvents, users }) {
         toolbar: CustomToolbar,
     }), []);
 
-    // Check if the user has permission to edit/delete the event
+    // Check if the user has permission to edit/delete the event (Only Admin or Created User)
     const canManageEvent = (eventObj) => {
         if (!eventObj) return false;
-        return !isUserRole || eventObj.resource.user_id === auth.user.id;
+        const isAdmin = auth?.user?.role === 'admin' || auth?.user?.role === 'superadmin';
+        const isCreator = Number(eventObj.resource?.user_id) === Number(auth?.user?.id);
+        return isAdmin || isCreator;
     };
 
     return (

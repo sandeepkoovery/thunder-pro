@@ -137,12 +137,13 @@ class CalendarController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $userRole = strtolower($user->role ?? ($user instanceof \App\Models\Admin ? 'admin' : 'user'));
-        if ($event->user_id !== $user->id && !in_array($userRole, ['admin', 'superadmin', 'manager', 'editor'])) {
-            abort(403, 'Unauthorized action.');
+        $isAdmin = ($user instanceof \App\Models\Admin) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin']);
+        $isCreator = ($event->user_id === $user->id);
+
+        if (!$isAdmin && !$isCreator) {
+            abort(403, 'Unauthorized action. Only administrators or the event creator can edit this event.');
         }
 
-        $isAdmin = ($user instanceof \App\Models\Admin) || in_array($userRole, ['admin', 'superadmin']);
         $allowedCategories = $isAdmin 
             ? ['holiday', 'leave', 'meeting', 'training', 'project', 'personal', 'company_event']
             : ['personal'];
@@ -186,9 +187,11 @@ class CalendarController extends Controller
         }
 
         $user = auth()->user();
-        $userRole = strtolower($user->role ?? ($user instanceof \App\Models\Admin ? 'admin' : 'user'));
-        if ($event->user_id !== $user->id && !in_array($userRole, ['admin', 'superadmin', 'manager', 'editor'])) {
-            abort(403, 'Unauthorized action.');
+        $isAdmin = ($user instanceof \App\Models\Admin) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin']);
+        $isCreator = ($event->user_id === $user->id);
+
+        if (!$isAdmin && !$isCreator) {
+            abort(403, 'Unauthorized action. Only administrators or the event creator can delete this event.');
         }
 
         $event->delete();
