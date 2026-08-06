@@ -1,7 +1,7 @@
 import React from "react";
 import { Head, Link, usePage } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, KeyRound } from "lucide-react";
 
 export default function Show() {
   const { user } = usePage().props;
@@ -83,6 +83,18 @@ export default function Show() {
                 <Detail label="Email" value={user.email || '—'} />
                 <Detail label="Role" value={user.role || '—'} />
                 <Detail label="Status" value={user.is_active ? 'Active' : 'Inactive'} />
+                <Detail 
+                  label="Windows Hello Passkey" 
+                  value={
+                    (user.passkeys_count > 0 || (user.passkeys && user.passkeys.length > 0)) ? (
+                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200">
+                        <KeyRound size={14} className="text-amber-600" /> Passkey Enabled ({user.passkeys_count || user.passkeys?.length || 1})
+                      </span>
+                    ) : (
+                      <span className="text-gray-400 font-medium">Not Enabled</span>
+                    )
+                  } 
+                />
               </div>
             </section>
           </div>

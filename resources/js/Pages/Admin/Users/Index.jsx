@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
+  KeyRound,
   X
 } from "lucide-react";
 import axios from "axios";
@@ -454,12 +455,23 @@ export default function Index() {
                       <div className="flex items-center gap-3">
                         {renderAvatar(user)}
                         <div>
-                          <Link
-                            href={route("admin.users.show", user.id)}
-                            className="font-bold text-gray-800 text-[15px] hover:text-[#1e88e5] transition-colors"
-                          >
-                            {user.name}
-                          </Link>
+                          <div className="flex items-center gap-2">
+                            <Link
+                              href={route("admin.users.show", user.id)}
+                              className="font-bold text-gray-800 text-[15px] hover:text-[#1e88e5] transition-colors"
+                            >
+                              {user.name}
+                            </Link>
+                            {(user.passkeys_count > 0 || (user.passkeys && user.passkeys.length > 0)) && (
+                              <span
+                                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200/80 shadow-2xs"
+                                title="Windows Hello Passkey Enabled"
+                              >
+                                <KeyRound size={12} className="text-amber-600" />
+                                <span>Passkey</span>
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-400 font-medium mt-0.5">
                             {user.email}
                           </p>
@@ -608,12 +620,23 @@ export default function Index() {
                   <div className="flex items-center gap-2">
                     {renderAvatar(user)}
                     <div>
-                      <Link
-                        href={route("admin.users.show", user.id)}
-                        className="font-bold text-gray-800 text-[15px] hover:text-[#1e88e5] transition-colors"
-                      >
-                        {user.name}
-                      </Link>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <Link
+                          href={route("admin.users.show", user.id)}
+                          className="font-bold text-gray-800 text-[15px] hover:text-[#1e88e5] transition-colors"
+                        >
+                          {user.name}
+                        </Link>
+                        {(user.passkeys_count > 0 || (user.passkeys && user.passkeys.length > 0)) && (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-50 text-amber-700 border border-amber-200/80"
+                            title="Windows Hello Passkey Enabled"
+                          >
+                            <KeyRound size={11} className="text-amber-600" />
+                            <span>Passkey</span>
+                          </span>
+                        )}
+                      </div>
                       <div className="text-xs text-gray-400">{user.designation || "No Designation"}</div>
                     </div>
                   </div>

@@ -26,7 +26,8 @@ class UserController extends Controller
         $authUser = auth()->user();
         $isSuperAdmin = $authUser->role === 'superadmin';
 
-        $query = User::with(['department', 'reportingManager'])
+        $query = User::with(['department', 'reportingManager', 'passkeys'])
+            ->withCount('passkeys')
             ->whereIn('role', ['user', 'manager', 'editor']);
 
         if (!$isSuperAdmin) {
@@ -56,7 +57,7 @@ class UserController extends Controller
     public function show(User $user)
     {
         return inertia('Admin/Users/Show', [
-            'user' => $user->load(['department', 'reportingManager']),
+            'user' => $user->load(['department', 'reportingManager', 'passkeys'])->loadCount('passkeys'),
         ]);
     }
 
