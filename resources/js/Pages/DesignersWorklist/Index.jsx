@@ -19,7 +19,7 @@ import toast from 'react-hot-toast';
 
 export default function Index({ worklists = [], users = [], taskTypeOptionsSetting = 'Poster, Thumbnail, Story, Carousel, Grid, Other' }) {
     const { auth } = usePage().props;
-    const isUser = auth?.user?.role === 'user';
+    const isUser = auth?.user?.role !== 'admin' && auth?.user?.role !== 'superadmin' && auth?.user?.role !== 'editor';
     const Layout = isUser ? UserLayout : AdminLayout;
 
     const taskOptions = useMemo(() => {
@@ -28,8 +28,13 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
     }, [taskTypeOptionsSetting]);
 
     // Filter States
+    const [selectedMonthFilter, setSelectedMonthFilter] = useState('');
     const [selectedDateFilter, setSelectedDateFilter] = useState('');
     const [selectedDesignerFilter, setSelectedDesignerFilter] = useState('');
+
+    // Pagination States
+    const [currentPage, setCurrentPage] = useState(1);
+    const [itemsPerPage, setItemsPerPage] = useState(10);
 
     // Modals
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -104,6 +109,11 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
     // Filtered Worklist Items
     const filteredWorklists = useMemo(() => {
         return worklists.filter(item => {
+            if (selectedMonthFilter && item.task_date) {
+                if (!item.task_date.startsWith(selectedMonthFilter)) {
+                    return false;
+                }
+            }
             if (selectedDateFilter && item.task_date !== selectedDateFilter) {
                 return false;
             }
@@ -113,7 +123,20 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
             }
             return true;
         });
-    }, [worklists, selectedDateFilter, selectedDesignerFilter]);
+    }, [worklists, selectedMonthFilter, selectedDateFilter, selectedDesignerFilter]);
+
+    // Reset pagination on filter change
+    React.useEffect(() => {
+        setCurrentPage(1);
+    }, [selectedMonthFilter, selectedDateFilter, selectedDesignerFilter, itemsPerPage]);
+
+    const totalPages = Math.ceil(filteredWorklists.length / itemsPerPage) || 1;
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+
+    const paginatedWorklists = useMemo(() => {
+        return filteredWorklists.slice(indexOfFirstItem, indexOfLastItem);
+    }, [filteredWorklists, indexOfFirstItem, indexOfLastItem]);
 
     // Format Date helper (e.g. Jul 30 / THU)
     const formatDate = (dateStr) => {
@@ -137,7 +160,7 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
 
             <div className="w-full space-y-6 font-sans pb-12 bg-slate-50/50 min-h-screen p-3 sm:p-6">
                 
-                {/* 1. TOP HEADER CARD (Exact match to Screenshots) */}
+                {/* 1. TOP HEADER CARD */}
                 <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
                         <h1 className="text-xl sm:text-2xl font-extrabold text-gray-900 tracking-tight">
@@ -150,6 +173,17 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
 
                     <div className="flex flex-wrap items-center gap-3 self-end md:self-center">
                         
+                        {/* Month Picker Filter */}
+                        <div className="relative">
+                            <input
+                                type="month"
+                                value={selectedMonthFilter}
+                                onChange={(e) => setSelectedMonthFilter(e.target.value)}
+                                className="px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                title="Filter by Month"
+                            />
+                        </div>
+
                         {/* Date Picker Filter */}
                         <div className="relative">
                             <input
@@ -157,6 +191,7 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                 value={selectedDateFilter}
                                 onChange={(e) => setSelectedDateFilter(e.target.value)}
                                 className="px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                title="Filter by Date"
                             />
                         </div>
 
@@ -177,6 +212,21 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                             </div>
                         )}
 
+                        {/* Clear Filters Button */}
+                        {(selectedMonthFilter || selectedDateFilter || selectedDesignerFilter) && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setSelectedMonthFilter('');
+                                    setSelectedDateFilter('');
+                                    setSelectedDesignerFilter('');
+                                }}
+                                className="px-3.5 py-2.5 rounded-2xl bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs font-bold transition-all cursor-pointer"
+                            >
+                                Clear Filters
+                            </button>
+                        )}
+
                         {/* + ADD TASK Button (Admin Side) */}
                         {!isUser && (
                             <button
@@ -195,7 +245,7 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                     </div>
                 </div>
 
-                {/* 2. MAIN WORKLIST TABLE (Exact match to Screenshots) */}
+                {/* 2. MAIN WORKLIST TABLE */}
                 <div className="bg-white rounded-[28px] shadow-sm border border-gray-100 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse min-w-[950px]">
@@ -211,7 +261,7 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredWorklists.length === 0 ? (
+                                {paginatedWorklists.length === 0 ? (
                                     <tr>
                                         <td colSpan={7} className="py-20 text-center">
                                             <div className="flex flex-col items-center justify-center">
@@ -219,12 +269,12 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                                     <CalendarIcon className="text-gray-300" size={32} />
                                                 </div>
                                                 <h4 className="font-bold text-gray-900 text-base">No worklist tasks found</h4>
-                                                <p className="text-xs text-gray-400 mt-1">Select a different date or filter above.</p>
+                                                <p className="text-xs text-gray-400 mt-1">Select a different month, date, or filter above.</p>
                                             </div>
                                         </td>
                                     </tr>
                                 ) : (
-                                    filteredWorklists.map((item) => {
+                                    paginatedWorklists.map((item) => {
                                         const dateFmt = formatDate(item.task_date);
                                         const assignedList = item.assigned_users || [];
                                         const isDone = (item.status || '').toLowerCase() === 'done' || (item.status || '').toLowerCase() === 'completed';
@@ -250,43 +300,40 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                                 {/* CLIENT */}
                                                 <td className="py-4 px-6 font-extrabold text-gray-900 text-sm uppercase max-w-xs">{item.client_name || '-'}</td>
 
-                                                {/* ASSIGNED TO (ADMIN SIDE: SOFT BLUE PILL BADGE) */}
+                                                {/* ASSIGNED TO */}
                                                 {!isUser && (
                                                     <td className="py-4 px-6 whitespace-nowrap">
-                                                        <div className="flex flex-wrap items-center gap-1.5">
-                                                            {assignedList.length > 0 ? (
+                                                        <div className="flex flex-wrap gap-1.5 max-w-xs">
+                                                            {assignedList.length === 0 ? (
+                                                                <span className="text-xs font-extrabold text-gray-400 uppercase">UNASSIGNED</span>
+                                                            ) : (
                                                                 assignedList.map(u => (
-                                                                    <span key={u.id} className="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-blue-50 text-blue-600">
+                                                                    <span key={u.id} className="px-3 py-1 rounded-full bg-blue-50 text-blue-600 text-xs font-extrabold uppercase border border-blue-100/50">
                                                                         {u.name}
                                                                     </span>
                                                                 ))
-                                                            ) : (
-                                                                <span className="text-xs text-gray-400 font-bold uppercase">-</span>
                                                             )}
                                                         </div>
                                                     </td>
                                                 )}
 
-                                                {/* TASK TYPE (LIGHT GREY ROUNDED PILL BADGE) */}
-                                                <td className="py-4 px-6 whitespace-nowrap">
-                                                    <span className="px-3.5 py-1 rounded-full text-xs font-extrabold uppercase bg-gray-100 text-gray-700">
-                                                        {item.task_type || 'POSTER'}
-                                                    </span>
-                                                </td>
+                                                {/* TASK TYPE */}
+                                                <td className="py-4 px-6 font-extrabold text-gray-900 text-sm uppercase whitespace-nowrap">{item.task_type || '-'}</td>
 
-                                                {/* OTHER ASSIGNEES (USER SIDE: ITALIC LIGHT GRAY TEXT) */}
+                                                {/* OTHER ASSIGNEES */}
                                                 {isUser && (
-                                                    <td className="py-4 px-6 whitespace-nowrap text-xs italic font-semibold text-gray-300 uppercase">
-                                                        {otherAssigneesText}
+                                                    <td className="py-4 px-6 whitespace-nowrap">
+                                                        <span className="text-xs font-extrabold text-gray-600 uppercase tracking-wider">
+                                                            {otherAssigneesText}
+                                                        </span>
                                                     </td>
                                                 )}
 
                                                 {/* STATUS */}
                                                 <td className="py-4 px-6 whitespace-nowrap">
                                                     {isUser ? (
-                                                        /* User Status Dropdown Pill with Chevron Arrow */
                                                         <select
-                                                            value={isDone ? 'Done' : 'Not Done'}
+                                                            value={item.status || 'Not Done'}
                                                             onChange={(e) => handleInlineStatusChange(item.id, e.target.value)}
                                                             className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border cursor-pointer appearance-none text-center ${
                                                                 isDone
@@ -298,7 +345,6 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                                             <option value="Done">DONE ∨</option>
                                                         </select>
                                                     ) : (
-                                                        /* Admin Soft Status Pill */
                                                         <span className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border text-center ${
                                                             isDone
                                                                 ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
@@ -313,7 +359,6 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                                 <td className="py-4 px-6 text-right whitespace-nowrap">
                                                     <div className="flex items-center justify-end gap-2">
                                                         {isUser ? (
-                                                            /* User Action: Eye icon button */
                                                             <button
                                                                 onClick={() => setPreviewItem(item)}
                                                                 className="w-8 h-8 rounded-full bg-blue-50 hover:bg-blue-100 text-blue-600 flex items-center justify-center transition-colors cursor-pointer"
@@ -322,7 +367,6 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                                                 <Eye size={16} />
                                                             </button>
                                                         ) : (
-                                                            /* Admin Action: Edit Pencil & Delete Trash */
                                                             <>
                                                                 <button
                                                                     onClick={() => handleOpenEdit(item)}
@@ -349,6 +393,70 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                             </tbody>
                         </table>
                     </div>
+
+                    {/* PAGINATION FOOTER */}
+                    {filteredWorklists.length > 0 && (
+                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold text-gray-500">
+                            <div className="flex items-center gap-2">
+                                <span>Show</span>
+                                <select
+                                    value={itemsPerPage}
+                                    onChange={(e) => {
+                                        setItemsPerPage(Number(e.target.value));
+                                        setCurrentPage(1);
+                                    }}
+                                    className="px-3 py-1.5 rounded-xl border border-gray-200 bg-white font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                >
+                                    <option value={10}>10 per page</option>
+                                    <option value={20}>20 per page</option>
+                                    <option value={50}>50 per page</option>
+                                    <option value={filteredWorklists.length}>All ({filteredWorklists.length})</option>
+                                </select>
+                                <span>(Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredWorklists.length)} of {filteredWorklists.length} tasks)</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                                <button
+                                    disabled={currentPage === 1}
+                                    onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                                    className="px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-gray-700 transition shadow-sm cursor-pointer"
+                                >
+                                    Previous
+                                </button>
+                                
+                                <div className="flex items-center gap-1">
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1)
+                                        .filter(p => p === 1 || p === totalPages || Math.abs(p - currentPage) <= 1)
+                                        .map((p, idx, arr) => {
+                                            const isCurrent = p === currentPage;
+                                            return (
+                                                <React.Fragment key={p}>
+                                                    {idx > 0 && p - arr[idx - 1] > 1 && <span className="px-1 text-gray-400">...</span>}
+                                                    <button
+                                                        onClick={() => setCurrentPage(p)}
+                                                        className={`w-8 h-8 rounded-xl font-bold transition text-xs cursor-pointer ${
+                                                            isCurrent 
+                                                                ? 'bg-[#0f172a] text-white shadow-sm' 
+                                                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                                                        }`}
+                                                    >
+                                                        {p}
+                                                    </button>
+                                                </React.Fragment>
+                                            );
+                                        })}
+                                </div>
+
+                                <button
+                                    disabled={currentPage >= totalPages}
+                                    onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                                    className="px-4 py-2 rounded-xl border border-gray-200 bg-white hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed font-bold text-gray-700 transition shadow-sm cursor-pointer"
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* 3. PREVIEW MODAL */}
