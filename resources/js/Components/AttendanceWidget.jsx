@@ -199,8 +199,12 @@ export default function AttendanceWidget({ isDarkHeader = false }) {
                 )}
 
                 {status === 'punched_out' && (
-                    <div className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-3 sm:py-1.5 bg-gray-100 text-gray-400 text-sm font-bold rounded-lg sm:rounded border border-gray-200 cursor-not-allowed">
-                        <Square className="w-4 h-4 sm:w-3 sm:h-3 mr-2 sm:mr-1" /> Shift Ended
+                    <div className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-3.5 sm:py-1.5 text-sm font-extrabold rounded-xl shadow-xs ${
+                        isDarkHeader
+                            ? "bg-slate-900/60 text-white border border-white/30 backdrop-blur-md"
+                            : "bg-slate-800 text-white border border-slate-700"
+                    }`}>
+                        <Square className="w-4 h-4 sm:w-3.5 sm:h-3.5 mr-2 sm:mr-1.5 text-red-400 fill-current" /> Shift Ended
                     </div>
                 )}
 
