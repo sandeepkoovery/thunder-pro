@@ -206,10 +206,9 @@ export default function Index({ events: initialEvents, users }) {
     const [currentDate, setCurrentDate] = useState(new Date());
 
     const getDefaultCategory = () => {
-        const role = auth.user.role;
-        if (['admin', 'superadmin', 'editor'].includes(role)) return 'holiday';
-        if (role === 'manager') return 'meeting';
-        return 'personal';
+        const role = auth?.user?.role;
+        const isAdmin = role === 'admin' || role === 'superadmin';
+        return isAdmin ? 'holiday' : 'personal';
     };
 
     // Event filters categories state
@@ -864,14 +863,8 @@ export default function Index({ events: initialEvents, users }) {
                                                     <div className="fixed inset-0 z-[155]" onClick={() => setIsCategoryDropdownOpen(false)}></div>
                                                     <div className="absolute z-[160] w-full mt-1 bg-white border border-gray-100 rounded-xl shadow-xl py-1 max-h-60 overflow-y-auto">
                                                         {Object.keys(categoryColors).map((cat) => {
-                                                            let isAllowed = false;
-                                                            if (['admin', 'superadmin', 'editor'].includes(auth.user.role)) {
-                                                                isAllowed = true;
-                                                            } else if (auth.user.role === 'manager' && ['meeting', 'project', 'personal'].includes(cat)) {
-                                                                isAllowed = true;
-                                                            } else if (auth.user.role === 'user' && cat === 'personal') {
-                                                                isAllowed = true;
-                                                            }
+                                                            const isAdmin = auth?.user?.role === 'admin' || auth?.user?.role === 'superadmin';
+                                                            const isAllowed = isAdmin ? true : (cat === 'personal');
 
                                                             if (!isAllowed) return null;
 

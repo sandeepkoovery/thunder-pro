@@ -85,13 +85,10 @@ class CalendarController extends Controller
         $user = auth()->user();
         $tenantAdminId = $this->tenantAdminId();
 
-        $allowedCategories = ['personal']; // Default for Employee
-
-        if (in_array($user->role, ['admin', 'superadmin', 'editor'])) {
-            $allowedCategories = ['holiday', 'leave', 'meeting', 'training', 'project', 'personal', 'company_event'];
-        } elseif ($user->role === 'manager') {
-            $allowedCategories = ['meeting', 'project', 'personal'];
-        }
+        $isAdmin = ($user instanceof \App\Models\Admin) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin']);
+        $allowedCategories = $isAdmin 
+            ? ['holiday', 'leave', 'meeting', 'training', 'project', 'personal', 'company_event']
+            : ['personal'];
 
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
@@ -137,14 +134,10 @@ class CalendarController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        $user = auth()->user();
-        $allowedCategories = ['personal'];
-
-        if (in_array($user->role, ['admin', 'superadmin', 'editor'])) {
-            $allowedCategories = ['holiday', 'leave', 'meeting', 'training', 'project', 'personal', 'company_event'];
-        } elseif ($user->role === 'manager') {
-            $allowedCategories = ['meeting', 'project', 'personal'];
-        }
+        $isAdmin = ($user instanceof \App\Models\Admin) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin']);
+        $allowedCategories = $isAdmin 
+            ? ['holiday', 'leave', 'meeting', 'training', 'project', 'personal', 'company_event']
+            : ['personal'];
 
         $validated = $request->validate([
             'title'       => 'required|string|max:255',
