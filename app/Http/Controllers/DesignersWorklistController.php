@@ -26,11 +26,11 @@ class DesignersWorklistController extends Controller
     {
         if (!$user) return false;
         if ($user instanceof \App\Models\Admin) return true;
-        if (in_array(strtolower($user->role ?? ''), ['admin', 'superadmin', 'designer'])) return true;
-        if (!empty($user->designation) && stripos($user->designation, 'design') !== false) return true;
+        if (in_array(strtolower($user->role ?? ''), ['admin', 'superadmin', 'designer', 'editor', 'manager'])) return true;
+        if (!empty($user->designation) && (stripos($user->designation, 'design') !== false || stripos($user->designation, 'edit') !== false)) return true;
         if ($user->department_id) {
             $dept = \App\Models\Department::find($user->department_id);
-            if ($dept && stripos($dept->name, 'design') !== false) return true;
+            if ($dept && (stripos($dept->name, 'design') !== false || stripos($dept->name, 'edit') !== false)) return true;
         }
         return false;
     }
@@ -38,7 +38,7 @@ class DesignersWorklistController extends Controller
     private function authorizeDesigner()
     {
         if (!$this->isDesignerUser(auth()->user())) {
-            abort(403, 'Access denied. Designers Worklist is restricted to designers and administrators only.');
+            abort(403, 'Access denied. Designers Worklist is restricted to designers, editors, and administrators only.');
         }
     }
 

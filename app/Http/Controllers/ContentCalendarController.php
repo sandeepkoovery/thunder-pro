@@ -38,7 +38,9 @@ class ContentCalendarController extends Controller
             $query->where('admin_id', $adminId);
         }
 
-        if ($user->role === 'user') {
+        $isManager = ($user instanceof \App\Models\Admin) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin', 'editor']);
+
+        if (!$isManager) {
             $query->whereHas('assignedUsers', function ($q) use ($user) {
                 $q->where('users.id', $user->id);
             });

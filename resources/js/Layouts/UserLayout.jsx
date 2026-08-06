@@ -25,7 +25,7 @@ export default function UserLayout({ children, title = "Dashboard" }) {
   const user = auth?.user;
   const userRole = user?.role?.toLowerCase() || '';
   const userDesignation = user?.designation?.toLowerCase() || '';
-  const isDesigner = isSuperAdmin || userRole === 'admin' || userRole === 'designer' || userDesignation.includes('design');
+  const isDesigner = isSuperAdmin || ['admin', 'designer', 'editor', 'manager'].includes(userRole) || userDesignation.includes('design') || userDesignation.includes('edit');
 
   const isVisible = (module) => {
     if (isSuperAdmin) return true;

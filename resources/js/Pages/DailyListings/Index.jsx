@@ -24,7 +24,7 @@ import toast from 'react-hot-toast';
 
 export default function Index({ worksheets = [], settings, users = [] }) {
     const { auth } = usePage().props;
-    const isUser = auth?.user?.role === 'user';
+    const isUser = auth?.user?.role !== 'admin' && auth?.user?.role !== 'superadmin';
     const Layout = isUser ? UserLayout : AdminLayout;
 
     // View Mode & Filters
