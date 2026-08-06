@@ -98,10 +98,16 @@ class CalendarController extends Controller
             'all_day'     => 'boolean',
             'description' => 'nullable|string',
             'location'    => 'nullable|string',
-            'event_url'   => 'nullable|url',
+            'event_url'   => 'nullable|string|max:255',
             'guest_ids'   => 'nullable|array',
             'guest_ids.*' => 'exists:users,id',
         ]);
+
+        $userId = auth()->id();
+        if ($user instanceof \App\Models\Admin) {
+            $matchingUser = User::where('email', $user->email)->first();
+            $userId = $matchingUser ? $matchingUser->id : (User::where('admin_id', $user->id)->value('id') ?? User::value('id') ?? 1);
+        }
 
         Event::create([
             'admin_id'    => $tenantAdminId,
@@ -114,7 +120,7 @@ class CalendarController extends Controller
             'location'    => $validated['location'] ?? null,
             'event_url'   => $validated['event_url'] ?? null,
             'guest_ids'   => $validated['guest_ids'] ?? [],
-            'user_id'     => auth()->id(),
+            'user_id'     => $userId,
         ]);
 
         return redirect()->route('calendar.index')->with('success', 'Event created successfully.');
@@ -122,6 +128,7 @@ class CalendarController extends Controller
 
     public function update(Request $request, $id)
     {
+        $user = auth()->user();
         $tenantAdminId = $this->tenantAdminId();
         $event = Event::findOrFail($id);
 
@@ -130,11 +137,12 @@ class CalendarController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        if ($event->user_id !== auth()->id() && !in_array(auth()->user()->role, ['admin', 'superadmin', 'manager', 'editor'])) {
+        $userRole = strtolower($user->role ?? ($user instanceof \App\Models\Admin ? 'admin' : 'user'));
+        if ($event->user_id !== $user->id && !in_array($userRole, ['admin', 'superadmin', 'manager', 'editor'])) {
             abort(403, 'Unauthorized action.');
         }
 
-        $isAdmin = ($user instanceof \App\Models\Admin) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin']);
+        $isAdmin = ($user instanceof \App\Models\Admin) || in_array($userRole, ['admin', 'superadmin']);
         $allowedCategories = $isAdmin 
             ? ['holiday', 'leave', 'meeting', 'training', 'project', 'personal', 'company_event']
             : ['personal'];
@@ -147,7 +155,7 @@ class CalendarController extends Controller
             'all_day'     => 'boolean',
             'description' => 'nullable|string',
             'location'    => 'nullable|string',
-            'event_url'   => 'nullable|url',
+            'event_url'   => 'nullable|string|max:255',
             'guest_ids'   => 'nullable|array',
             'guest_ids.*' => 'exists:users,id',
         ]);
@@ -177,7 +185,9 @@ class CalendarController extends Controller
             abort(403, 'Unauthorized action.');
         }
 
-        if ($event->user_id !== auth()->id() && !in_array(auth()->user()->role, ['admin', 'superadmin', 'manager', 'editor'])) {
+        $user = auth()->user();
+        $userRole = strtolower($user->role ?? ($user instanceof \App\Models\Admin ? 'admin' : 'user'));
+        if ($event->user_id !== $user->id && !in_array($userRole, ['admin', 'superadmin', 'manager', 'editor'])) {
             abort(403, 'Unauthorized action.');
         }
 
