@@ -203,7 +203,12 @@ export default function Index() {
 
   // Toggle desktop_only flag
   const handleDesktopOnlyToggle = (id) => {
-    const url = route("users.toggle.desktop", { user: id });
+    let url;
+    try {
+      url = route("admin.users.toggle.desktop", { user: id });
+    } catch (e) {
+      url = route("users.toggle.desktop", { user: id });
+    }
     axios.patch(url)
       .then(() => {
         router.reload({ only: ['users'] });
@@ -211,7 +216,7 @@ export default function Index() {
       })
       .catch(error => {
         console.error("Error toggling desktop only:", error);
-        toast.error(error.response?.data?.error || "Failed to update desktop only setting.");
+        toast.error(error.response?.data?.error || error.response?.data?.message || "Failed to update desktop only setting.");
       });
   };
 

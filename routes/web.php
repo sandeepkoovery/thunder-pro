@@ -153,9 +153,10 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/designers-worklist/{id}', [\App\Http\Controllers\DesignersWorklistController::class, 'destroy'])->name('designers-worklist.destroy');
 
     // -------------------------
-    // ✅ AI ASSISTANT ROUTES
+    // ✅ AI ASSISTANT & USER SETTINGS ROUTES
     // -------------------------
     Route::post('/ai/chat', [AiAssistantController::class, 'chat'])->name('ai.chat');
+    Route::patch('/users/toggle-desktop/{user}', [AdminUserController::class, 'toggleDesktop'])->name('users.toggle.desktop');
 });
 
 
