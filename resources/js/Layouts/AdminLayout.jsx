@@ -18,11 +18,12 @@ import {
   List,
   Sparkles,
   Building2,
+  Layers,
 } from "lucide-react";
 import AppShell, { NavItem } from "@/Layouts/AppShell";
 
 export default function AdminLayout({ children, title = "Dashboard" }) {
-  const { auth, flash, sharedSettings, expiringWebsitesCount, allowedModules } = usePage().props;
+  const { auth, flash, sharedSettings, expiringWebsitesCount, allowedModules, moduleOrder = {} } = usePage().props;
   const isSuperAdmin = auth?.user?.role === "superadmin";
   const betaMenuItems = isSuperAdmin ? [] : (Array.isArray(sharedSettings?.beta_menu_items) ? sharedSettings.beta_menu_items : []);
   const hiddenMenuItems = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
@@ -33,6 +34,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
     if (hiddenMenuItems.includes(module)) return false;
     return Array.isArray(allowedModules) && allowedModules.includes(module);
   };
+
   const [sidebarCounts, setSidebarCounts] = useState({ unread_chats: 0, pending_leaves: 0 });
 
   const fetchSidebarCounts = async () => {
@@ -50,35 +52,93 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
     return () => clearInterval(interval);
   }, []);
 
-  const renderNav = ({ collapsed, isMobileOpen }) => (
-    <>
-      <NavItem href={route("dashboard")} icon={LayoutDashboard} label="Dashboard" routeName="dashboard" visible={true} beta={betaMenuItems.includes("dashboard")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-      {!isSuperAdmin && (
-        <>
-          <NavItem href={route("admin.projects.index")} icon={FolderKanban} label="Projects" routeName="admin.projects" visible={isVisible("projects")} beta={betaMenuItems.includes("projects")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          {isAdmin && (
-            <>
-              <NavItem href={route("admin.users.index")} icon={UsersIcon} label="Employees" routeName="admin.users" visible={isVisible("users")} beta={betaMenuItems.includes("users")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-              <NavItem href={route("admin.departments.index")} icon={Building2} label="Departments" routeName="admin.departments" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-            </>
-          )}
-          <NavItem href={route(isAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          <NavItem href={route(isAdmin ? "admin.leaves.index" : "leave.index")} icon={FileText} label="Leaves" routeName={isAdmin ? "admin.leaves" : "leave"} visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          <NavItem href={route("calendar.index")} icon={CalendarDays} label="Calendar" routeName="calendar" visible={isVisible("calendar")} beta={betaMenuItems.includes("calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          <NavItem href={route("content-calendar.index")} icon={Sparkles} label="Content Calendar" routeName="content-calendar" visible={isVisible("content_calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          <NavItem href={route("daily-listings.index")} icon={List} label="Daily Listings" routeName="daily-listings" visible={isVisible("daily_listings")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          <NavItem href={route("designers-worklist.index")} icon={Palette} label="Designers Worklist" routeName="designers-worklist" visible={isVisible("designers_worklist")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          <NavItem href={route("admin.drive.index")} icon={FolderKanban} label="Drive" routeName="admin.drive" visible={!hiddenMenuItems.includes("drive")} beta={false} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          <NavItem href={route("chat.index")} icon={MessageSquare} label="Chat" routeName="chat" visible={isVisible("chat")} beta={betaMenuItems.includes("chat")} badge={sidebarCounts.unread_chats} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          <NavItem href={route("notifications.index")} icon={Bell} label="Notifications" routeName="notifications" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-          {isAdmin && <NavItem href={route("admin.websites.index")} icon={Globe} label="Websites & Domains" routeName="admin.websites" visible={isVisible("websites") || isVisible("domains")} badge={expiringWebsitesCount} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
-          {isAdmin && <NavItem href={route("admin.attendance.report")} icon={BarChart3} label="Reports" routeName="admin.attendance.report" visible={isVisible("reports")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
-        </>
-      )}
-      {isAdmin && <NavItem href={route("admin.pricing.index")} icon={CreditCard} label="Pricing" routeName="admin.pricing" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
-      {isAdmin && <NavItem href={route("admin.settings.index")} icon={SettingsIcon} label="Settings" routeName="admin.settings" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
-    </>
-  );
+  const getModuleOrder = (key, defaultVal) => {
+    if (moduleOrder && moduleOrder[key] !== undefined) return Number(moduleOrder[key]);
+    return defaultVal;
+  };
+
+  const renderNav = ({ collapsed, isMobileOpen }) => {
+    const modulesList = [
+      {
+        key: 'projects',
+        order: getModuleOrder('projects', 1),
+        element: <NavItem key="projects" href={route("admin.projects.index")} icon={FolderKanban} label="Projects" routeName="admin.projects" visible={isVisible("projects")} beta={betaMenuItems.includes("projects")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'users',
+        order: getModuleOrder('users', 2),
+        element: isAdmin && <NavItem key="users" href={route("admin.users.index")} icon={UsersIcon} label="Employees" routeName="admin.users" visible={isVisible("users")} beta={betaMenuItems.includes("users")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'departments',
+        order: getModuleOrder('departments', 3),
+        element: isAdmin && <NavItem key="departments" href={route("admin.departments.index")} icon={Building2} label="Departments" routeName="admin.departments" visible={isVisible("departments")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'attendance',
+        order: getModuleOrder('attendance', 3),
+        element: <NavItem key="attendance" href={route(isAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'leaves',
+        order: getModuleOrder('leaves', 4),
+        element: <NavItem key="leaves" href={route(isAdmin ? "admin.leaves.index" : "leave.index")} icon={FileText} label="Leaves" routeName={isAdmin ? "admin.leaves" : "leave"} visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'calendar',
+        order: getModuleOrder('calendar', 5),
+        element: <NavItem key="calendar" href={route("calendar.index")} icon={CalendarDays} label="Calendar" routeName="calendar" visible={isVisible("calendar")} beta={betaMenuItems.includes("calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'content_calendar',
+        order: getModuleOrder('content_calendar', 6),
+        element: <NavItem key="content_calendar" href={route("content-calendar.index")} icon={Sparkles} label="Content Calendar" routeName="content-calendar" visible={isVisible("content_calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'daily_listings',
+        order: getModuleOrder('daily_listings', 7),
+        element: <NavItem key="daily_listings" href={route("daily-listings.index")} icon={List} label="Daily Listings" routeName="daily-listings" visible={isVisible("daily_listings")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'designers_worklist',
+        order: getModuleOrder('designers_worklist', 8),
+        element: <NavItem key="designers_worklist" href={route("designers-worklist.index")} icon={Palette} label="Designers Worklist" routeName="designers-worklist" visible={isVisible("designers_worklist")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'drive',
+        order: getModuleOrder('drive', 9),
+        element: <NavItem key="drive" href={route("admin.drive.index")} icon={FolderKanban} label="Drive" routeName="admin.drive" visible={!hiddenMenuItems.includes("drive")} beta={false} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'chat',
+        order: getModuleOrder('chat', 10),
+        element: <NavItem key="chat" href={route("chat.index")} icon={MessageSquare} label="Chat" routeName="chat" visible={isVisible("chat")} beta={betaMenuItems.includes("chat")} badge={sidebarCounts.unread_chats} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'websites',
+        order: getModuleOrder('websites', 11),
+        element: isAdmin && <NavItem key="websites" href={route("admin.websites.index")} icon={Globe} label="Websites & Domains" routeName="admin.websites" visible={isVisible("websites") || isVisible("domains")} badge={expiringWebsitesCount} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'reports',
+        order: getModuleOrder('reports', 12),
+        element: isAdmin && <NavItem key="reports" href={route("admin.attendance.report")} icon={BarChart3} label="Reports" routeName="admin.attendance.report" visible={isVisible("reports")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+    ];
+
+    modulesList.sort((a, b) => a.order - b.order);
+
+    return (
+      <>
+        <NavItem href={route("dashboard")} icon={LayoutDashboard} label="Dashboard" routeName="dashboard" visible={true} beta={betaMenuItems.includes("dashboard")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        {!isSuperAdmin && modulesList.map((m) => m.element)}
+        {!isSuperAdmin && <NavItem href={route("notifications.index")} icon={Bell} label="Notifications" routeName="notifications" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
+        {isAdmin && <NavItem href={route("admin.modules.index")} icon={Layers} label="Modules List" routeName="admin.modules" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
+        {isAdmin && <NavItem href={route("admin.pricing.index")} icon={CreditCard} label="Pricing" routeName="admin.pricing" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
+        {isAdmin && <NavItem href={route("admin.settings.index")} icon={SettingsIcon} label="Settings" routeName="admin.settings" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />}
+      </>
+    );
+  };
 
   return (
     <AppShell title={title} flash={flash} auth={auth} renderNav={renderNav}>

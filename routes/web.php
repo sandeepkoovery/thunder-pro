@@ -210,6 +210,12 @@ Route::middleware(['auth', 'is_admin'])
             Route::post('settings/designers', [\App\Http\Controllers\Admin\SettingController::class, 'updateDesignersSetting'])->name('settings.designers.update');
 
             // -------------------------
+            // ✅ MODULES LIST & PERMISSIONS
+            // -------------------------
+            Route::get('modules', [\App\Http\Controllers\Admin\ModuleController::class, 'index'])->name('modules.index');
+            Route::post('modules', [\App\Http\Controllers\Admin\ModuleController::class, 'update'])->name('modules.update');
+
+            // -------------------------
             // ✅ PRICING ROUTES
             // -------------------------
             Route::get('pricing', [\App\Http\Controllers\Admin\PricingController::class, 'index'])->name('pricing.index');

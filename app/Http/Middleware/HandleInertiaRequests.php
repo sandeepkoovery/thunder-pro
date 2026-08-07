@@ -111,6 +111,12 @@ class HandleInertiaRequests extends Middleware
         if (!in_array('drive', $premiumModules)) {
             $premiumModules[] = 'drive';
         }
+        if (!in_array('departments', $basicModules)) {
+            $basicModules[] = 'departments';
+        }
+        if (!in_array('departments', $premiumModules)) {
+            $premiumModules[] = 'departments';
+        }
 
         $additionalModulesSettingJson = $settingsMap['additional_modules'] ?? null;
         $additionalModulesSetting = $additionalModulesSettingJson ? json_decode($additionalModulesSettingJson, true) : [
@@ -124,6 +130,16 @@ class HandleInertiaRequests extends Middleware
 
         if (!empty($userAdditionalModules) && is_array($userAdditionalModules)) {
             $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
+        }
+
+        $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;
+        $rolePermissions = $rolePermissionsJson ? json_decode($rolePermissionsJson, true) : [];
+
+        if ($user && !in_array($user->role, ['superadmin', 'admin'])) {
+            $userRoleKey = $user->role ?? 'user';
+            if (isset($rolePermissions[$userRoleKey]) && is_array($rolePermissions[$userRoleKey])) {
+                $allowedModules = array_values(array_intersect($allowedModules, $rolePermissions[$userRoleKey]));
+            }
         }
 
         // Cache expiring website count for admins for 60 seconds
@@ -156,6 +172,7 @@ class HandleInertiaRequests extends Middleware
             'userPlan' => $plan,
             'allowedModules' => $allowedModules,
             'userAdditionalModules' => $userAdditionalModules,
+            'moduleOrder' => json_decode($settingsMap['module_order'] ?? '[]', true) ?: [],
             'pricingSettings' => [
                 'basic_plan_price' => $settingsMap['basic_plan_price'] ?? '999',
                 'premium_plan_price' => $settingsMap['premium_plan_price'] ?? '2999',
