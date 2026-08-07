@@ -405,7 +405,8 @@ export default function Gallery() {
                             </button>
                         </div>
 
-                        {/* Account Connection Settings Button */}
+                        {/* Account Connection Settings Button - Admin Only */}
+                        {isAdmin && (
                         <button
                             onClick={() => setShowAccountModal(true)}
                             className="inline-flex items-center px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold uppercase tracking-wider text-[11px] transition-all gap-2 cursor-pointer border border-slate-200/80 shadow-sm"
@@ -414,6 +415,7 @@ export default function Gallery() {
                             <RefreshCw className={`w-4 h-4 shrink-0 ${connectionStatus?.connected ? 'text-emerald-600' : 'text-amber-500'}`} />
                             <span>{connectionStatus?.has_custom_connection ? 'Drive Connected' : 'Connect Account'}</span>
                         </button>
+                        )}
 
                         {/* Render Create Folder & Upload Files only if account is connected and active */}
                         {(connectionStatus?.connected && !error) && (
@@ -483,6 +485,7 @@ export default function Gallery() {
                         <p className="text-sm text-amber-800 max-w-md">{error}</p>
                     </div>
                     <div className="flex flex-wrap gap-3 justify-center pt-2">
+                        {isAdmin && (
                         <button
                             onClick={() => setShowAccountModal(true)}
                             className="inline-flex items-center px-5 py-2.5 bg-[#1e88e5] hover:bg-[#1565c0] !text-white rounded-xl font-bold uppercase tracking-wider text-[11px] shadow-md transition-all cursor-pointer gap-2"
@@ -491,6 +494,7 @@ export default function Gallery() {
                             <RefreshCw className="w-4 h-4 text-white shrink-0" style={{ color: '#ffffff' }} />
                             <span className="!text-white" style={{ color: '#ffffff' }}>Connect Account Settings</span>
                         </button>
+                        )}
                         <button
                             onClick={() => fetchFiles(currentFolderId)}
                             className="inline-flex items-center px-4 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 rounded-xl font-bold text-xs transition-colors gap-2 cursor-pointer"
