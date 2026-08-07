@@ -255,7 +255,7 @@ export default function Edit({ mustVerifyEmail, status }) {
         </div>
     );
 
-    if (user.role === 'admin' || user.role === 'manager') {
+    if (['superadmin', 'admin', 'manager'].includes(user.role)) {
         return <AdminLayout>{content}</AdminLayout>;
     }
 

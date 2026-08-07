@@ -30,8 +30,10 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
   const isManagementAdmin = ['admin', 'superadmin'].includes(auth?.user?.role);
   const isAdmin = ['admin', 'superadmin', 'manager', 'editor'].includes(auth?.user?.role);
 
+  const superAdminAllowedModules = ['dashboard', 'pricing', 'settings'];
   const isVisible = (module) => {
-    if (isSuperAdmin || auth?.user?.role === 'admin') return true;
+    if (isSuperAdmin) return superAdminAllowedModules.includes(module);
+    if (auth?.user?.role === 'admin') return true;
     if (hiddenMenuItems.includes(module)) return false;
     return Array.isArray(allowedModules) && allowedModules.includes(module);
   };

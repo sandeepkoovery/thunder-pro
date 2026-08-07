@@ -10,8 +10,8 @@ export default function Index({ settings = {}, users = [], worksheetSettings = {
     const [activeTab, setActiveTab] = useState('general');
 
     // Module access checks
-    const hasWorksheetAccess = isSuperAdmin || allowedModules.includes('daily_listings');
-    const hasDesignersAccess = isSuperAdmin || allowedModules.includes('designers_worklist');
+    const hasWorksheetAccess = !isSuperAdmin && allowedModules.includes('daily_listings');
+    const hasDesignersAccess = !isSuperAdmin && allowedModules.includes('designers_worklist');
 
     const tabs = [
         { id: 'general', label: 'GENERAL SETTINGS', icon: Settings, show: true },
@@ -165,62 +165,60 @@ export default function Index({ settings = {}, users = [], worksheetSettings = {
                         </div>
 
                         <form onSubmit={submitGeneral} className="space-y-8">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-2">
-                                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Admin Email Address</label>
-                                    <input
-                                        type="email"
-                                        value={generalForm.data.admin_email}
-                                        className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
-                                        onChange={(e) => generalForm.setData('admin_email', e.target.value)}
-                                        placeholder="admin@example.com"
-                                    />
-                                    {generalForm.errors.admin_email && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.admin_email}</p>}
+                            {!isSuperAdmin && (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div className="space-y-2">
+                                        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Admin Email Address</label>
+                                        <input
+                                            type="email"
+                                            value={generalForm.data.admin_email}
+                                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                            onChange={(e) => generalForm.setData('admin_email', e.target.value)}
+                                            placeholder="admin@example.com"
+                                        />
+                                        {generalForm.errors.admin_email && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.admin_email}</p>}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Working Days</label>
+                                        <input
+                                            type="number"
+                                            value={generalForm.data.monthly_working_days}
+                                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                            onChange={(e) => generalForm.setData('monthly_working_days', e.target.value)}
+                                            min="0"
+                                            max="31"
+                                        />
+                                        {generalForm.errors.monthly_working_days && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.monthly_working_days}</p>}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle Start Day</label>
+                                        <input
+                                            type="number"
+                                            value={generalForm.data.month_start_day}
+                                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                            onChange={(e) => generalForm.setData('month_start_day', e.target.value)}
+                                            min="1"
+                                            max="31"
+                                        />
+                                        {generalForm.errors.month_start_day && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.month_start_day}</p>}
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle End Day</label>
+                                        <input
+                                            type="number"
+                                            value={generalForm.data.month_end_day}
+                                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                            onChange={(e) => generalForm.setData('month_end_day', e.target.value)}
+                                            min="1"
+                                            max="31"
+                                        />
+                                        {generalForm.errors.month_end_day && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.month_end_day}</p>}
+                                    </div>
                                 </div>
-
-                                <div className="space-y-2">
-                                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Working Days</label>
-                                    <input
-                                        type="number"
-                                        value={generalForm.data.monthly_working_days}
-                                        className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
-                                        onChange={(e) => generalForm.setData('monthly_working_days', e.target.value)}
-                                        min="0"
-                                        max="31"
-                                    />
-                                    {generalForm.errors.monthly_working_days && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.monthly_working_days}</p>}
-                                </div>
-
-                                {!isSuperAdmin && (
-                                    <>
-                                        <div className="space-y-2">
-                                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle Start Day</label>
-                                            <input
-                                                type="number"
-                                                value={generalForm.data.month_start_day}
-                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
-                                                onChange={(e) => generalForm.setData('month_start_day', e.target.value)}
-                                                min="1"
-                                                max="31"
-                                            />
-                                            {generalForm.errors.month_start_day && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.month_start_day}</p>}
-                                        </div>
-
-                                        <div className="space-y-2">
-                                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle End Day</label>
-                                            <input
-                                                type="number"
-                                                value={generalForm.data.month_end_day}
-                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
-                                                onChange={(e) => generalForm.setData('month_end_day', e.target.value)}
-                                                min="1"
-                                                max="31"
-                                            />
-                                            {generalForm.errors.month_end_day && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.month_end_day}</p>}
-                                        </div>
-                                    </>
-                                )}
-                            </div>
+                            )}
 
                             {isSuperAdmin && (
                                 <div className="bg-gray-50/50 rounded-[28px] p-8 border border-gray-100">
