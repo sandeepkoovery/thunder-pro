@@ -15,8 +15,8 @@ class IsSuperOrAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check() || !in_array(auth()->user()->role, ['superadmin', 'admin'])) {
-            abort(403, 'Unauthorized action. Only admins and super admins can access this page.');
+        if (!auth()->check() || !in_array(auth()->user()->role, ['superadmin', 'admin', 'manager', 'editor'])) {
+            abort(403, 'Unauthorized action.');
         }
 
         return $next($request);

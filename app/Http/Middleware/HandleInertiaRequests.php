@@ -126,19 +126,29 @@ class HandleInertiaRequests extends Middleware
             ['key' => 'domains', 'label' => 'Domains & Hosting', 'price' => 499, 'included' => true],
         ];
 
-        $allowedModules = ($plan === 'premium' || ($user && $user->role === 'superadmin')) ? $premiumModules : $basicModules;
+        $allModulesList = [
+            'dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 
+            'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 
+            'drive', 'chat', 'websites', 'reports', 'notifications', 'modules', 
+            'pricing', 'settings'
+        ];
 
-        if (!empty($userAdditionalModules) && is_array($userAdditionalModules)) {
-            $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
-        }
+        if ($user && in_array($user->role, ['superadmin', 'admin'])) {
+            $allowedModules = $allModulesList;
+        } else {
+            $userRoleKey = $user ? ($user->role ?? 'user') : 'user';
+            $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;
+            $rolePermissions = $rolePermissionsJson ? json_decode($rolePermissionsJson, true) : null;
 
-        $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;
-        $rolePermissions = $rolePermissionsJson ? json_decode($rolePermissionsJson, true) : [];
-
-        if ($user && !in_array($user->role, ['superadmin', 'admin'])) {
-            $userRoleKey = $user->role ?? 'user';
-            if (isset($rolePermissions[$userRoleKey]) && is_array($rolePermissions[$userRoleKey])) {
-                $allowedModules = array_values(array_intersect($allowedModules, $rolePermissions[$userRoleKey]));
+            if (is_array($rolePermissions) && isset($rolePermissions[$userRoleKey]) && is_array($rolePermissions[$userRoleKey])) {
+                $allowedModules = $rolePermissions[$userRoleKey];
+            } else {
+                $defaultRolePermissions = [
+                    'manager' => $allModulesList,
+                    'editor' => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications'],
+                    'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications'],
+                ];
+                $allowedModules = $defaultRolePermissions[$userRoleKey] ?? ($plan === 'premium' ? $premiumModules : $basicModules);
             }
         }
 

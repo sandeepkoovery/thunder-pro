@@ -13,7 +13,7 @@ class ModuleController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (auth()->check() && !in_array(auth()->user()->role, ['superadmin', 'admin'])) {
+            if (auth()->check() && !in_array(auth()->user()->role, ['superadmin', 'admin', 'manager', 'editor'])) {
                 abort(403, 'Unauthorized action.');
             }
             return $next($request);
@@ -23,6 +23,7 @@ class ModuleController extends Controller
     public function index()
     {
         $modules = [
+            ['key' => 'dashboard', 'name' => 'Dashboard', 'description' => 'Main application overview and statistics dashboard'],
             ['key' => 'projects', 'name' => 'Projects', 'description' => 'Manage projects, tasks, and task comments'],
             ['key' => 'users', 'name' => 'Employees & Users', 'description' => 'Employee directory, user creation, and role management'],
             ['key' => 'departments', 'name' => 'Departments', 'description' => 'Department management and user department structure'],
@@ -36,22 +37,31 @@ class ModuleController extends Controller
             ['key' => 'chat', 'name' => 'Chat & Messaging', 'description' => 'Real-time team chat and direct messaging'],
             ['key' => 'websites', 'name' => 'Websites & Domains', 'description' => 'Domain registration tracking and hosting management'],
             ['key' => 'reports', 'name' => 'Reports', 'description' => 'Attendance, working hours, and activity reporting'],
+            ['key' => 'notifications', 'name' => 'Notifications', 'description' => 'System notifications and user alert logs'],
+            ['key' => 'modules', 'name' => 'Modules List', 'description' => 'Module access matrix and menu ordering control'],
+            ['key' => 'pricing', 'name' => 'Pricing', 'description' => 'Subscription plans and billing settings'],
+            ['key' => 'settings', 'name' => 'Settings', 'description' => 'Global application settings and configuration'],
         ];
 
         $defaultOrder = [
-            'projects' => 1,
-            'users' => 2,
-            'departments' => 3,
-            'attendance' => 4,
-            'leaves' => 5,
-            'calendar' => 6,
-            'content_calendar' => 7,
-            'daily_listings' => 8,
-            'designers_worklist' => 9,
-            'drive' => 10,
-            'chat' => 11,
-            'websites' => 12,
-            'reports' => 13,
+            'dashboard' => 1,
+            'projects' => 2,
+            'users' => 3,
+            'departments' => 4,
+            'attendance' => 5,
+            'leaves' => 6,
+            'calendar' => 7,
+            'content_calendar' => 8,
+            'daily_listings' => 9,
+            'designers_worklist' => 10,
+            'drive' => 11,
+            'chat' => 12,
+            'websites' => 13,
+            'reports' => 14,
+            'notifications' => 15,
+            'modules' => 16,
+            'pricing' => 17,
+            'settings' => 18,
         ];
 
         $savedOrderJson = Setting::where('key', 'module_order')->value('value');
@@ -83,9 +93,9 @@ class ModuleController extends Controller
         // Ensure defaults if not set
         $defaultPermissions = [
             'admin' => $allModuleKeys,
-            'manager' => ['projects', 'users', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports'],
-            'editor' => ['projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat'],
-            'user' => ['projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat'],
+            'manager' => $allModuleKeys,
+            'editor' => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications'],
+            'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications'],
         ];
 
         foreach ($defaultPermissions as $rKey => $defVal) {
@@ -112,9 +122,10 @@ class ModuleController extends Controller
         ]);
 
         $modules = [
-            'projects', 'users', 'departments', 'attendance', 'leaves', 'calendar', 
-            'content_calendar', 'daily_listings', 'designers_worklist', 
-            'drive', 'chat', 'websites', 'reports'
+            'dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 
+            'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 
+            'drive', 'chat', 'websites', 'reports', 'notifications', 'modules', 
+            'pricing', 'settings'
         ];
 
         $permissions = $validated['permissions'];
@@ -139,7 +150,7 @@ class ModuleController extends Controller
         if (!empty($validated['module_order']) && is_array($validated['module_order'])) {
             $cleanedOrder = [];
             foreach ($validated['module_order'] as $mKey => $oVal) {
-                if (in_array($mKey, $modules)) {
+                if (in_array($mKey, $modules) && $oVal !== '' && $oVal !== null) {
                     $cleanedOrder[$mKey] = (int) $oVal;
                 }
             }
