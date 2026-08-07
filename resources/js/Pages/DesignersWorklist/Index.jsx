@@ -19,8 +19,9 @@ import toast from 'react-hot-toast';
 
 export default function Index({ worklists = [], users = [], taskTypeOptionsSetting = 'Poster, Thumbnail, Story, Carousel, Grid, Other' }) {
     const { auth } = usePage().props;
-    const isUser = auth?.user?.role !== 'admin' && auth?.user?.role !== 'superadmin' && auth?.user?.role !== 'editor';
-    const Layout = isUser ? UserLayout : AdminLayout;
+    const isAdmin = ['admin', 'superadmin', 'manager'].includes(auth?.user?.role);
+    const Layout = isAdmin ? AdminLayout : UserLayout;
+    const isUser = !['admin', 'superadmin', 'editor'].includes(auth?.user?.role);
 
     const taskOptions = useMemo(() => {
         if (!taskTypeOptionsSetting) return ['Poster', 'Thumbnail', 'Story', 'Carousel', 'Grid', 'Other'];
@@ -40,6 +41,15 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
     const [previewItem, setPreviewItem] = useState(null);
+    const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
+
+    const getSelectedAssigneeNames = () => {
+        if (!form.data.assigned_user_ids || form.data.assigned_user_ids.length === 0) {
+            return 'Select Designers';
+        }
+        const selectedUsers = users.filter(u => form.data.assigned_user_ids.includes(u.id));
+        return selectedUsers.map(u => u.name).join(', ');
+    };
 
     // Form
     const form = useForm({
@@ -505,18 +515,18 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
 
                 {/* 4. CREATE / EDIT TASK MODAL (ADMIN ONLY) */}
                 {isCreateModalOpen && !isUser && (
-                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-                        <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-100 space-y-6">
+                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+                        <div className="bg-white rounded-3xl max-w-xl w-full p-8 shadow-2xl border border-slate-100 space-y-6 my-auto">
                             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                                <h3 className="text-lg font-bold text-gray-900">
+                                <h3 className="text-xl font-bold text-gray-900">
                                     {editingItem ? 'Edit Designer Task' : 'Add Designer Task'}
                                 </h3>
-                                <button onClick={() => setIsCreateModalOpen(false)} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100">
+                                <button onClick={() => setIsCreateModalOpen(false)} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100 transition-colors">
                                     <X size={20} />
                                 </button>
                             </div>
 
-                            <form onSubmit={handleCreateSubmit} className="space-y-4">
+                            <form onSubmit={handleCreateSubmit} className="space-y-5">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Client Name *</label>
                                     <input
@@ -525,7 +535,7 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                         value={form.data.client_name}
                                         onChange={(e) => form.setData('client_name', e.target.value)}
                                         placeholder="KALPAKA - 30"
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold uppercase"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-bold uppercase focus:ring-2 focus:ring-blue-500/20"
                                     />
                                 </div>
 
@@ -537,7 +547,7 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                             required
                                             value={form.data.task_date}
                                             onChange={(e) => form.setData('task_date', e.target.value)}
-                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold"
+                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:ring-2 focus:ring-blue-500/20"
                                         />
                                     </div>
                                     <div>
@@ -546,7 +556,7 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                             required
                                             value={form.data.task_type}
                                             onChange={(e) => form.setData('task_type', e.target.value)}
-                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold uppercase cursor-pointer"
+                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-bold uppercase cursor-pointer focus:ring-2 focus:ring-blue-500/20"
                                         >
                                             {taskOptions.map((opt, idx) => (
                                                 <option key={idx} value={opt}>{opt}</option>
@@ -555,56 +565,82 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                     </div>
                                 </div>
 
+                                <div className="relative">
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Assign Designers</label>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsAssigneeDropdownOpen(!isAssigneeDropdownOpen)}
+                                        className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold bg-white hover:bg-gray-50 focus:ring-2 focus:ring-blue-500/20 text-left transition-all cursor-pointer min-h-[42px]"
+                                    >
+                                        <span className="truncate text-gray-800 text-sm font-bold">
+                                            {getSelectedAssigneeNames()}
+                                        </span>
+                                        <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${isAssigneeDropdownOpen ? 'rotate-180' : ''}`} />
+                                    </button>
+
+                                    {isAssigneeDropdownOpen && (
+                                        <div className="absolute z-30 w-full mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-2xl max-h-52 overflow-y-auto p-2 space-y-1">
+                                            {users.map(u => {
+                                                const isAssigned = form.data.assigned_user_ids.includes(u.id);
+                                                return (
+                                                    <div
+                                                        key={u.id}
+                                                        onClick={() => {
+                                                            const current = form.data.assigned_user_ids;
+                                                            const next = current.includes(u.id)
+                                                                ? current.filter(id => id !== u.id)
+                                                                : [...current, u.id];
+                                                            form.setData('assigned_user_ids', next);
+                                                        }}
+                                                        className={`p-2.5 rounded-xl text-xs font-bold flex items-center justify-between cursor-pointer transition-colors ${
+                                                            isAssigned ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'
+                                                        }`}
+                                                    >
+                                                        <span>{u.name} ({u.email})</span>
+                                                        {isAssigned && <Check size={14} className="text-blue-600 font-bold" />}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Description / Notes</label>
                                     <textarea
-                                        rows={3}
+                                        rows={4}
                                         value={form.data.description}
                                         onChange={(e) => form.setData('description', e.target.value)}
                                         placeholder="Creative brief and designer guidelines..."
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm"
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500/20"
                                     />
                                 </div>
 
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Assign Designers</label>
-                                    <div className="space-y-1.5 max-h-40 overflow-y-auto p-2 border border-gray-100 rounded-xl bg-gray-50/50">
-                                        {users.map(u => {
-                                            const isAssigned = form.data.assigned_user_ids.includes(u.id);
-                                            return (
-                                                <div
-                                                    key={u.id}
-                                                    onClick={() => {
-                                                        const current = form.data.assigned_user_ids;
-                                                        const next = current.includes(u.id)
-                                                            ? current.filter(id => id !== u.id)
-                                                            : [...current, u.id];
-                                                        form.setData('assigned_user_ids', next);
-                                                    }}
-                                                    className={`p-2 rounded-lg text-xs font-bold flex items-center justify-between cursor-pointer ${
-                                                        isAssigned ? 'bg-blue-50 text-blue-700 border border-blue-200' : 'bg-white text-gray-700'
-                                                    }`}
-                                                >
-                                                    <span>{u.name} ({u.email})</span>
-                                                    {isAssigned && <Check size={14} className="text-blue-600" />}
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
+                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Status</label>
+                                    <select
+                                        value={form.data.status || 'Not Done'}
+                                        onChange={(e) => form.setData('status', e.target.value)}
+                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-bold uppercase cursor-pointer focus:ring-2 focus:ring-blue-500/20"
+                                    >
+                                        <option value="Not Done">NOT DONE</option>
+                                        <option value="Done">DONE</option>
+                                        <option value="In Progress">IN PROGRESS</option>
+                                    </select>
                                 </div>
 
                                 <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
                                     <button
                                         type="button"
                                         onClick={() => setIsCreateModalOpen(false)}
-                                        className="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold uppercase"
+                                        className="px-5 py-2.5 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold uppercase hover:bg-gray-200 transition-colors"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={form.processing}
-                                        className="px-5 py-2 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold uppercase shadow-md"
+                                        className="px-6 py-2.5 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold uppercase shadow-md transition-colors"
                                     >
                                         {form.processing ? 'Saving...' : editingItem ? 'Update Task' : 'Add Task'}
                                     </button>

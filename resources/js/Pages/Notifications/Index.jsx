@@ -104,7 +104,7 @@ export default function NotificationsIndex({ initialNotifications = [] }) {
     );
   };
 
-  const Layout = ['superadmin', 'admin', 'manager', 'editor'].includes(currentUser.role) ? AdminLayout : UserLayout;
+  const Layout = ['superadmin', 'admin', 'manager'].includes(currentUser.role) ? AdminLayout : UserLayout;
 
   const renderGroup = (title, list) => {
     if (list.length === 0) return null;

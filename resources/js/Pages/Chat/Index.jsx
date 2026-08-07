@@ -146,7 +146,7 @@ export default function ChatIndex() {
         return m.format('MMM D');
     };
 
-    const Layout = ['admin', 'manager', 'editor'].includes(currentUser.role) ? AdminLayout : UserLayout;
+    const Layout = ['admin', 'superadmin', 'manager'].includes(currentUser.role) ? AdminLayout : UserLayout;
 
     return (
         <Layout title="Chat">

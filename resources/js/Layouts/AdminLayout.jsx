@@ -26,7 +26,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
   const isSuperAdmin = auth?.user?.role === "superadmin";
   const betaMenuItems = isSuperAdmin ? [] : (Array.isArray(sharedSettings?.beta_menu_items) ? sharedSettings.beta_menu_items : []);
   const hiddenMenuItems = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
-  const isAdmin = auth?.user?.role === "admin" || isSuperAdmin;
+  const isAdmin = ['admin', 'superadmin', 'manager'].includes(auth?.user?.role);
 
   const isVisible = (module) => {
     if (isSuperAdmin) return true;
@@ -60,10 +60,10 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
             <>
               <NavItem href={route("admin.users.index")} icon={UsersIcon} label="Employees" routeName="admin.users" visible={isVisible("users")} beta={betaMenuItems.includes("users")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
               <NavItem href={route("admin.departments.index")} icon={Building2} label="Departments" routeName="admin.departments" visible={true} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-              <NavItem href={route("admin.leaves.index")} icon={FileText} label="Leaves" routeName="admin.leaves" visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} />
-              <NavItem href={route("admin.attendance.index")} icon={Clock} label="Attendance" routeName="admin.attendance" visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
             </>
           )}
+          <NavItem href={route(isAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+          <NavItem href={route(isAdmin ? "admin.leaves.index" : "leave.index")} icon={FileText} label="Leaves" routeName={isAdmin ? "admin.leaves" : "leave"} visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           <NavItem href={route("calendar.index")} icon={CalendarDays} label="Calendar" routeName="calendar" visible={isVisible("calendar")} beta={betaMenuItems.includes("calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           <NavItem href={route("content-calendar.index")} icon={Sparkles} label="Content Calendar" routeName="content-calendar" visible={isVisible("content_calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
           <NavItem href={route("daily-listings.index")} icon={List} label="Daily Listings" routeName="daily-listings" visible={isVisible("daily_listings")} collapsed={collapsed} isMobileOpen={isMobileOpen} />

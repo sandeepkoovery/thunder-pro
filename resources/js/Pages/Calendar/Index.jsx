@@ -1086,7 +1086,7 @@ export default function Index({ events: initialEvents, users }) {
 
 Index.layout = (page) => {
     const { auth } = page.props;
-    const isAdminOrManager = ['admin', 'manager', 'editor'].includes(auth.user.role);
+    const isAdminOrManager = ['admin', 'superadmin', 'manager'].includes(auth.user.role);
     const Layout = isAdminOrManager ? AdminLayout : UserLayout;
     return <Layout title="Task Calendar">{page}</Layout>;
 };

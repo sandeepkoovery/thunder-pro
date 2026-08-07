@@ -260,16 +260,14 @@ class AttendanceController extends Controller
         $filters = $request->only(['date', 'month', 'user_id', 'display']);
 
         // Mode 1: Monthly View (Month selected OR Calendar Display forced)
-        // Changed: Now daily view with today's date is the default
         if ($request->filled('month') || $request->input('display') === 'calendar') {
             $monthStr = $request->input('month', Carbon::now()->format('Y-m'));
             $month = Carbon::parse($monthStr);
 
-            // Default to first user if not selected
+            // Month view is for an individual user; if no user selected, default to first user
             $userId = $request->user_id;
             if (!$userId && $users->isNotEmpty()) {
                 $userId = $users->first()->id;
-                // Update filters to reflect the auto-selected user
                 $filters['user_id'] = $userId;
             }
 
@@ -438,6 +436,8 @@ class AttendanceController extends Controller
                 $attendanceData = array_reverse($attendanceData);
 
                 $settings = \App\Models\Setting::all()->pluck('value', 'key');
+                $exportMonth = $filters['month'] ?? Carbon::now()->format('Y-m');
+                $exportPreviewData = $this->getExportSummaryData($exportMonth);
 
                 return Inertia::render('Admin/Attendance/Index', [
                     'attendanceData' => $attendanceData,
@@ -448,6 +448,80 @@ class AttendanceController extends Controller
                     'selectedUser' => $users->find($userId),
                     'leaves' => $leaves,
                     'settings' => $settings,
+                    'exportPreviewData' => $exportPreviewData,
+                ]);
+            } else {
+                // All Users Monthly View
+                $startDate = $month->copy()->subMonth()->day(25);
+                $realEndDate = $month->copy()->day(24);
+
+                $attendances = Attendance::whereBetween('date', [$startDate->toDateString(), $realEndDate->toDateString()])
+                    ->with(['user', 'breaks'])
+                    ->get();
+
+                $totalMonthlyMinutes = $attendances->sum('total_worked_minutes');
+
+                $attendanceData = $attendances->map(function ($att) {
+                    $checkInTime = $att->punch_in ? Carbon::parse($att->punch_in)->timezone('Asia/Kolkata') : null;
+                    $dateString = $att->date instanceof \Carbon\Carbon ? $att->date->format('Y-m-d') : $att->date;
+                    $nineThirtyAM = Carbon::parse($dateString . ' 09:30:59', 'Asia/Kolkata');
+                    $sixPM = Carbon::parse($dateString . ' 18:00:00', 'Asia/Kolkata');
+
+                    $isLate = $checkInTime && $checkInTime->gt($nineThirtyAM);
+                    $isEarlyLeave = $att->punch_out && Carbon::parse($att->punch_out)->timezone('Asia/Kolkata')->lt($sixPM);
+
+                    $status = 'Present';
+                    if ($isLate && $isEarlyLeave) {
+                        $status = 'Late & Early Leave';
+                    } elseif ($isLate) {
+                        $status = 'Late';
+                    } elseif ($isEarlyLeave) {
+                        $status = 'Early Leave';
+                    }
+
+                    $checkIn = $att->punch_in ? $checkInTime->format('h:i A') : '-';
+                    $checkOut = $att->punch_out ? Carbon::parse($att->punch_out)->timezone('Asia/Kolkata')->format('h:i A') : '-';
+                    $hours = floor($att->total_worked_minutes / 60) . 'h ' . ($att->total_worked_minutes % 60) . 'm';
+                    $breakTime = floor(($att->total_break_minutes ?? 0) / 60) . 'h ' . (($att->total_break_minutes ?? 0) % 60) . 'm';
+
+                    return [
+                        'id' => $att->id,
+                        'name' => $att->user ? $att->user->name : 'Unknown',
+                        'date' => $att->date instanceof \Carbon\Carbon ? $att->date->toDateString() : $att->date,
+                        'check_in' => $checkIn,
+                        'check_out' => $checkOut,
+                        'status' => $status,
+                        'hours' => $hours,
+                        'break_time' => $breakTime,
+                        'attendance_id' => $att->id,
+                        'punch_in_raw' => $att->punch_in ? Carbon::parse($att->punch_in, 'Asia/Kolkata')->toIso8601String() : null,
+                        'punch_out_raw' => $att->punch_out ? Carbon::parse($att->punch_out, 'Asia/Kolkata')->toIso8601String() : null,
+                        'punch_in_lat' => $att->punch_in_lat,
+                        'punch_in_lng' => $att->punch_in_lng,
+                        'punch_out_lat' => $att->punch_out_lat,
+                        'punch_out_lng' => $att->punch_out_lng,
+                        'device_type' => $att->device_type,
+                        'db_status' => $att->status,
+                        'breaks' => $att->breaks ?? [],
+                        'total_worked_minutes' => $att->total_worked_minutes,
+                        'total_break_minutes' => $att->total_break_minutes ?? 0,
+                    ];
+                })->values()->toArray();
+
+                $settings = \App\Models\Setting::all()->pluck('value', 'key');
+                $exportMonth = $filters['month'] ?? Carbon::now()->format('Y-m');
+                $exportPreviewData = $this->getExportSummaryData($exportMonth);
+
+                return Inertia::render('Admin/Attendance/Index', [
+                    'attendanceData' => $attendanceData,
+                    'users' => $users,
+                    'filters' => $filters,
+                    'viewType' => 'monthly',
+                    'totalMonthlyMinutes' => $totalMonthlyMinutes,
+                    'selectedUser' => null,
+                    'leaves' => collect([]),
+                    'settings' => $settings,
+                    'exportPreviewData' => $exportPreviewData,
                 ]);
             }
         }
@@ -550,11 +624,15 @@ class AttendanceController extends Controller
             ];
         })->values();
 
+        $exportMonth = $filters['month'] ?? Carbon::now()->format('Y-m');
+        $exportPreviewData = $this->getExportSummaryData($exportMonth);
+
         return Inertia::render('Admin/Attendance/Index', [
             'attendanceData' => $attendanceData,
             'users' => $users,
             'filters' => array_merge($filters, ['date' => $date]),
             'viewType' => 'daily',
+            'exportPreviewData' => $exportPreviewData,
         ]);
     }
 
@@ -942,7 +1020,13 @@ class AttendanceController extends Controller
         // Don't count future days calculation
         $calculationEndDate = $endDate->gt($today) ? $today : $endDate;
 
-        $users = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true)->orderBy('name')->get();
+        $userIds = $request->input('user_ids');
+        $query = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true);
+        if ($userIds) {
+            $ids = is_array($userIds) ? $userIds : explode(',', $userIds);
+            $query->whereIn('id', array_filter($ids));
+        }
+        $users = $query->orderBy('name')->get();
 
         $headers = [
             "Content-type" => "text/csv",
@@ -1066,5 +1150,109 @@ class AttendanceController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function getExportSummaryData($monthStr)
+    {
+        $month = Carbon::parse($monthStr);
+        $startDate = $month->copy()->subMonth()->day(25);
+        $endDate = $month->copy()->day(24);
+        $today = Carbon::today();
+
+        $calculationEndDate = $endDate->gt($today) ? $today : $endDate;
+
+        $users = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true)->orderBy('name')->get();
+
+        $rows = [];
+
+        foreach ($users as $user) {
+            $attendances = Attendance::where('user_id', $user->id)
+                ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
+                ->get()
+                ->keyBy(function ($item) {
+                    return $item->date instanceof \Carbon\Carbon ? $item->date->format('Y-m-d') : $item->date;
+                });
+
+            $leaves = Leave::where('user_id', $user->id)
+                ->where('status', 'approved')
+                ->where(function ($query) use ($startDate, $endDate) {
+                    $startStr = $startDate->toDateString();
+                    $endStr = $endDate->toDateString();
+                    $query->whereBetween('from_date', [$startStr, $endStr])
+                        ->orWhereBetween('to_date', [$startStr, $endStr])
+                        ->orWhere(function ($q) use ($startStr, $endStr) {
+                            $q->where('from_date', '<', $startStr)
+                                ->where('to_date', '>', $endStr);
+                        });
+                })
+                ->get();
+
+            $totalPresent = 0;
+            $absentDays = 0;
+            $leaveDays = 0;
+            $lateDays = 0;
+            $earlyLeaveDays = 0;
+            $totalWorkedMinutes = 0;
+            $totalBreakMinutes = 0;
+
+            for ($d = $startDate->copy(); $d <= $calculationEndDate; $d->addDay()) {
+                $dateStr = $d->toDateString();
+                $isWeekend = $d->isSaturday() || $d->isSunday();
+                $attendance = $attendances->get($dateStr);
+
+                if ($attendance) {
+                    $totalPresent++;
+                    $totalWorkedMinutes += $attendance->total_worked_minutes;
+                    $totalBreakMinutes += ($attendance->total_break_minutes ?? 0);
+
+                    $punchIn = Carbon::parse($attendance->punch_in);
+                    $nineThirtyAM = Carbon::parse($dateStr . ' 09:30:59');
+                    if ($punchIn->gt($nineThirtyAM)) {
+                        $lateDays++;
+                    }
+
+                    if ($attendance->punch_out) {
+                        $punchOutLocal = Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata');
+                        $sixPM = Carbon::parse($dateStr . ' 18:00:00', 'Asia/Kolkata');
+                        if ($punchOutLocal->lt($sixPM)) {
+                            $earlyLeaveDays++;
+                        }
+                    }
+                } elseif (!$isWeekend) {
+                    $isOnLeave = false;
+                    foreach ($leaves as $leave) {
+                        $from = $leave->from_date instanceof \Carbon\Carbon ? $leave->from_date->toDateString() : $leave->from_date;
+                        $to = $leave->to_date instanceof \Carbon\Carbon ? $leave->to_date->toDateString() : $leave->to_date;
+                        if ($dateStr >= $from && $dateStr <= $to) {
+                            $isOnLeave = true;
+                            break;
+                        }
+                    }
+
+                    if ($isOnLeave) {
+                        $leaveDays++;
+                    } elseif ($d->lt($today)) {
+                        $absentDays++;
+                    }
+                }
+            }
+
+            $rows[] = [
+                'user_id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'image_url' => $user->image_url,
+                'present_days' => $totalPresent,
+                'absent_days' => $absentDays,
+                'leave_days' => $leaveDays,
+                'late_days' => $lateDays,
+                'early_leave_days' => $earlyLeaveDays,
+                'work_hours' => floor($totalWorkedMinutes / 60) . 'h ' . ($totalWorkedMinutes % 60) . 'm',
+                'break_hours' => floor($totalBreakMinutes / 60) . 'h ' . ($totalBreakMinutes % 60) . 'm',
+                'total_worked_minutes' => $totalWorkedMinutes,
+            ];
+        }
+
+        return $rows;
     }
 }

@@ -24,8 +24,9 @@ import toast from 'react-hot-toast';
 
 export default function Index({ calendarItems = [], users = [], projects = [], monthStartDay = 25, monthEndDay = 24 }) {
     const { auth } = usePage().props;
-    const isUser = auth?.user?.role !== 'admin' && auth?.user?.role !== 'superadmin' && auth?.user?.role !== 'editor';
-    const Layout = isUser ? UserLayout : AdminLayout;
+    const isAdmin = ['admin', 'superadmin', 'manager'].includes(auth?.user?.role);
+    const Layout = isAdmin ? AdminLayout : UserLayout;
+    const isUser = !['admin', 'superadmin', 'editor'].includes(auth?.user?.role);
 
     // Filter States
     const [selectedProjectFilter, setSelectedProjectFilter] = useState('');
