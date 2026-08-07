@@ -7,10 +7,12 @@ use App\Models\Message;
 use App\Models\Leave;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Inertia\Inertia;
 
 class NotificationController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         if (!$user) {
@@ -24,94 +26,67 @@ class NotificationController extends Controller
 
         $notifications = [];
 
-        // 1. Chat Messages
-        $messages = Message::with('sender')
-            ->where('receiver_id', $user->id)
-            ->orderBy('created_at', 'desc')
-            ->take(50)
-            ->get();
+        // Determine if user is Admin or Super Admin
+        $isAdminOrSuper = in_array($user->role, ['admin', 'superadmin', 'super_admin']);
 
-        foreach ($messages as $msg) {
-            $notifId = 'msg_' . $msg->id;
-            $isRead = $msg->is_read || in_array($notifId, $seenIds);
-            
-            $notifications[] = [
-                'id' => $notifId,
-                'type' => 'chat',
-                'title' => 'Message from ' . ($msg->sender->name ?? 'User'),
-                'message' => $msg->message,
-                'time' => $msg->created_at->diffForHumans(),
-                'is_read' => $isRead,
-                'link' => route('chat.index'),
-                'icon' => 'chat',
-                'created_at' => $msg->created_at->toIso8601String(),
-                'sender_avatar' => ($msg->sender && $msg->sender->image) ? asset('storage/' . $msg->sender->image) : null,
-                'sender_name' => $msg->sender->name ?? 'User',
-            ];
-        }
+        if ($isAdminOrSuper) {
+            // Admins see leave requests from all tenant employees
+            $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+            $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->orWhere('id', $tenantAdminId)->pluck('id')->toArray();
 
-        // 2. Leave Requests (Excluded for Super Admin)
-        $isSuperAdmin = in_array($user->role, ['superadmin', 'super_admin']);
+            $leaves = Leave::with('user')
+                ->whereIn('user_id', $tenantUserIds)
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-        if (!$isSuperAdmin) {
-            if (in_array($user->role, ['admin', 'manager', 'editor'])) {
-                $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
-                $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+            foreach ($leaves as $leave) {
+                if (!$leave->user) continue;
+                $notifId = 'leave_' . $leave->id;
+                $isRead = in_array($notifId, $seenIds) || $leave->status !== 'pending';
 
-                $leavesQuery = Leave::with('user')
-                    ->whereIn('user_id', $tenantUserIds)
-                    ->orderBy('created_at', 'desc');
-                $leaves = $leavesQuery->take(50)->get();
+                $fromStr = \Carbon\Carbon::parse($leave->from_date)->format('j M Y');
+                $toStr = \Carbon\Carbon::parse($leave->to_date)->format('j M Y');
+                $leaveText = ($fromStr === $toStr) 
+                    ? "{$leave->leave_type} on {$fromStr}"
+                    : "{$leave->leave_type} from {$fromStr} to {$toStr}";
 
-                foreach ($leaves as $leave) {
-                    if (!$leave->user) continue;
-                    $notifId = 'leave_' . $leave->id;
-                    $isRead = in_array($notifId, $seenIds) || $leave->status !== 'pending';
+                $notifications[] = [
+                    'id' => $notifId,
+                    'type' => 'leave',
+                    'title' => 'Leave Request: ' . $leave->user->name,
+                    'message' => $leaveText . ' (' . $leave->status . ')',
+                    'time' => $leave->created_at->diffForHumans(),
+                    'is_read' => $isRead,
+                    'link' => route('admin.leaves.index'),
+                    'icon' => 'leave',
+                    'created_at' => $leave->created_at->toIso8601String(),
+                    'sender_avatar' => $leave->user->image ? asset('storage/' . $leave->user->image) : null,
+                    'sender_name' => $leave->user->name,
+                ];
+            }
+        } else {
+            // Non-admin users (editors, managers, employees) ONLY see their own data
+            $leaves = Leave::where('user_id', $user->id)
+                ->orderBy('updated_at', 'desc')
+                ->get();
 
-                    $fromStr = \Carbon\Carbon::parse($leave->from_date)->format('j M Y');
-                    $toStr = \Carbon\Carbon::parse($leave->to_date)->format('j M Y');
-                    $leaveText = ($fromStr === $toStr) 
-                        ? "{$leave->leave_type} on {$fromStr}"
-                        : "{$leave->leave_type} from {$fromStr} to {$toStr}";
+            foreach ($leaves as $leave) {
+                $notifId = 'leave_' . $leave->id;
+                $isRead = in_array($notifId, $seenIds);
 
-                    $notifications[] = [
-                        'id' => $notifId,
-                        'type' => 'leave',
-                        'title' => 'Leave Request: ' . $leave->user->name,
-                        'message' => $leaveText . ' (' . $leave->status . ')',
-                        'time' => $leave->created_at->diffForHumans(),
-                        'is_read' => $isRead,
-                        'link' => route('admin.leaves.index'),
-                        'icon' => 'leave',
-                        'created_at' => $leave->created_at->toIso8601String(),
-                        'sender_avatar' => $leave->user->image ? asset('storage/' . $leave->user->image) : null,
-                        'sender_name' => $leave->user->name,
-                    ];
-                }
-            } else {
-                $leaves = Leave::where('user_id', $user->id)
-                    ->orderBy('updated_at', 'desc')
-                    ->take(50)
-                    ->get();
-
-                foreach ($leaves as $leave) {
-                    $notifId = 'leave_' . $leave->id;
-                    $isRead = in_array($notifId, $seenIds);
-
-                    $notifications[] = [
-                        'id' => $notifId,
-                        'type' => 'leave_update',
-                        'title' => 'Leave ' . ucfirst($leave->status),
-                        'message' => 'Your ' . $leave->leave_type . ' request was ' . $leave->status,
-                        'time' => $leave->updated_at->diffForHumans(),
-                        'is_read' => $isRead,
-                        'link' => route('leave.index'),
-                        'icon' => 'leave',
-                        'created_at' => $leave->updated_at->toIso8601String(),
-                        'sender_avatar' => null,
-                        'sender_name' => 'System',
-                    ];
-                }
+                $notifications[] = [
+                    'id' => $notifId,
+                    'type' => 'leave_update',
+                    'title' => 'Leave ' . ucfirst($leave->status),
+                    'message' => 'Your ' . $leave->leave_type . ' request was ' . $leave->status,
+                    'time' => $leave->updated_at->diffForHumans(),
+                    'is_read' => $isRead,
+                    'link' => route('leave.index'),
+                    'icon' => 'leave',
+                    'created_at' => $leave->updated_at->toIso8601String(),
+                    'sender_avatar' => null,
+                    'sender_name' => 'System',
+                ];
             }
         }
 
@@ -120,10 +95,23 @@ class NotificationController extends Controller
             return strtotime($b['created_at']) - strtotime($a['created_at']);
         });
 
-        $notifications = array_slice($notifications, 0, 50);
+        // Paginate manually with LengthAwarePaginator
+        $currentPage = LengthAwarePaginator::resolveCurrentPage();
+        $perPage = 15;
+        $currentItems = array_slice($notifications, ($currentPage - 1) * $perPage, $perPage);
+        $paginatedNotifications = new LengthAwarePaginator(
+            $currentItems,
+            count($notifications),
+            $perPage,
+            $currentPage,
+            [
+                'path' => LengthAwarePaginator::resolveCurrentPath(),
+                'pageName' => 'page',
+            ]
+        );
 
-        return \Inertia\Inertia::render('Notifications/Index', [
-            'initialNotifications' => $notifications
+        return Inertia::render('Notifications/Index', [
+            'notifications' => $paginatedNotifications,
         ]);
     }
 
@@ -141,89 +129,63 @@ class NotificationController extends Controller
             ->pluck('notification_id')
             ->toArray();
 
-        // 1. Unread Chat Messages
-        $unreadMessages = Message::with('sender')
-            ->where('receiver_id', $user->id)
-            ->where('is_read', false)
-            ->orderBy('created_at', 'desc')
-            ->get();
+        $isAdminOrSuper = in_array($user->role, ['admin', 'superadmin', 'super_admin']);
 
-        foreach ($unreadMessages as $msg) {
-            $notifId = 'msg_' . $msg->id;
-            if (in_array($notifId, $seenIds))
-                continue;
+        if ($isAdminOrSuper) {
+            $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+            $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->orWhere('id', $tenantAdminId)->pluck('id')->toArray();
 
-            $notifications[] = [
-                'id' => $notifId,
-                'type' => 'chat',
-                'title' => 'New message from ' . ($msg->sender->name ?? 'User'),
-                'message' => $msg->message,
-                'time' => $msg->created_at->diffForHumans(),
-                'link' => route('chat.index'),
-                'icon' => 'chat'
-            ];
-        }
+            // Admins see pending leaves from their tenant users
+            $pendingLeaves = Leave::with('user')
+                ->where('status', 'pending')
+                ->whereIn('user_id', $tenantUserIds)
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-        // 2. Leave Requests (Excluded for Super Admin)
-        $isSuperAdmin = in_array($user->role, ['superadmin', 'super_admin']);
+            foreach ($pendingLeaves as $leave) {
+                if (!$leave->user) continue;
+                $notifId = 'leave_' . $leave->id;
+                if (in_array($notifId, $seenIds))
+                    continue;
 
-        if (!$isSuperAdmin) {
-            if (in_array($user->role, ['admin', 'manager', 'editor'])) {
-                $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
-                $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+                $fromStr = \Carbon\Carbon::parse($leave->from_date)->format('j M Y');
+                $toStr = \Carbon\Carbon::parse($leave->to_date)->format('j M Y');
+                $leaveText = ($fromStr === $toStr) 
+                    ? "{$leave->leave_type} on {$fromStr}"
+                    : "{$leave->leave_type} from {$fromStr} to {$toStr}";
 
-                // Admins see pending leaves from their tenant users
-                $pendingLeaves = Leave::with('user')
-                    ->where('status', 'pending')
-                    ->whereIn('user_id', $tenantUserIds)
-                    ->orderBy('created_at', 'desc')
-                    ->get();
+                $notifications[] = [
+                    'id' => $notifId,
+                    'type' => 'leave',
+                    'title' => 'Leave Request: ' . $leave->user->name,
+                    'message' => $leaveText,
+                    'time' => $leave->created_at->diffForHumans(),
+                    'link' => route('admin.leaves.index'),
+                    'icon' => 'leave'
+                ];
+            }
+        } else {
+            // Users see approvals/rejections of their own leaves
+            $updatedLeaves = Leave::where('user_id', $user->id)
+                ->whereIn('status', ['approved', 'rejected'])
+                ->where('updated_at', '>', now()->subDays(7))
+                ->orderBy('updated_at', 'desc')
+                ->get();
 
-                foreach ($pendingLeaves as $leave) {
-                    if (!$leave->user) continue;
-                    $notifId = 'leave_' . $leave->id;
-                    if (in_array($notifId, $seenIds))
-                        continue;
+            foreach ($updatedLeaves as $leave) {
+                $notifId = 'leave_' . $leave->id;
+                if (in_array($notifId, $seenIds))
+                    continue;
 
-                    $fromStr = \Carbon\Carbon::parse($leave->from_date)->format('j M Y');
-                    $toStr = \Carbon\Carbon::parse($leave->to_date)->format('j M Y');
-                    $leaveText = ($fromStr === $toStr) 
-                        ? "{$leave->leave_type} on {$fromStr}"
-                        : "{$leave->leave_type} from {$fromStr} to {$toStr}";
-
-                    $notifications[] = [
-                        'id' => $notifId,
-                        'type' => 'leave',
-                        'title' => 'Leave Request: ' . $leave->user->name,
-                        'message' => $leaveText,
-                        'time' => $leave->created_at->diffForHumans(),
-                        'link' => route('admin.leaves.index'),
-                        'icon' => 'leave'
-                    ];
-                }
-            } else {
-                // Users see approvals/rejections of their own leaves
-                $updatedLeaves = Leave::where('user_id', $user->id)
-                    ->whereIn('status', ['approved', 'rejected'])
-                    ->where('updated_at', '>', now()->subDays(3))
-                    ->orderBy('updated_at', 'desc')
-                    ->get();
-
-                foreach ($updatedLeaves as $leave) {
-                    $notifId = 'leave_' . $leave->id;
-                    if (in_array($notifId, $seenIds))
-                        continue;
-
-                    $notifications[] = [
-                        'id' => $notifId,
-                        'type' => 'leave_update',
-                        'title' => 'Leave ' . ucfirst($leave->status),
-                        'message' => 'Your ' . $leave->leave_type . ' request was ' . $leave->status,
-                        'time' => $leave->updated_at->diffForHumans(),
-                        'link' => route('leave.index'),
-                        'icon' => 'leave'
-                    ];
-                }
+                $notifications[] = [
+                    'id' => $notifId,
+                    'type' => 'leave_update',
+                    'title' => 'Leave ' . ucfirst($leave->status),
+                    'message' => 'Your ' . $leave->leave_type . ' request was ' . $leave->status,
+                    'time' => $leave->updated_at->diffForHumans(),
+                    'link' => route('leave.index'),
+                    'icon' => 'leave'
+                ];
             }
         }
 
@@ -239,50 +201,18 @@ class NotificationController extends Controller
         if (!$user)
             return response()->json([], 401);
 
-        $isSuperAdmin = in_array($user->role, ['superadmin', 'super_admin']);
-
-        if ($isSuperAdmin) {
-            $unreadChats = 0;
-        } else {
-            $currentUserId = $user->role === 'admin' ? 'admin_' . $user->id : (string) $user->id;
-            $unreadChats = Message::where('receiver_id', $currentUserId)
-                ->where('is_read', false)
-                ->count();
-        }
+        $currentUserId = $user->role === 'admin' ? 'admin_' . $user->id : (string) $user->id;
+        $unreadChats = Message::where('receiver_id', $currentUserId)
+            ->where('is_read', false)
+            ->count();
 
         $pendingLeaves = 0;
-        $seenIds = DB::table('notification_reads')
-            ->where('user_id', $user->id)
-            ->pluck('notification_id')
-            ->toArray();
-
-        if (!$isSuperAdmin) {
-            if (in_array($user->role, ['admin', 'manager', 'editor'])) {
-                $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
-                $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
-
-                $leaves = Leave::where('status', 'pending')
-                    ->whereIn('user_id', $tenantUserIds)
-                    ->get();
-
-                foreach ($leaves as $leave) {
-                    if (!in_array('leave_' . $leave->id, $seenIds)) {
-                        $pendingLeaves++;
-                    }
-                }
-            } else {
-                // For regular users, show count of recently updated leaves (approved/rejected)
-                $leaves = Leave::where('user_id', $user->id)
-                    ->whereIn('status', ['approved', 'rejected'])
-                    ->where('updated_at', '>', now()->subDays(3))
-                    ->get();
-
-                foreach ($leaves as $leave) {
-                    if (!in_array('leave_' . $leave->id, $seenIds)) {
-                        $pendingLeaves++;
-                    }
-                }
-            }
+        if (in_array($user->role, ['admin', 'superadmin'])) {
+            $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+            $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+            $pendingLeaves = Leave::where('status', 'pending')
+                ->whereIn('user_id', $tenantUserIds)
+                ->count();
         }
 
         return response()->json([
@@ -295,21 +225,20 @@ class NotificationController extends Controller
     {
         $user = Auth::user();
         if (!$user)
-            return response()->json([], 401);
+            return response()->json(['success' => false], 401);
 
-        if (strpos($id, 'msg_') === 0) {
+        DB::table('notification_reads')->updateOrInsert(
+            ['user_id' => $user->id, 'notification_id' => $id],
+            ['created_at' => now(), 'updated_at' => now()]
+        );
+
+        if (str_starts_with($id, 'msg_')) {
             $msgId = str_replace('msg_', '', $id);
             Message::where('id', $msgId)
                 ->where('receiver_id', $user->id)
                 ->update(['is_read' => true]);
         }
 
-        // Track that this user has "read" this notification in the bell
-        DB::table('notification_reads')->updateOrInsert(
-            ['user_id' => $user->id, 'notification_id' => $id],
-            ['created_at' => now(), 'updated_at' => now()]
-        );
-
-        return response()->json(['status' => 'success']);
+        return response()->json(['success' => true]);
     }
 }
