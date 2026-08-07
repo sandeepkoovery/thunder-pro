@@ -655,13 +655,13 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                     )}
 
                     {/* Tab Switcher */}
-                    <div className="flex border-b border-gray-100 mb-6 bg-white rounded-t-[24px] px-6 pt-6">
+                    <div className="flex overflow-x-auto custom-scrollbar-h border-b border-gray-100 mb-6 bg-white rounded-t-[24px] px-4 sm:px-6 pt-4 sm:pt-6 no-scrollbar">
                         <button
                             onClick={() => {
                                 setDisplayMode('table');
                                 router.get(route('admin.attendance.index'), { ...filters, display: 'table' }, { preserveState: true });
                             }}
-                            className={`px-8 py-3 text-[13px] font-bold uppercase tracking-widest transition-all border-b-2 ${displayMode === 'table'
+                            className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 ${displayMode === 'table'
                                 ? 'border-blue-600 text-blue-600'
                                 : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
                                 }`}
@@ -673,7 +673,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                 setDisplayMode('cards');
                                 router.get(route('admin.attendance.index'), { ...filters, display: 'cards' }, { preserveState: true });
                             }}
-                            className={`px-8 py-3 text-[13px] font-bold uppercase tracking-widest transition-all border-b-2 ${displayMode === 'cards'
+                            className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 ${displayMode === 'cards'
                                 ? 'border-blue-600 text-blue-600'
                                 : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
                                 }`}
@@ -689,7 +689,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                 }
                                 router.get(route('admin.attendance.index'), newParams, { preserveState: true });
                             }}
-                            className={`px-8 py-3 text-[13px] font-bold uppercase tracking-widest transition-all border-b-2 ${displayMode === 'calendar'
+                            className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 ${displayMode === 'calendar'
                                 ? 'border-blue-600 text-blue-600'
                                 : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
                                 }`}
@@ -701,7 +701,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                 setDisplayMode('export');
                                 router.get(route('admin.attendance.index'), { ...filters, display: 'export' }, { preserveState: true });
                             }}
-                            className={`px-8 py-3 text-[13px] font-bold uppercase tracking-widest transition-all border-b-2 ${displayMode === 'export'
+                            className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 ${displayMode === 'export'
                                 ? 'border-blue-600 text-blue-600'
                                 : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
                                 }`}
