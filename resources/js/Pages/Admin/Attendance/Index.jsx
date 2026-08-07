@@ -414,6 +414,17 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     };
 
+    const formatMonthLabel = (monthStr) => {
+        if (!monthStr) return '';
+        try {
+            const [year, month] = monthStr.split('-');
+            const d = new Date(parseInt(year, 10), parseInt(month, 10) - 1, 1);
+            return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
+        } catch (e) {
+            return monthStr;
+        }
+    };
+
     const handleFilterChange = (key, value) => {
         const newFilters = { ...filters };
 
@@ -1213,7 +1224,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                         <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
                                             <span>Report Preview:</span>
                                             <span className="text-blue-600 bg-blue-50 px-3 py-1 rounded-xl text-xs font-black border border-blue-100">
-                                                {filters.month || new Date().toISOString().slice(0, 7)}
+                                                {formatMonthLabel(filters.month || new Date().toISOString().slice(0, 7))}
                                             </span>
                                         </h3>
                                         <span className="text-xs text-slate-500 font-extrabold">
@@ -1267,7 +1278,6 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                                                     />
                                                                     <div>
                                                                         <div className="font-extrabold text-slate-900">{row.name}</div>
-                                                                        <div className="text-xs text-slate-400 font-normal">{row.email}</div>
                                                                     </div>
                                                                 </td>
                                                                 <td className="p-4 text-center">
@@ -1499,7 +1509,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                     <div>
                         <h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0, textTransform: 'uppercase', color: '#0f172a' }}>WorkNest - Monthly Attendance Report</h1>
                         <p style={{ fontSize: '12px', margin: '4px 0 0 0', color: '#475569' }}>
-                            Report Month: <strong>{filters.month || new Date().toISOString().slice(0, 7)}</strong> &bull; Generated On: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            Report Month: <strong>{formatMonthLabel(filters.month || new Date().toISOString().slice(0, 7))}</strong> &bull; Generated On: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                         </p>
                     </div>
                     <div style={{ textAlign: 'right', fontSize: '11px', color: '#334155' }}>
@@ -1512,7 +1522,6 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                     <thead>
                         <tr>
                             <th>Employee Name</th>
-                            <th>Email</th>
                             <th>Present</th>
                             <th>Absent</th>
                             <th>Leaves</th>
@@ -1526,7 +1535,6 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                         {exportPreviewData && exportPreviewData.filter(row => selectedUserIds.includes(row.user_id)).map(row => (
                             <tr key={row.user_id}>
                                 <td><strong>{row.name}</strong></td>
-                                <td>{row.email}</td>
                                 <td>{row.present_days} days</td>
                                 <td>{row.absent_days} days</td>
                                 <td>{row.leave_days} days</td>

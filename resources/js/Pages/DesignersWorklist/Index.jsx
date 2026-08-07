@@ -43,9 +43,36 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
     const [previewItem, setPreviewItem] = useState(null);
     const [isAssigneeDropdownOpen, setIsAssigneeDropdownOpen] = useState(false);
 
+    const getInitials = (name) => {
+        if (!name) return 'U';
+        const parts = name.trim().split(' ');
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return parts[0].substring(0, 2).toUpperCase();
+    };
+
+    const getAvatarBgColor = (name) => {
+        const colors = [
+            'bg-slate-700',
+            'bg-[#84cc16]',
+            'bg-[#4d7c0f]',
+            'bg-[#06b6d4]',
+            'bg-[#6366f1]',
+            'bg-[#ec4899]',
+            'bg-[#f59e0b]',
+            'bg-[#10b981]'
+        ];
+        let hash = 0;
+        for (let i = 0; i < (name || '').length; i++) {
+            hash = name.charCodeAt(i) + ((hash << 5) - hash);
+        }
+        return colors[Math.abs(hash) % colors.length];
+    };
+
     const getSelectedAssigneeNames = () => {
         if (!form.data.assigned_user_ids || form.data.assigned_user_ids.length === 0) {
-            return 'Select Designers';
+            return 'Select Assignee(s)';
         }
         const selectedUsers = users.filter(u => form.data.assigned_user_ids.includes(u.id));
         return selectedUsers.map(u => u.name).join(', ');
@@ -570,16 +597,18 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                     <button
                                         type="button"
                                         onClick={() => setIsAssigneeDropdownOpen(!isAssigneeDropdownOpen)}
-                                        className="w-full flex items-center justify-between px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold bg-white hover:bg-gray-50 focus:ring-2 focus:ring-blue-500/20 text-left transition-all cursor-pointer min-h-[42px]"
+                                        className={`w-full flex items-center justify-between px-4 py-3 rounded-2xl border text-sm font-medium bg-white hover:bg-slate-50 focus:outline-none transition-all cursor-pointer min-h-[46px] ${
+                                            isAssigneeDropdownOpen ? 'border-indigo-500 ring-2 ring-indigo-500/20' : 'border-gray-200'
+                                        }`}
                                     >
-                                        <span className="truncate text-gray-800 text-sm font-bold">
-                                            {getSelectedAssigneeNames()}
+                                        <span className="truncate text-slate-700 text-sm font-medium">
+                                            {form.data.assigned_user_ids.length === 0 ? 'Select Assignee(s)' : getSelectedAssigneeNames()}
                                         </span>
-                                        <ChevronDown className={`w-4 h-4 text-gray-400 shrink-0 transition-transform duration-200 ${isAssigneeDropdownOpen ? 'rotate-180' : ''}`} />
+                                        <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-200 ${isAssigneeDropdownOpen ? 'rotate-180 text-indigo-600' : ''}`} />
                                     </button>
 
                                     {isAssigneeDropdownOpen && (
-                                        <div className="absolute z-30 w-full mt-1.5 bg-white border border-gray-200 rounded-2xl shadow-2xl max-h-52 overflow-y-auto p-2 space-y-1">
+                                        <div className="absolute z-30 w-full mt-2 bg-white border border-slate-150 rounded-2xl shadow-2xl max-h-60 overflow-y-auto p-2 space-y-1">
                                             {users.map(u => {
                                                 const isAssigned = form.data.assigned_user_ids.includes(u.id);
                                                 return (
@@ -592,12 +621,20 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                                                 : [...current, u.id];
                                                             form.setData('assigned_user_ids', next);
                                                         }}
-                                                        className={`p-2.5 rounded-xl text-xs font-bold flex items-center justify-between cursor-pointer transition-colors ${
-                                                            isAssigned ? 'bg-blue-50 text-blue-700' : 'hover:bg-gray-50 text-gray-700'
+                                                        className={`flex items-center gap-3 p-2.5 rounded-xl text-sm font-medium cursor-pointer transition-colors ${
+                                                            isAssigned ? 'bg-indigo-50/60 text-indigo-900 font-semibold' : 'hover:bg-slate-50 text-slate-700'
                                                         }`}
                                                     >
-                                                        <span>{u.name} ({u.email})</span>
-                                                        {isAssigned && <Check size={14} className="text-blue-600 font-bold" />}
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={isAssigned}
+                                                            onChange={() => {}}
+                                                            className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer pointer-events-none"
+                                                        />
+                                                        <div className={`w-7 h-7 rounded-full text-[11px] font-bold text-white flex items-center justify-center shrink-0 ${getAvatarBgColor(u.name)}`}>
+                                                            {getInitials(u.name)}
+                                                        </div>
+                                                        <span className="truncate">{u.name}</span>
                                                     </div>
                                                 );
                                             })}
