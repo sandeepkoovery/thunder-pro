@@ -720,31 +720,30 @@ export default function Index() {
 
         {/* Create/Edit Modal */}
         {isOpen && (
-          <div className="fixed inset-0 bg-black/45 backdrop-blur-xs flex items-start justify-center overflow-y-auto z-50 py-6 sm:py-10 px-4 animate-in fade-in duration-200">
-            <div className="bg-white w-full max-w-4xl p-8 sm:p-10 rounded-[32px] shadow-2xl border border-gray-100 space-y-4 my-auto relative">
-              {/* Close Button */}
-              <button
-                onClick={closeModal}
-                className="absolute top-6 right-6 text-gray-400 hover:text-gray-600 transition p-1.5 hover:bg-gray-100 rounded-full"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              {/* Centered Header */}
-              <div className="text-center mb-6">
-                <h2 className="text-2xl sm:text-3xl font-extrabold text-slate-800 tracking-tight">
-                  {editingUser ? "Edit Employee Details" : "Add New Employee"}
-                </h2>
-                <p className="text-sm text-gray-500 mt-2 font-medium">
-                  {editingUser ? "Modify employee login information and role permissions." : "Create a new employee with custom dashboard login credentials."}
-                </p>
+          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-start justify-center p-8 z-50 overflow-y-auto">
+            <div className="bg-white rounded-[24px] shadow-[0_32px_96px_-16px_rgba(0,0,0,0.1)] w-full max-w-4xl mt-10 overflow-hidden border border-slate-100 ring-1 ring-slate-900/5 transition-all">
+              <div className="p-8 border-b flex justify-between items-center bg-slate-50/50">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
+                    {editingUser ? "Edit Employee Details" : "Add New Employee"}
+                  </h2>
+                  <p className="text-sm font-medium text-slate-400 mt-1">
+                    {editingUser ? "Modify employee login information and role permissions." : "Create a new employee with custom dashboard login credentials."}
+                  </p>
+                </div>
+                <button
+                  onClick={closeModal}
+                  className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-full transition-all active:scale-90"
+                >
+                  <X className="w-5 h-5" />
+                </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 pt-1">
+              <form onSubmit={handleSubmit} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
                 
                 {/* Account Details Heading */}
                 <div className="md:col-span-2 border-b border-gray-100 pb-1.5">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Account Information</h3>
+                  <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">Account Information</h3>
                 </div>
 
                 {/* Name */}
@@ -864,7 +863,7 @@ export default function Index() {
 
                 {/* Company Details Heading */}
                 <div className="md:col-span-2 border-b border-gray-100 pb-1.5 pt-1.5">
-                  <h3 className="text-xs font-bold text-gray-400 uppercase tracking-widest ml-1">Company Information</h3>
+                  <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">Company Information</h3>
                 </div>
 
                 {/* Employee ID */}
@@ -938,19 +937,19 @@ export default function Index() {
                 </div>
 
                 {/* Buttons */}
-                <div className="flex justify-center gap-4 pt-4 mt-6 border-t border-gray-100 md:col-span-2 bg-white">
-                  <button
-                    type="submit"
-                    className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider shadow-md transition-all active:scale-95 duration-150"
-                  >
-                    {editingUser ? "Save Changes" : "Submit"}
-                  </button>
+                <div className="flex gap-4 pt-4 mt-4 border-t border-slate-50 md:col-span-2">
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 font-bold rounded-xl text-xs uppercase tracking-wider transition-all active:scale-95 duration-150"
+                    className="px-6 py-3 text-sm font-semibold text-slate-500 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all active:scale-[0.98]"
                   >
                     Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 px-6 text-sm font-semibold text-white bg-slate-900 hover:bg-black rounded-xl shadow-[0_10px_20px_-10px_rgba(15,23,42,0.4)] transition-all active:scale-[0.98]"
+                  >
+                    {editingUser ? "Save Changes" : "Create Employee"}
                   </button>
                 </div>
               </form>

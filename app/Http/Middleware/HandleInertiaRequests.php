@@ -133,7 +133,7 @@ class HandleInertiaRequests extends Middleware
             'pricing', 'settings'
         ];
 
-        if ($user && in_array($user->role, ['superadmin', 'admin'])) {
+        if ($user && $user->role === 'superadmin') {
             $allowedModules = $allModulesList;
         } else {
             $userRoleKey = $user ? ($user->role ?? 'user') : 'user';
@@ -150,6 +150,19 @@ class HandleInertiaRequests extends Middleware
                 ];
                 $allowedModules = $defaultRolePermissions[$userRoleKey] ?? ($plan === 'premium' ? $premiumModules : $basicModules);
             }
+
+            if (!empty($userAdditionalModules) && is_array($userAdditionalModules)) {
+                $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
+            }
+
+            // Strictly intersect with the tenant's actual subscription plan + add-ons + core admin modules
+            $tenantMaxModules = array_unique(array_merge(
+                $plan === 'premium' ? $premiumModules : $basicModules,
+                is_array($userAdditionalModules) ? $userAdditionalModules : [],
+                ['dashboard', 'pricing', 'settings', 'modules', 'notifications']
+            ));
+
+            $allowedModules = array_values(array_intersect($allowedModules, $tenantMaxModules));
         }
 
         // Cache expiring website count for admins for 60 seconds

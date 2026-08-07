@@ -28,6 +28,10 @@ class SettingController extends Controller
         $settings['month_start_day'] = $admin ? ($admin->month_start_day ?? 25) : 25;
         $settings['month_end_day'] = $admin ? ($admin->month_end_day ?? 24) : 24;
 
+        $adminId = $admin ? $admin->id : 0;
+        $settings['admin_email'] = $settings["admin_email_{$adminId}"] ?? ($admin ? $admin->email : ($settings['admin_email'] ?? ''));
+        $settings['monthly_working_days'] = $settings["monthly_working_days_{$adminId}"] ?? ($settings['monthly_working_days'] ?? null);
+
         if (!isset($settings['designers_task_type_options'])) {
             $settings['designers_task_type_options'] = 'Poster, Thumbnail, Story, Carousel, Grid, Other';
         }
@@ -68,22 +72,34 @@ class SettingController extends Controller
         ]);
 
         $user = auth()->user();
+        $admin = null;
         if ($user instanceof \App\Models\Admin) {
-            $user->update([
-                'month_start_day' => $data['month_start_day'] ?? 25,
-                'month_end_day' => $data['month_end_day'] ?? 24,
-            ]);
+            $admin = $user;
+        } else if ($user->role === 'admin') {
+            $admin = \App\Models\Admin::where('email', $user->email)->first();
         } else if (!empty($user->admin_id)) {
-            \App\Models\Admin::where('id', $user->admin_id)->update([
+            $admin = \App\Models\Admin::find($user->admin_id);
+        }
+
+        if ($admin) {
+            $admin->update([
                 'month_start_day' => $data['month_start_day'] ?? 25,
                 'month_end_day' => $data['month_end_day'] ?? 24,
             ]);
         }
 
+        $adminId = $admin ? $admin->id : 0;
+
         foreach ($data as $key => $value) {
             if (in_array($key, ['month_start_day', 'month_end_day'])) continue;
+            
+            $saveKey = $key;
+            if (in_array($key, ['admin_email', 'monthly_working_days'])) {
+                $saveKey = "{$key}_{$adminId}";
+            }
+
             $val = is_array($value) ? json_encode($value) : $value;
-            Setting::updateOrCreate(['key' => $key], ['value' => $val]);
+            Setting::updateOrCreate(['key' => $saveKey], ['value' => $val]);
         }
 
         \Illuminate\Support\Facades\Cache::forget('global_settings_map');

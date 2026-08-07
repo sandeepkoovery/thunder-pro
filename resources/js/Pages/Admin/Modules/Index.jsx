@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Head, useForm } from '@inertiajs/react';
+import { Head, useForm, usePage } from '@inertiajs/react';
 import { Layers, Lock, Save, CheckSquare, Square, Search, RefreshCw, AlertCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -13,7 +13,15 @@ export default function Index({ modules = [], roles = [], rolePermissions = {}, 
         module_order: moduleOrder || {},
     });
 
-    const filteredModules = modules.filter((mod) =>
+    const { auth, allowedModules } = usePage().props;
+    const isSuperAdmin = auth?.user?.role === 'superadmin';
+
+    // Filter modules strictly by subscription (Super admin sees all)
+    const validModules = isSuperAdmin ? modules : modules.filter((mod) => 
+        Array.isArray(allowedModules) && allowedModules.includes(mod.key)
+    );
+
+    const filteredModules = validModules.filter((mod) =>
         mod.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         mod.key.toLowerCase().includes(searchQuery.toLowerCase())
     );
@@ -74,7 +82,7 @@ export default function Index({ modules = [], roles = [], rolePermissions = {}, 
 
     const selectAllForRole = (roleKey) => {
         if (roleKey === 'admin') return;
-        const allKeys = modules.map((m) => m.key);
+        const allKeys = validModules.map((m) => m.key);
         setData('permissions', {
             ...data.permissions,
             [roleKey]: allKeys,
