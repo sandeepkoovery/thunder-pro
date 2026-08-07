@@ -218,39 +218,96 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
                     </div>
                 </div>
 
-                <div className="grid grid-cols-7 mb-4">
-                    {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
-                        <div key={day} className="text-center text-[11px] font-black text-gray-400 tracking-widest">
-                            {day}
-                        </div>
-                    ))}
+                {/* Desktop Grid View */}
+                <div className="hidden md:block">
+                    <div className="grid grid-cols-7 mb-4">
+                        {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map(day => (
+                            <div key={day} className="text-center text-[11px] font-black text-gray-400 tracking-widest">
+                                {day}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="grid grid-cols-7 gap-3">
+                        {calendarDays.map((item, idx) => (
+                            <div
+                                key={idx}
+                                className={`aspect-square rounded-2xl border p-2 flex flex-col transition-all ${!item.currentMonth ? 'bg-gray-50/30 border-transparent' : 'bg-white border-gray-100'
+                                    } ${item.date === today ? 'border-[#ff4081] ring-2 ring-[#ff4081]/10' : ''}`}
+                            >
+                                <span className={`text-sm font-black ${!item.currentMonth ? 'text-gray-200' : 'text-[#2d3436]'}`}>
+                                    {item.day}
+                                </span>
+
+                                {item.currentMonth && item.status !== '-' && (
+                                    <div className="mt-auto space-y-1">
+                                        <div className={`px-1 py-1 rounded-lg text-[10px] font-black text-center uppercase tracking-normal ${getStatusStyles(item.status)}`}>
+                                            {item.status}
+                                        </div>
+                                        {item.isLate && (item.lateHours > 0 || item.lateMinutes > 0) && (
+                                            <div className="px-1 py-0.5 rounded-md text-[9px] font-bold text-center bg-orange-100 text-orange-700 border border-orange-200">
+                                                {item.lateHours > 0 ? `+${item.lateHours}h ${item.lateMinutes}m` : `+${item.lateMinutes}m`}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-7 gap-3">
-                    {calendarDays.map((item, idx) => (
-                        <div
-                            key={idx}
-                            className={`aspect-square rounded-2xl border p-2 flex flex-col transition-all ${!item.currentMonth ? 'bg-gray-50/30 border-transparent' : 'bg-white border-gray-100'
-                                } ${item.date === today ? 'border-[#ff4081] ring-2 ring-[#ff4081]/10' : ''}`}
-                        >
-                            <span className={`text-sm font-black ${!item.currentMonth ? 'text-gray-200' : 'text-[#2d3436]'}`}>
-                                {item.day}
-                            </span>
+                {/* Mobile Agenda List View (Alternate Method for Mobile) */}
+                <div className="block md:hidden space-y-2.5">
+                    {calendarDays.filter(item => item.currentMonth).map((item, idx) => {
+                        const dayDate = item.date ? new Date(item.date) : null;
+                        const dayOfWeekStr = dayDate ? dayDate.toLocaleDateString('en-US', { weekday: 'short' }) : '';
+                        const isToday = item.date === today;
 
-                            {item.currentMonth && item.status !== '-' && (
-                                <div className="mt-auto space-y-1">
-                                    <div className={`px-1 py-1 rounded-lg text-[10px] font-black text-center uppercase tracking-normal ${getStatusStyles(item.status)}`}>
-                                        {item.status}
+                        return (
+                            <div
+                                key={idx}
+                                className={`flex items-center justify-between p-3.5 rounded-2xl border transition-all ${
+                                    isToday ? 'bg-pink-50/50 border-pink-200 ring-1 ring-pink-300' : 'bg-white border-gray-100 shadow-2xs'
+                                }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center font-bold shrink-0 ${
+                                        isToday ? 'bg-[#ff4081] text-white' : 'bg-gray-100 text-gray-700'
+                                    }`}>
+                                        <span className="text-[10px] uppercase tracking-wider font-extrabold">{dayOfWeekStr}</span>
+                                        <span className="text-base font-black leading-none">{item.day}</span>
                                     </div>
-                                    {item.isLate && (item.lateHours > 0 || item.lateMinutes > 0) && (
-                                        <div className="px-1 py-0.5 rounded-md text-[9px] font-bold text-center bg-orange-100 text-orange-700 border border-orange-200">
-                                            {item.lateHours > 0 ? `+${item.lateHours}h ${item.lateMinutes}m` : `+${item.lateMinutes}m`}
+
+                                    <div>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className={`px-2.5 py-0.5 rounded-full text-xs font-extrabold uppercase tracking-wider ${getStatusStyles(item.status)}`}>
+                                                {item.status}
+                                            </span>
+                                            {item.isLate && (item.lateHours > 0 || item.lateMinutes > 0) && (
+                                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-orange-100 text-orange-700 border border-orange-200">
+                                                    {item.lateHours > 0 ? `+${item.lateHours}h ${item.lateMinutes}m` : `+${item.lateMinutes}m`}
+                                                </span>
+                                            )}
                                         </div>
-                                    )}
+                                        {item.attendance && (
+                                            <p className="text-xs text-gray-500 mt-1 font-medium">
+                                                In: <strong className="text-gray-700">{item.attendance.check_in || '—'}</strong> | Out: <strong className="text-gray-700">{item.attendance.check_out || '—'}</strong>
+                                            </p>
+                                        )}
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                    ))}
+
+                                {item.attendance && (
+                                    <div className="text-right shrink-0">
+                                        <span className="text-xs font-bold text-gray-700 block">{item.attendance.hours || '0h 0m'}</span>
+                                        {item.attendance.break_time && (
+                                            <span className="text-[10px] text-orange-600 font-medium">Break: {item.attendance.break_time}</span>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
 
                 <div className="mt-8 flex flex-wrap justify-center gap-6">
@@ -345,13 +402,6 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
                             </div>
                         </div>
                     )}
-                </div>
-
-                {/* Info Card */}
-                <div className="bg-gradient-to-br from-[#ff4081] to-[#7c4dff] rounded-[32px] p-6 text-white shadow-xl shadow-[#ff4081]/20">
-                    <p className="text-xs font-bold uppercase tracking-widest opacity-80 mb-2">Office Hours</p>
-                    <p className="text-2xl font-black mb-4">09:00 AM - 06:00 PM</p>
-                    <div className="h-1 w-12 bg-white/30 rounded-full"></div>
                 </div>
             </div>
         </div>
