@@ -27,6 +27,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
   const isSuperAdmin = auth?.user?.role === "superadmin";
   const betaMenuItems = isSuperAdmin ? [] : (Array.isArray(sharedSettings?.beta_menu_items) ? sharedSettings.beta_menu_items : []);
   const hiddenMenuItems = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
+  const isManagementAdmin = ['admin', 'superadmin'].includes(auth?.user?.role);
   const isAdmin = ['admin', 'superadmin', 'manager', 'editor'].includes(auth?.user?.role);
 
   const isVisible = (module) => {
@@ -67,7 +68,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
       {
         key: 'projects',
         order: getModuleOrder('projects', 2),
-        element: <NavItem key="projects" href={route("admin.projects.index")} icon={FolderKanban} label="Projects" routeName="admin.projects" visible={isVisible("projects")} beta={betaMenuItems.includes("projects")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="projects" href={route(isManagementAdmin ? "admin.projects.index" : "projects.index")} icon={FolderKanban} label="Projects" routeName={isManagementAdmin ? "admin.projects" : "projects"} visible={isVisible("projects")} beta={betaMenuItems.includes("projects")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'users',
@@ -82,12 +83,12 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
       {
         key: 'attendance',
         order: getModuleOrder('attendance', 5),
-        element: <NavItem key="attendance" href={route(isAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="attendance" href={route(isManagementAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isManagementAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'leaves',
         order: getModuleOrder('leaves', 6),
-        element: <NavItem key="leaves" href={route(isAdmin ? "admin.leaves.index" : "leave.index")} icon={FileText} label="Leaves" routeName={isAdmin ? "admin.leaves" : "leave"} visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="leaves" href={route(isManagementAdmin ? "admin.leaves.index" : "leave.index")} icon={FileText} label="Leaves" routeName={isManagementAdmin ? "admin.leaves" : "leave"} visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'calendar',
@@ -112,7 +113,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
       {
         key: 'drive',
         order: getModuleOrder('drive', 11),
-        element: <NavItem key="drive" href={route("admin.drive.index")} icon={FolderKanban} label="Drive" routeName="admin.drive" visible={isVisible("drive") && !hiddenMenuItems.includes("drive")} beta={false} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="drive" href={route(isManagementAdmin ? "admin.drive.index" : "drive.index")} icon={FolderKanban} label="Drive" routeName={isManagementAdmin ? "admin.drive" : "drive"} visible={isVisible("drive") && !hiddenMenuItems.includes("drive")} beta={false} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'chat',

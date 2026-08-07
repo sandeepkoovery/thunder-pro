@@ -13,7 +13,7 @@ class LeaveController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (auth()->check() && auth()->user()->role !== 'admin') {
+            if (auth()->check() && !in_array(auth()->user()->role, ['superadmin', 'admin', 'manager', 'editor'])) {
                 abort(403, 'Unauthorized action.');
             }
             return $next($request);
