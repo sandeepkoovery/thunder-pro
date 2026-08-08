@@ -274,22 +274,16 @@ User Question: \"{$message}\"
 Rules:
 1. Return ONLY the raw SQL query. Do not wrap in markdown (no ```sql or triple backticks), no explanations.
 2. Only generate read-only SELECT queries. DO NOT generate DELETE, DROP, UPDATE, INSERT, ALTER or TRUNCATE.
-3. Understand terms in English or Malayalam:
-   - 'employees' / 'users' / 'staff' / 'ജീവനക്കാർ' / 'ആളുകൾ' / 'പേർ' -> users table
-   - 'attendance' / 'present' / 'absent' / 'ഹാജർ' -> attendances table
-   - 'punched in' / 'പഞ്ച് ഇൻ' -> attendances table where punch_in IS NOT NULL and date = CURDATE()
-   - 'late' / 'late come' / 'വൈകി വന്നത്' / 'ലേറ്റ് ആയത്' -> attendances table where status = 'late' OR TIME(punch_in) > '09:30:00'
-   - 'on leave' / 'leaves' / 'leave' / 'ലീവിലുണ്ടോ' / 'അവധി' -> leaves table where status = 'approved' AND start_date <= CURDATE() AND end_date >= CURDATE()
-   - 'tasks' / 'task' / 'ജോലികൾ' -> tasks table
-   - 'projects' / 'project' / 'പ്രോജക്റ്റുകൾ' -> projects table
-   - 'departments' / 'department' / 'ഡിപ്പാർട്ട്മെന്റ്' -> departments table
-   - 'today' / 'ഇന്ന്' -> CURDATE() or DATE(attendances.date) = CURDATE()
-   - 'yesterday' / 'ഇന്നലെ' -> SUBDATE(CURDATE(), 1)
-   - 'last month' / 'കഴിഞ്ഞ മാസം' -> YEAR(attendances.date) = YEAR(CURRENT_DATE - INTERVAL 1 MONTH) AND MONTH(attendances.date) = MONTH(CURRENT_DATE - INTERVAL 1 MONTH)
-   - 'pending' / 'unfinished' / 'പെൻഡിംഗ്' -> status = 'pending'
-   - 'count' / 'total' / 'how many' / 'എത്ര' -> COUNT(*) or aggregate SELECT
-4. Always join `users` table to get employee name (`users.name` or `CONCAT(users.first_name, ' ', users.last_name)`) when listing attendance, late arrivals, or leaves.
-5. For user relative references ('my tasks', 'assigned to me'): use user_id = {$currentUserId} or check task_user join table.
+3. Use EXACT column names from the schema context:
+   - For attendances: use `punch_in`, `punch_out`, `date`, `status` (DO NOT use clock_in!).
+   - For leaves: use `from_date` and `to_date` (DO NOT use start_date / end_date!).
+   - For tasks: use `name` (DO NOT use title!).
+4. Always join `users` table to fetch employee names (`users.name` or `CONCAT(users.first_name, ' ', users.last_name)`).
+5. Understand terms in English or Malayalam:
+   - 'punched in' / 'പഞ്ച് ഇൻ' / 'എത്ര പേർ' -> COUNT(*) FROM attendances WHERE date = CURDATE() AND punch_in IS NOT NULL
+   - 'on leave' / 'ലീവിലുണ്ടോ' / 'അവധി' -> FROM leaves JOIN users WHERE status = 'approved' AND from_date <= CURDATE() AND to_date >= CURDATE()
+   - 'late' / 'വൈകി വന്നത്' / 'ലേറ്റ് ആയത്' -> FROM attendances JOIN users WHERE date = SUBDATE(CURDATE(), 1) AND (TIME(punch_in) > '09:30:00' OR status = 'late')
+   - 'last month late' / 'കഴിഞ്ഞ മാസം ലേറ്റ് ആയത്' -> SELECT users.name, COUNT(*) as late_count FROM attendances JOIN users ON attendances.user_id = users.id WHERE attendances.date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH) AND TIME(attendances.punch_in) > '09:30:00' GROUP BY users.id, users.name ORDER BY late_count DESC LIMIT 1
 6. Keep queries efficient and limit to max 15 rows if returning lists.
 7. If the question cannot be answered by SQL (e.g. general greeting like 'hello' or 'hi'), return string 'NO_SQL'.";
 
@@ -346,7 +340,7 @@ Database Query Results (JSON): {$resultsJson}
 Instructions:
 1. Provide a concise, clear, complete, and direct answer.
 2. Format numbers, names, and key counts clearly.
-3. If results array is empty or count is 0, reply politely explaining that no matching records were found.
+3. If results array is empty or count is 0, reply politely explaining that no matching records were found in the database.
 4. Do NOT include SQL queries, code blocks, or technical error codes in your output.
 5. Make sure the text sounds natural and complete when read aloud by Text-to-Speech (TTS).
 6. Keep the response complete and under 3-4 clear sentences so the entire message is spoken smoothly.";
@@ -388,21 +382,45 @@ Instructions:
     }
 
     /**
-     * Provide a comprehensive overview of the WorkNest database schema.
+     * Provide a comprehensive overview of the WorkNest database schema matching actual column names.
      */
     private function getSchemaContext()
     {
+        $adminId = auth()->user()?->admin_id ?? auth()->id() ?? 1;
+
         return "
-        - users (id, name, email, role, phone, designation, status, created_at)
-        - projects (id, name, description, status, budget, start_date, end_date, created_at)
-        - tasks (id, title, description, status, priority, project_id, due_date, created_at)
-        - task_user (task_id, user_id)
-        - attendances (id, user_id, date, clock_in, clock_out, status, created_at)
-        - leaves (id, user_id, leave_type, start_date, end_date, reason, status, created_at)
-        - departments (id, name, status, created_at)
-        - daily_worksheets (id, user_id, date, work_summary, created_at)
-        - domains (id, domain_name, expiration_date, status, created_at)
-        - hostings (id, domain_id, provider, expiration_date, status, created_at)
+        Current Logged In Admin ID: {$adminId}
+
+        Table Schemas (EXACT COLUMNS & ENUMS):
+
+        1. users:
+           - Columns: id, name, first_name, last_name, email, role (superadmin|admin|employee|hr|manager), designation, phone, employee_id, department_id, reporting_manager_id, joining_date, is_active, admin_id
+
+        2. attendances:
+           - Columns: id, user_id, date (YYYY-MM-DD), punch_in (DATETIME/TIMESTAMP), punch_out (DATETIME/TIMESTAMP), break_start, break_end, total_break_minutes, status (punched_in|punched_out|on_break), admin_id
+           - Notes: 
+             * 'punched in' / 'പഞ്ച് ഇൻ' -> punch_in IS NOT NULL and date = CURDATE()
+             * 'late' / 'വൈകി വന്നത്' / 'ലേറ്റ് ആയത്' -> TIME(punch_in) > '09:30:00' OR status = 'late'
+             * Column name for check in is `punch_in` (NOT clock_in!)
+
+        3. leaves:
+           - Columns: id, user_id, employee_name, leave_type (paid|sick), day_type (full|half), from_date (DATE), to_date (DATE), no_of_days, reason, status (pending|approved|rejected), admin_id
+           - Notes: 
+             * Columns for date range are `from_date` and `to_date` (NOT start_date / end_date!)
+             * 'on leave' / 'ലീവിലുണ്ടോ' / 'അവധി' -> status = 'approved' AND from_date <= CURDATE() AND to_date >= CURDATE()
+
+        4. tasks:
+           - Columns: id, project_id, user_id, name, description, status (not started|in progress|completed|on hold), priority (low|medium|high), start_date, end_date
+           - Notes: Column for task title is `name` (NOT title!)
+
+        5. projects:
+           - Columns: id, name, description, status (not started|in progress|completed|on hold), start_date, end_date, client, budget, admin_id
+
+        6. departments:
+           - Columns: id, name, admin_id
+
+        7. daily_worksheets:
+           - Columns: id, user_id, date, work_summary, admin_id
         ";
     }
 }
