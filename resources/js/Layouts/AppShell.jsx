@@ -4,6 +4,7 @@ import { Link, router, Head, usePage } from "@inertiajs/react";
 import { Menu, Search, Moon, Sun, ChevronDown, LogOut, Settings, User, CreditCard, DollarSign, HelpCircle, Power, Download } from "lucide-react";
 import NotificationDropdown from "@/Components/NotificationDropdown";
 import ThemeCustomizer from "@/Components/ThemeCustomizer";
+import AskWorkNestVoiceAssistant from "@/Components/AskWorkNestVoiceAssistant";
 import { Toaster, toast } from "react-hot-toast";
 
 export function NavItem({ href, icon: Icon, label, visible, badge, beta, routeName, collapsed, isMobileOpen }) {
@@ -175,6 +176,8 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
           </div>
 
           <div className="mp-topbar-right">
+            <AskWorkNestVoiceAssistant />
+
             {isPremiumPlan && deferredPrompt && (
               <button
                 className="mp-nav-btn install-btn bg-blue-50 text-blue-600 px-3 rounded-lg flex items-center gap-1.5 transition-all duration-300 hover:bg-blue-100 mr-2"
