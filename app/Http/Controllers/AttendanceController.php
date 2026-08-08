@@ -254,9 +254,35 @@ class AttendanceController extends Controller
         return back();
     }
 
+    private function getTenantAdminId()
+    {
+        $user = auth()->user();
+        if (!$user) return 0;
+
+        if ($user instanceof \App\Models\Admin) {
+            if ($user->role === 'superadmin') {
+                return 0;
+            }
+            return $user->id;
+        }
+
+        if ($user->role === 'admin') {
+            $admin = \App\Models\Admin::where('email', $user->email)->first();
+            return $admin ? $admin->id : 0;
+        }
+
+        return $user->admin_id ?? 0;
+    }
+
     public function index(Request $request)
     {
-        $users = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true)->orderBy('name')->get();
+        $adminId = $this->getTenantAdminId();
+
+        $usersQuery = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true);
+        if ($adminId > 0) {
+            $usersQuery->where('admin_id', $adminId);
+        }
+        $users = $usersQuery->orderBy('name')->get();
         $filters = $request->only(['date', 'month', 'user_id', 'display']);
 
         // Mode 1: Monthly View (Month selected OR Calendar Display forced)
@@ -266,6 +292,9 @@ class AttendanceController extends Controller
 
             // Month view is for an individual user; if no user selected, default to first user
             $userId = $request->user_id;
+            if ($userId && !$users->contains('id', $userId)) {
+                $userId = null;
+            }
             if (!$userId && $users->isNotEmpty()) {
                 $userId = $users->first()->id;
                 $filters['user_id'] = $userId;
@@ -436,6 +465,9 @@ class AttendanceController extends Controller
                 $attendanceData = array_reverse($attendanceData);
 
                 $settings = \App\Models\Setting::all()->pluck('value', 'key');
+                if (isset($settings["monthly_working_days_{$adminId}"])) {
+                    $settings['monthly_working_days'] = $settings["monthly_working_days_{$adminId}"];
+                }
                 $exportMonth = $filters['month'] ?? Carbon::now()->format('Y-m');
                 $exportPreviewData = $this->getExportSummaryData($exportMonth);
 
@@ -455,9 +487,12 @@ class AttendanceController extends Controller
                 $startDate = $month->copy()->subMonth()->day(25);
                 $realEndDate = $month->copy()->day(24);
 
-                $attendances = Attendance::whereBetween('date', [$startDate->toDateString(), $realEndDate->toDateString()])
-                    ->with(['user', 'breaks'])
-                    ->get();
+                $attendancesQuery = Attendance::whereBetween('date', [$startDate->toDateString(), $realEndDate->toDateString()])
+                    ->with(['user', 'breaks']);
+                if ($adminId > 0) {
+                    $attendancesQuery->whereIn('user_id', $users->pluck('id'));
+                }
+                $attendances = $attendancesQuery->get();
 
                 $totalMonthlyMinutes = $attendances->sum('total_worked_minutes');
 
@@ -509,6 +544,9 @@ class AttendanceController extends Controller
                 })->values()->toArray();
 
                 $settings = \App\Models\Setting::all()->pluck('value', 'key');
+                if (isset($settings["monthly_working_days_{$adminId}"])) {
+                    $settings['monthly_working_days'] = $settings["monthly_working_days_{$adminId}"];
+                }
                 $exportMonth = $filters['month'] ?? Carbon::now()->format('Y-m');
                 $exportPreviewData = $this->getExportSummaryData($exportMonth);
 
@@ -529,6 +567,9 @@ class AttendanceController extends Controller
         // Mode 2: Daily View (All Users for Specific Date)
         $date = $request->input('date', Carbon::today()->toDateString());
         $userId = $request->user_id;
+        if ($userId && !$users->contains('id', $userId)) {
+            $userId = null;
+        }
 
         $filteredUsers = $users;
         if ($userId) {
@@ -536,7 +577,11 @@ class AttendanceController extends Controller
         }
 
         // Fetch attendances for the selected date
-        $attendances = Attendance::where('date', $date)->with('breaks')->get()->keyBy('user_id');
+        $attendancesQuery = Attendance::where('date', $date)->with('breaks');
+        if ($adminId > 0) {
+            $attendancesQuery->whereIn('user_id', $users->pluck('id'));
+        }
+        $attendances = $attendancesQuery->get()->keyBy('user_id');
 
         // Map users to their attendance and calculate status
         $attendanceData = $filteredUsers->map(function ($user) use ($attendances, $date) {
@@ -638,12 +683,20 @@ class AttendanceController extends Controller
 
     public function store(Request $request)
     {
+        $adminId = $this->getTenantAdminId();
         $request->validate([
             'user_id' => 'required|exists:users,id',
             'date' => 'required|date',
             'punch_in' => 'required|date',
             'punch_out' => 'nullable|date|after_or_equal:punch_in',
         ]);
+
+        if ($adminId > 0) {
+            $targetUser = \App\Models\User::find($request->user_id);
+            if (!$targetUser || $targetUser->admin_id != $adminId) {
+                return back()->with('error', 'Unauthorized action.');
+            }
+        }
 
         $punchIn = Carbon::parse($request->punch_in);
         $punchOut = $request->punch_out ? Carbon::parse($request->punch_out) : null;
@@ -951,10 +1004,19 @@ class AttendanceController extends Controller
     }
     public function report(Request $request)
     {
+        $adminId = $this->getTenantAdminId();
         $userId = $request->input('user_id');
         $month = $request->input('month', Carbon::now()->format('Y-m'));
 
-        $users = \App\Models\User::where('is_active', true)->orderBy('name')->get(['id', 'name']);
+        $usersQuery = \App\Models\User::where('is_active', true);
+        if ($adminId > 0) {
+            $usersQuery->where('admin_id', $adminId);
+        }
+        $users = $usersQuery->orderBy('name')->get(['id', 'name']);
+
+        if ($userId && !$users->contains('id', $userId)) {
+            $userId = null;
+        }
 
         // Default to the first user if none selected
         if (!$userId && $users->isNotEmpty()) {
@@ -1011,6 +1073,7 @@ class AttendanceController extends Controller
 
     public function export(Request $request)
     {
+        $adminId = $this->getTenantAdminId();
         $monthStr = $request->input('month', Carbon::now()->format('Y-m'));
         $month = Carbon::parse($monthStr);
         $startDate = $month->copy()->subMonth()->day(25);
@@ -1022,6 +1085,9 @@ class AttendanceController extends Controller
 
         $userIds = $request->input('user_ids');
         $query = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true);
+        if ($adminId > 0) {
+            $query->where('admin_id', $adminId);
+        }
         if ($userIds) {
             $ids = is_array($userIds) ? $userIds : explode(',', $userIds);
             $query->whereIn('id', array_filter($ids));
@@ -1154,6 +1220,7 @@ class AttendanceController extends Controller
 
     private function getExportSummaryData($monthStr)
     {
+        $adminId = $this->getTenantAdminId();
         $month = Carbon::parse($monthStr);
         $startDate = $month->copy()->subMonth()->day(25);
         $endDate = $month->copy()->day(24);
@@ -1161,7 +1228,11 @@ class AttendanceController extends Controller
 
         $calculationEndDate = $endDate->gt($today) ? $today : $endDate;
 
-        $users = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true)->orderBy('name')->get();
+        $usersQuery = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true);
+        if ($adminId > 0) {
+            $usersQuery->where('admin_id', $adminId);
+        }
+        $users = $usersQuery->orderBy('name')->get();
 
         $rows = [];
 
