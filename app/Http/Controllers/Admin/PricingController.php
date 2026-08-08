@@ -122,12 +122,29 @@ class PricingController extends Controller
                     $mod['price'] = 499;
                 }
             }
+            $hasAi = false;
+            foreach ($additionalModules as $mod) {
+                if (($mod['key'] ?? '') === 'ai_assistant') {
+                    $hasAi = true;
+                    break;
+                }
+            }
+            if (!$hasAi) {
+                $additionalModules[] = [
+                    'key' => 'ai_assistant',
+                    'label' => 'AI Voice Assistant',
+                    'price' => 499,
+                    'description' => 'Malayalam & English Voice AI Assistant for database queries',
+                    'included' => true
+                ];
+            }
         } else {
             $additionalModules = [
                 ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'description' => 'Plan & schedule social content campaigns', 'included' => true],
                 ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'description' => 'Track & manage daily property/item listings', 'included' => true],
                 ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'description' => 'Manage creative tasks & designer workflows', 'included' => true],
                 ['key' => 'domains', 'label' => 'Domains & Hosting', 'price' => 499, 'description' => 'Track domain names and website hosting', 'included' => true],
+                ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'description' => 'Malayalam & English Voice AI Assistant for database queries', 'included' => true],
             ];
         }
 

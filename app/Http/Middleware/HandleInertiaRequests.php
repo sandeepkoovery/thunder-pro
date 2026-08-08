@@ -59,12 +59,12 @@ class HandleInertiaRequests extends Middleware
             } elseif ($user->role === 'admin' || $user instanceof \App\Models\Admin) {
                 $admin = ($user instanceof \App\Models\Admin) ? $user : \App\Models\Admin::where('email', $user->email)->first();
                 $plan = $admin ? ($admin->plan ?? 'basic') : ($user->plan ?? 'basic');
-                $userAdditionalModules = $admin ? ($admin->additional_modules ?? []) : [];
+                $userAdditionalModules = $admin ? ($admin->additional_modules ?? ['ai_assistant', 'content_calendar', 'daily_listings', 'designers_worklist', 'domains']) : ['ai_assistant', 'content_calendar', 'daily_listings', 'designers_worklist', 'domains'];
             } else {
                 $tenantAdminId = $user->admin_id ?? null;
                 $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : null;
                 $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
-                $userAdditionalModules = $admin ? ($admin->additional_modules ?? []) : [];
+                $userAdditionalModules = $admin ? ($admin->additional_modules ?? ['ai_assistant', 'content_calendar', 'daily_listings', 'designers_worklist', 'domains']) : ['ai_assistant', 'content_calendar', 'daily_listings', 'designers_worklist', 'domains'];
             }
         }
 
@@ -124,17 +124,33 @@ class HandleInertiaRequests extends Middleware
             ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'included' => true],
             ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'included' => true],
             ['key' => 'domains', 'label' => 'Domains & Hosting', 'price' => 499, 'included' => true],
+            ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true],
         ];
+
+        // Ensure ai_assistant exists in additionalModulesSetting if array
+        if (is_array($additionalModulesSetting)) {
+            $hasAiMod = false;
+            foreach ($additionalModulesSetting as $mod) {
+                if (($mod['key'] ?? '') === 'ai_assistant') {
+                    $hasAiMod = true;
+                    break;
+                }
+            }
+            if (!$hasAiMod) {
+                $additionalModulesSetting[] = ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true];
+            }
+        }
 
         $allModulesList = [
             'dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 
             'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 
             'drive', 'chat', 'websites', 'reports', 'notifications', 'modules', 
-            'pricing', 'settings'
+            'pricing', 'settings', 'ai_assistant'
         ];
 
         if ($user && $user->role === 'superadmin') {
-            $allowedModules = $allModulesList;
+            // Super Admin gets all core modules but NOT AI Assistant (which is for tenant admins)
+            $allowedModules = array_values(array_diff($allModulesList, ['ai_assistant']));
         } else {
             $userRoleKey = $user ? ($user->role ?? 'user') : 'user';
             $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;

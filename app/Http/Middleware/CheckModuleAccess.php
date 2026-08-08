@@ -41,6 +41,7 @@ class CheckModuleAccess
             'attendance.' => 'attendance',
             'calendar.' => 'calendar',
             'chat.' => 'chat',
+            'ai.' => 'ai_assistant',
             'google-drive.' => 'drive',
             'content-calendar.' => 'content_calendar',
             'daily-listings.' => 'daily_listings',

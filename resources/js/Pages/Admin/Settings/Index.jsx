@@ -44,6 +44,7 @@ export default function Index({ settings = {}, users = [], worksheetSettings = {
         { id: 'drive', label: 'Drive' },
         { id: 'chat', label: 'Chat' },
         { id: 'websites', label: 'Websites' },
+        { id: 'ai_assistant', label: 'AI Voice Assistant' },
     ];
 
     const toggleHiddenModule = (id) => {

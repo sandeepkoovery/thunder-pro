@@ -19,6 +19,7 @@ import {
   ExternalLink,
   CheckCircle2
 } from 'lucide-react';
+import { usePage } from '@inertiajs/react';
 
 const CuteBotIcon = ({ className = "w-7 h-7" }) => (
   <svg 
@@ -61,6 +62,26 @@ const CuteBotIcon = ({ className = "w-7 h-7" }) => (
 );
 
 export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpen }) {
+  const { auth, allowedModules = [], sharedSettings = {} } = usePage().props;
+
+  const isSuperAdmin = auth?.user?.role === 'superadmin';
+  const hiddenModules = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
+
+  // 1. Super Admin should NEVER see AI assistant
+  if (isSuperAdmin) {
+    return null;
+  }
+
+  // 2. Check if AI assistant is hidden in module visibility settings
+  if (hiddenModules.includes('ai_assistant')) {
+    return null;
+  }
+
+  // 3. Check if AI assistant module is allowed for this user/admin
+  if (Array.isArray(allowedModules) && allowedModules.length > 0 && !allowedModules.includes('ai_assistant')) {
+    return null;
+  }
+
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
   const setIsOpen = setExternalOpen || setInternalOpen;
