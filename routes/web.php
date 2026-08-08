@@ -117,10 +117,12 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/attendance/break/end', [App\Http\Controllers\AttendanceController::class, 'endBreak'])->name('attendance.break.end');
 
     // -------------------------
-    // ✅ AI ASSISTANT ROUTE
+    // ✅ AI ASSISTANT ROUTES
     // -------------------------
     Route::post('/ai-assistant/chat', [AiAssistantController::class, 'chat'])->name('ai.chat');
     Route::get('/ai-assistant/tts', [AiAssistantController::class, 'tts'])->name('ai.tts');
+    Route::get('/ai-assistant/key', [AiAssistantController::class, 'getKey'])->name('ai.key.get');
+    Route::post('/ai-assistant/key', [AiAssistantController::class, 'saveKey'])->name('ai.key.save');
 
     // -------------------------
     // ✅ CHAT ROUTES

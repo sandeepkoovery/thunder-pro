@@ -13,7 +13,11 @@ import {
   User,
   Radio,
   HelpCircle,
-  AlertCircle
+  AlertCircle,
+  Settings,
+  Key,
+  ExternalLink,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpen }) {
@@ -23,6 +27,14 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
 
   // Language selection: 'en' (English by default) or 'ml' (Malayalam)
   const [language, setLanguage] = useState('en');
+
+  // Settings modal visibility
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [userGeminiKey, setUserGeminiKey] = useState('');
+  const [hasCustomKey, setHasCustomKey] = useState(false);
+  const [keySource, setKeySource] = useState('system');
+  const [isSavingKey, setIsSavingKey] = useState(false);
+  const [keySaveMessage, setKeySaveMessage] = useState('');
 
   const englishGreeting = {
     id: 1,
@@ -55,17 +67,62 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
   // Suggested Prompts by Language
   const promptsByLang = {
     en: [
-      "How many employees are present today?",
-      "What are my pending tasks?",
-      "Which projects are currently in progress?",
-      "How many pending leave applications are there?"
+      "How many employees punched in today?",
+      "Is anyone on leave today?",
+      "Who came late yesterday?",
+      "Who was late the most last month?"
     ],
     ml: [
-      "ഇന്ന് എത്ര ജീവനക്കാർ ഹാജറുണ്ട്?",
-      "എന്റെ തീർപ്പാക്കാത്ത ടാസ്കുകൾ ഏതൊക്കെയാണ്?",
-      "നടന്നു കൊണ്ടിരിക്കുന്ന പ്രോജക്റ്റുകൾ ഏതൊക്കെയാണ്?",
-      "പെൻഡിംഗ് ഉള്ള ലീവ് അപേക്ഷകൾ എത്രയുണ്ട്?"
+      "ഇന്ന് എത്ര പേർ പഞ്ച് ഇൻ ചെയ്തു?",
+      "ഇന്ന് ആരെങ്കിലും ലീവിലുണ്ടോ?",
+      "ഇന്നലെ ആരൊക്കെയാണ് വൈകി വന്നത്?",
+      "കഴിഞ്ഞ മാസം ഏറ്റവും കൂടുതൽ ലേറ്റ് ആയത് ആര്?"
     ]
+  };
+
+  // Fetch User's Gemini API Key Settings
+  const fetchKeySettings = async () => {
+    try {
+      const res = await axios.get(route('ai.key.get'));
+      setUserGeminiKey(res.data.gemini_api_key || '');
+      setHasCustomKey(res.data.has_custom_key || false);
+      setKeySource(res.data.active_key_source || 'system');
+    } catch (err) {
+      console.error('Failed to fetch API key setting:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchKeySettings();
+    }
+  }, [isOpen]);
+
+  // Save User's Gemini API Key
+  const handleSaveApiKey = async (e) => {
+    e?.preventDefault();
+    setIsSavingKey(true);
+    setKeySaveMessage('');
+
+    try {
+      const res = await axios.post(route('ai.key.save'), {
+        gemini_api_key: userGeminiKey
+      });
+
+      setKeySaveMessage(res.data.message || 'Saved successfully!');
+      setHasCustomKey(res.data.has_custom_key || false);
+      setKeySource(res.data.has_custom_key ? 'custom' : 'system');
+      
+      setTimeout(() => {
+        setKeySaveMessage('');
+        setShowSettingsModal(false);
+      }, 1200);
+    } catch (err) {
+      console.error('Failed to save API key:', err);
+      setKeySaveMessage('Failed to save API key. Please try again.');
+    } finally {
+      setIsSavingKey(false);
+    }
   };
 
   // Switch Language
@@ -164,7 +221,7 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
     }
   }, [messages, isOpen, isLoading]);
 
-  // Guaranteed Malayalam & English Audio Text-to-Speech (TTS Proxy + Web Speech API fallback)
+  // Guaranteed Malayalam & English Audio Text-to-Speech
   const speakText = (text, messageId = null) => {
     stopSpeaking();
 
@@ -172,7 +229,6 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
     if (messageId) setActiveSpeechId(messageId);
     setSpeechStatusText(language === 'ml' ? 'മറുപടി പറയുന്നു...' : 'Speaking response...');
 
-    // Try server-side High Quality MP3 audio streaming (Google TTS Malayalam)
     try {
       const ttsUrl = route('ai.tts') + '?text=' + encodeURIComponent(text) + '&lang=' + language;
       const audio = new Audio(ttsUrl);
@@ -185,12 +241,10 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
       };
 
       audio.onerror = () => {
-        console.warn('MP3 TTS Audio stream failed, attempting Web Speech API fallback...');
         fallbackWebSpeech(text, messageId);
       };
 
       audio.play().catch(err => {
-        console.warn('Audio play blocked, using Web Speech API fallback:', err);
         fallbackWebSpeech(text, messageId);
       });
     } catch (e) {
@@ -351,21 +405,21 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 font-bold px-4 py-2 rounded-full shadow-md hover:shadow-lg transition-all duration-300 transform hover:scale-105 active:scale-95 group border border-white/30"
-          style={{ color: '#ffffff' }}
+          className="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 font-bold px-2.5 sm:px-3.5 rounded-full shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95 group border border-white/30 my-auto shrink-0"
+          style={{ color: '#ffffff', height: '34px', maxHeight: '34px' }}
           title="Ask WorkNest AI Assistant"
         >
-          <div className="relative flex items-center justify-center">
-            <Mic className="w-4.5 h-4.5 text-amber-300 group-hover:rotate-12 transition-transform duration-300" />
-            <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
+          <div className="relative flex items-center justify-center shrink-0">
+            <Mic className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform duration-300" />
+            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-300"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-300"></span>
             </span>
           </div>
-          <span className="text-xs sm:text-sm font-extrabold tracking-wide" style={{ color: '#ffffff' }}>
+          <span className="text-[11px] sm:text-xs font-extrabold tracking-wide whitespace-nowrap" style={{ color: '#ffffff' }}>
             Ask WorkNest
           </span>
-          <span className="hidden lg:inline-block bg-white/20 text-[10px] uppercase tracking-wider px-2 py-0.5 rounded-md text-amber-200 font-black ml-0.5" style={{ color: '#fef08a' }}>
+          <span className="hidden sm:inline-block bg-white/20 text-[10px] uppercase tracking-wider px-1.5 py-0.2 rounded font-black ml-0.5" style={{ color: '#fef08a' }}>
             {language === 'en' ? 'EN' : 'ML'}
           </span>
         </button>
@@ -376,7 +430,7 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
           <div className="relative w-full max-w-xl bg-white rounded-2xl shadow-2xl overflow-hidden border border-slate-200 flex flex-col h-[90vh] max-h-[670px]">
             
-            {/* Header Bar with SOLID PURE WHITE TEXT (div instead of h3 to avoid app.css h3 dark color override) */}
+            {/* Header Bar */}
             <div 
               className="bg-blue-600 px-5 py-4 flex items-center justify-between shadow-md"
               style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
@@ -395,12 +449,17 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
                   <div className="text-xs font-semibold flex items-center gap-1.5 mt-0.5" style={{ color: '#dbeafe' }}>
                     <Database className="w-3.5 h-3.5 text-emerald-300" />
                     <span style={{ color: '#dbeafe' }}>Live Database Assistant</span>
+                    {hasCustomKey && (
+                      <span className="bg-emerald-400/30 text-emerald-200 text-[10px] px-1.5 py-0.2 rounded font-bold border border-emerald-300/30 ml-1">
+                        Personal Key Active
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-3">
-                {/* Language Switcher Pill (English / Malayalam) */}
+              <div className="flex items-center gap-2 sm:gap-3">
+                {/* Language Switcher Pill */}
                 <div className="p-1 rounded-xl flex items-center border border-white/30" style={{ backgroundColor: 'rgba(15, 23, 42, 0.4)' }}>
                   <button
                     onClick={() => handleLanguageChange('en')}
@@ -425,6 +484,19 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
                     മലയാളം
                   </button>
                 </div>
+
+                {/* API Key Settings Gear Button */}
+                <button
+                  onClick={() => setShowSettingsModal(!showSettingsModal)}
+                  className="p-2 hover:bg-white/20 rounded-xl transition-colors relative"
+                  style={{ color: '#ffffff' }}
+                  title="Configure Gemini API Key"
+                >
+                  <Settings className="w-5 h-5 text-white" style={{ color: '#ffffff' }} />
+                  {hasCustomKey && (
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-400 rounded-full border border-blue-600"></span>
+                  )}
+                </button>
 
                 {isSpeaking && (
                   <button 
@@ -453,6 +525,82 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
                 </button>
               </div>
             </div>
+
+            {/* Inline Gemini API Key Setup Drawer / Overlay */}
+            {showSettingsModal && (
+              <div className="bg-slate-900 text-white p-4 border-b border-slate-700 animate-fadeIn flex flex-col gap-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 font-bold text-sm text-amber-300">
+                    <Key className="w-4 h-4 text-amber-400" />
+                    <span>Gemini API Key Configuration</span>
+                  </div>
+                  <button
+                    onClick={() => setShowSettingsModal(false)}
+                    className="text-slate-400 hover:text-white text-xs"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <p className="text-xs text-slate-300 leading-relaxed">
+                  Each admin or user can use their own custom Gemini API Key. If left blank, WorkNest uses the default system API key.
+                </p>
+
+                <form onSubmit={handleSaveApiKey} className="flex flex-col gap-2.5">
+                  <div className="relative">
+                    <input
+                      type="password"
+                      value={userGeminiKey}
+                      onChange={(e) => setUserGeminiKey(e.target.value)}
+                      placeholder="Paste your Gemini API Key here (e.g. AIzaSy...)"
+                      className="w-full text-xs py-2.5 px-3 bg-slate-800 border border-slate-700 rounded-lg text-white placeholder:text-slate-500 focus:ring-2 focus:ring-amber-400"
+                    />
+                  </div>
+
+                  {keySaveMessage && (
+                    <div className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>{keySaveMessage}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between pt-1">
+                    <a
+                      href="https://aistudio.google.com/app/apikey"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-amber-300 hover:text-amber-200 flex items-center gap-1 font-semibold underline"
+                    >
+                      <span>Get a free Gemini API Key</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+
+                    <div className="flex items-center gap-2">
+                      {hasCustomKey && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUserGeminiKey('');
+                            handleSaveApiKey();
+                          }}
+                          className="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg transition-colors font-medium"
+                        >
+                          Use System Key
+                        </button>
+                      )}
+
+                      <button
+                        type="submit"
+                        disabled={isSavingKey}
+                        className="px-3.5 py-1.5 text-xs bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-500 hover:to-amber-600 text-slate-950 font-bold rounded-lg shadow-sm transition-all flex items-center gap-1"
+                      >
+                        {isSavingKey ? 'Saving...' : 'Save API Key'}
+                      </button>
+                    </div>
+                  </div>
+                </form>
+              </div>
+            )}
 
             {/* Light Content Body */}
             <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-4" style={{ backgroundColor: '#f8fafc' }}>

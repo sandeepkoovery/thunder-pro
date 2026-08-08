@@ -11,6 +11,85 @@ use Illuminate\Support\Facades\Schema;
 class AiAssistantController extends Controller
 {
     /**
+     * Get the effective Gemini API Key for the logged-in user or admin.
+     */
+    private function getEffectiveApiKey()
+    {
+        $user = auth()->user();
+        if ($user) {
+            $prefix = ($user instanceof \App\Models\Admin) ? 'gemini_api_key_admin_' : 'gemini_api_key_user_';
+            $keyName = $prefix . $user->id;
+
+            $setting = DB::table('settings')->where('key', $keyName)->first();
+            if ($setting && !empty(trim($setting->value))) {
+                return trim($setting->value);
+            }
+        }
+
+        return config('services.gemini.key');
+    }
+
+    /**
+     * Fetch the user's stored Gemini API Key settings.
+     */
+    public function getKey(Request $request)
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['gemini_api_key' => '', 'has_custom_key' => false]);
+        }
+
+        $prefix = ($user instanceof \App\Models\Admin) ? 'gemini_api_key_admin_' : 'gemini_api_key_user_';
+        $keyName = $prefix . $user->id;
+        $setting = DB::table('settings')->where('key', $keyName)->first();
+
+        $customKey = $setting ? ($setting->value ?? '') : '';
+        $globalKey = config('services.gemini.key');
+
+        return response()->json([
+            'gemini_api_key' => $customKey,
+            'has_custom_key' => !empty($customKey),
+            'active_key_source' => !empty($customKey) ? 'custom' : (!empty($globalKey) ? 'system' : 'none'),
+        ]);
+    }
+
+    /**
+     * Save the user's personal Gemini API Key.
+     */
+    public function saveKey(Request $request)
+    {
+        $request->validate([
+            'gemini_api_key' => 'nullable|string',
+        ]);
+
+        $user = auth()->user();
+        if (!$user) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
+        $apiKey = trim($request->input('gemini_api_key', ''));
+        $prefix = ($user instanceof \App\Models\Admin) ? 'gemini_api_key_admin_' : 'gemini_api_key_user_';
+        $keyName = $prefix . $user->id;
+
+        DB::table('settings')->updateOrInsert(
+            ['key' => $keyName],
+            [
+                'value' => $apiKey,
+                'updated_at' => now(),
+                'created_at' => now()
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'message' => empty($apiKey) 
+                ? 'Cleared personal API key. Using default system Gemini API key.' 
+                : 'Personal Gemini API key saved successfully!',
+            'has_custom_key' => !empty($apiKey),
+        ]);
+    }
+
+    /**
      * Handle the AI chat request.
      */
     public function chat(Request $request)
@@ -21,13 +100,13 @@ class AiAssistantController extends Controller
         ]);
 
         $userMessage = trim($request->input('message'));
-        $lang = $request->input('language', 'en'); // Default to English
-        $apiKey = config('services.gemini.key');
+        $lang = $request->input('language', 'en');
+        $apiKey = $this->getEffectiveApiKey();
 
         if (!$apiKey || $apiKey === 'your_gemini_api_key_here') {
             $msg = ($lang === 'ml')
-                ? "ക്ഷമിക്കണം, Gemini API കീ കോൺഫിഗർ ചെയ്തിട്ടില്ല. .env ഫയലിൽ GEMINI_API_KEY ചേർക്കുക."
-                : "Sorry, Gemini API key is not configured. Please add GEMINI_API_KEY to your .env file.";
+                ? "ക്ഷമിക്കണം, താങ്കളുടെ Gemini API Key ക്രമീകരിച്ചിട്ടില്ല. Header-ലെ ⚙️ Settings അമർത്തി API Key നൽകുക."
+                : "Sorry, Gemini API key is not configured. Please click ⚙️ Settings in the header to set your personal API key.";
             return response()->json(['response' => $msg]);
         }
 
@@ -196,18 +275,23 @@ Rules:
 1. Return ONLY the raw SQL query. Do not wrap in markdown (no ```sql or triple backticks), no explanations.
 2. Only generate read-only SELECT queries. DO NOT generate DELETE, DROP, UPDATE, INSERT, ALTER or TRUNCATE.
 3. Understand terms in English or Malayalam:
-   - 'employees' / 'users' / 'staff' / 'ജീവനക്കാർ' / 'ആളുകൾ' -> users table
+   - 'employees' / 'users' / 'staff' / 'ജീവനക്കാർ' / 'ആളുകൾ' / 'പേർ' -> users table
    - 'attendance' / 'present' / 'absent' / 'ഹാജർ' -> attendances table
-   - 'leaves' / 'leave' / 'അവധി' -> leaves table
+   - 'punched in' / 'പഞ്ച് ഇൻ' -> attendances table where punch_in IS NOT NULL and date = CURDATE()
+   - 'late' / 'late come' / 'വൈകി വന്നത്' / 'ലേറ്റ് ആയത്' -> attendances table where status = 'late' OR TIME(punch_in) > '09:30:00'
+   - 'on leave' / 'leaves' / 'leave' / 'ലീവിലുണ്ടോ' / 'അവധി' -> leaves table where status = 'approved' AND start_date <= CURDATE() AND end_date >= CURDATE()
    - 'tasks' / 'task' / 'ജോലികൾ' -> tasks table
    - 'projects' / 'project' / 'പ്രോജക്റ്റുകൾ' -> projects table
    - 'departments' / 'department' / 'ഡിപ്പാർട്ട്മെന്റ്' -> departments table
-   - 'today' / 'ഇന്ന്' -> CURDATE() or DATE(created_at) = CURDATE()
+   - 'today' / 'ഇന്ന്' -> CURDATE() or DATE(attendances.date) = CURDATE()
+   - 'yesterday' / 'ഇന്നലെ' -> SUBDATE(CURDATE(), 1)
+   - 'last month' / 'കഴിഞ്ഞ മാസം' -> YEAR(attendances.date) = YEAR(CURRENT_DATE - INTERVAL 1 MONTH) AND MONTH(attendances.date) = MONTH(CURRENT_DATE - INTERVAL 1 MONTH)
    - 'pending' / 'unfinished' / 'പെൻഡിംഗ്' -> status = 'pending'
    - 'count' / 'total' / 'how many' / 'എത്ര' -> COUNT(*) or aggregate SELECT
-4. For user relative references ('my tasks', 'assigned to me'): use user_id = {$currentUserId} or check task_user join table.
-5. Keep queries efficient and limit to max 15 rows if returning lists.
-6. If the question cannot be answered by SQL (e.g. general greeting like 'hello' or 'hi'), return string 'NO_SQL'.";
+4. Always join `users` table to get employee name (`users.name` or `CONCAT(users.first_name, ' ', users.last_name)`) when listing attendance, late arrivals, or leaves.
+5. For user relative references ('my tasks', 'assigned to me'): use user_id = {$currentUserId} or check task_user join table.
+6. Keep queries efficient and limit to max 15 rows if returning lists.
+7. If the question cannot be answered by SQL (e.g. general greeting like 'hello' or 'hi'), return string 'NO_SQL'.";
 
         $result = $this->callGeminiApi($prompt, $apiKey);
         if (!$result || str_contains($result, 'NO_SQL')) {
