@@ -176,7 +176,6 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
           </div>
 
           <div className="mp-topbar-right">
-            <AskWorkNestVoiceAssistant />
 
             {isPremiumPlan && deferredPrompt && (
               <button
@@ -309,6 +308,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
         {bottomNav}
 
         <ThemeCustomizer isOpen={customizerOpen} setIsOpen={setCustomizerOpen} />
+        <AskWorkNestVoiceAssistant />
       </div>
     </>
   );

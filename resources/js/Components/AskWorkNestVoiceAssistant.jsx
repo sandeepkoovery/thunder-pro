@@ -20,6 +20,46 @@ import {
   CheckCircle2
 } from 'lucide-react';
 
+const CuteBotIcon = ({ className = "w-7 h-7" }) => (
+  <svg 
+    viewBox="0 0 100 100" 
+    fill="none" 
+    xmlns="http://www.w3.org/2000/svg" 
+    className={className}
+  >
+    {/* Antennas */}
+    <line x1="50" y1="28" x2="50" y2="12" stroke="white" strokeWidth="4" strokeLinecap="round" />
+    <circle cx="50" cy="10" r="4.5" fill="white" />
+    
+    <line x1="38" y1="31" x2="27" y2="18" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+    <circle cx="25" cy="16" r="3.5" fill="white" />
+    
+    <line x1="62" y1="31" x2="73" y2="18" stroke="white" strokeWidth="3.5" strokeLinecap="round" />
+    <circle cx="75" cy="16" r="3.5" fill="white" />
+    
+    {/* Lightning Sparks */}
+    <path d="M 18 10 L 22 15 L 19 16 L 24 22" stroke="#fef08a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+    <path d="M 82 10 L 78 15 L 81 16 L 76 22" stroke="#fef08a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+
+    {/* Outer Rounded Robot Head Frame */}
+    <rect x="10" y="28" width="80" height="56" rx="26" fill="white" />
+    
+    {/* Inner Dark Face Screen */}
+    <rect x="17" y="35" width="66" height="42" rx="18" fill="#3b0764" />
+    
+    {/* Left Happy Eye */}
+    <circle cx="36" cy="53" r="6.5" fill="white" />
+    <circle cx="38" cy="51" r="2.5" fill="#3b0764" />
+    
+    {/* Right Happy Eye */}
+    <circle cx="64" cy="53" r="6.5" fill="white" />
+    <circle cx="66" cy="51" r="2.5" fill="#3b0764" />
+    
+    {/* Cute Smiling Mouth */}
+    <path d="M 44 63 Q 50 69 56 63" stroke="white" strokeWidth="3" strokeLinecap="round" fill="none" />
+  </svg>
+);
+
 export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpen }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isOpen = externalOpen !== undefined ? externalOpen : internalOpen;
@@ -401,27 +441,21 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
 
   return (
     <>
-      {/* Ask WorkNest Trigger Button (Header Topbar) */}
+      {/* Floating Chatbot Circular Icon Widget (Bottom Right) */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="inline-flex items-center gap-1.5 sm:gap-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-700 hover:from-blue-700 hover:to-indigo-800 font-bold px-2.5 sm:px-3.5 rounded-full shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-105 active:scale-95 group border border-white/30 my-auto shrink-0"
-          style={{ color: '#ffffff', height: '34px', maxHeight: '34px' }}
+          className="fixed bottom-6 right-6 z-40 w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-gradient-to-tr from-purple-700 via-indigo-700 to-purple-800 hover:from-purple-800 hover:to-indigo-900 text-white shadow-2xl hover:shadow-purple-500/40 border-2 border-white/40 flex items-center justify-center transition-all duration-300 transform hover:scale-110 active:scale-95 group cursor-pointer"
+          style={{ color: '#ffffff' }}
           title="Ask WorkNest AI Assistant"
         >
-          <div className="relative flex items-center justify-center shrink-0">
-            <Mic className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform duration-300" />
-            <span className="absolute -top-0.5 -right-0.5 flex h-2 w-2">
+          <div className="relative flex items-center justify-center">
+            <CuteBotIcon className="w-8 h-8 sm:w-9 sm:h-9 group-hover:scale-110 transition-transform duration-300" />
+            <span className="absolute -top-1 -right-1 flex h-3 w-3">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-300"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-300 border border-purple-900"></span>
             </span>
           </div>
-          <span className="text-[11px] sm:text-xs font-extrabold tracking-wide whitespace-nowrap" style={{ color: '#ffffff' }}>
-            Ask WorkNest
-          </span>
-          <span className="hidden sm:inline-block bg-white/20 text-[10px] uppercase tracking-wider px-1.5 py-0.2 rounded font-black ml-0.5" style={{ color: '#fef08a' }}>
-            {language === 'en' ? 'EN' : 'ML'}
-          </span>
         </button>
       )}
 
@@ -432,12 +466,12 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
             
             {/* Header Bar */}
             <div 
-              className="bg-blue-600 px-3.5 sm:px-5 py-3 sm:py-3.5 flex items-center justify-between shadow-md shrink-0"
-              style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
+              className="bg-purple-700 px-3.5 sm:px-5 py-3 sm:py-3.5 flex items-center justify-between shadow-md shrink-0"
+              style={{ backgroundColor: '#6b21a8', color: '#ffffff' }}
             >
               <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                <div className="p-1.5 sm:p-2 bg-white/20 rounded-xl backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0">
-                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 animate-pulse" />
+                <div className="p-1 sm:p-1.5 bg-white/20 rounded-xl backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0">
+                  <CuteBotIcon className="w-6 h-6 sm:w-7 sm:h-7" />
                 </div>
                 <div className="min-w-0">
                   <div className="font-extrabold text-base sm:text-lg flex items-center gap-1.5 tracking-wide truncate">
@@ -449,7 +483,7 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
                       </span>
                     )}
                   </div>
-                  <div className="text-[11px] sm:text-xs font-medium text-blue-100 flex items-center gap-1 tracking-normal truncate opacity-90">
+                  <div className="text-[11px] sm:text-xs font-medium text-purple-100 flex items-center gap-1 tracking-normal truncate opacity-90">
                     <Database className="w-3 h-3 text-emerald-300 shrink-0" />
                     <span>Live Database Assistant</span>
                   </div>
