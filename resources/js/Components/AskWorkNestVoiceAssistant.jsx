@@ -432,38 +432,36 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
             
             {/* Header Bar */}
             <div 
-              className="bg-blue-600 px-5 py-4 flex items-center justify-between shadow-md"
+              className="bg-blue-600 px-3.5 sm:px-5 py-3 sm:py-3.5 flex items-center justify-between shadow-md shrink-0"
               style={{ backgroundColor: '#2563eb', color: '#ffffff' }}
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white/20 rounded-xl backdrop-blur-md border border-white/30 flex items-center justify-center shadow-inner">
-                  <Sparkles className="w-5 h-5 text-amber-300 animate-pulse" />
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="p-1.5 sm:p-2 bg-white/20 rounded-xl backdrop-blur-md border border-white/30 flex items-center justify-center shrink-0">
+                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300 animate-pulse" />
                 </div>
-                <div>
-                  <div 
-                    className="font-extrabold text-lg flex items-center gap-2 tracking-wide" 
-                    style={{ color: '#ffffff !important', opacity: 1 }}
-                  >
-                    <span style={{ color: '#ffffff', fontWeight: 800 }}>WorkNest Voice AI</span>
-                  </div>
-                  <div className="text-xs font-semibold flex items-center gap-1.5 mt-0.5" style={{ color: '#dbeafe' }}>
-                    <Database className="w-3.5 h-3.5 text-emerald-300" />
-                    <span style={{ color: '#dbeafe' }}>Live Database Assistant</span>
+                <div className="min-w-0">
+                  <div className="font-extrabold text-base sm:text-lg flex items-center gap-1.5 tracking-wide truncate">
+                    <span style={{ color: '#ffffff', fontWeight: 800 }}>WorkNest AI</span>
                     {hasCustomKey && (
-                      <span className="bg-emerald-400/30 text-emerald-200 text-[10px] px-1.5 py-0.2 rounded font-bold border border-emerald-300/30 ml-1">
-                        Personal Key Active
+                      <span className="inline-flex items-center gap-1 bg-emerald-500/30 text-emerald-200 text-[9px] sm:text-[10px] px-1.5 py-0.5 rounded-full font-bold border border-emerald-400/40 shrink-0">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span className="hidden sm:inline">Personal Key</span>
                       </span>
                     )}
+                  </div>
+                  <div className="text-[11px] sm:text-xs font-medium text-blue-100 flex items-center gap-1 tracking-normal truncate opacity-90">
+                    <Database className="w-3 h-3 text-emerald-300 shrink-0" />
+                    <span>Live Database Assistant</span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2 sm:gap-3">
+              <div className="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
                 {/* Language Switcher Pill */}
-                <div className="p-1 rounded-xl flex items-center border border-white/30" style={{ backgroundColor: 'rgba(15, 23, 42, 0.4)' }}>
+                <div className="p-0.5 rounded-lg flex items-center border border-white/30 shrink-0" style={{ backgroundColor: 'rgba(15, 23, 42, 0.4)' }}>
                   <button
                     onClick={() => handleLanguageChange('en')}
-                    className="px-2.5 py-1 text-xs font-black rounded-lg transition-all"
+                    className="px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-black rounded-md transition-all"
                     style={
                       language === 'en'
                         ? { color: '#1d4ed8', backgroundColor: '#ffffff' }
@@ -474,7 +472,7 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
                   </button>
                   <button
                     onClick={() => handleLanguageChange('ml')}
-                    className="px-2.5 py-1 text-xs font-black rounded-lg transition-all"
+                    className="px-2 py-0.5 sm:px-2.5 sm:py-1 text-[11px] sm:text-xs font-black rounded-md transition-all"
                     style={
                       language === 'ml'
                         ? { color: '#0f172a', backgroundColor: '#fbbf24' }
@@ -488,24 +486,24 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
                 {/* API Key Settings Gear Button */}
                 <button
                   onClick={() => setShowSettingsModal(!showSettingsModal)}
-                  className="p-2 hover:bg-white/20 rounded-xl transition-colors relative"
+                  className="p-1.5 sm:p-2 hover:bg-white/20 rounded-xl transition-colors relative shrink-0"
                   style={{ color: '#ffffff' }}
                   title="Configure Gemini API Key"
                 >
-                  <Settings className="w-5 h-5 text-white" style={{ color: '#ffffff' }} />
+                  <Settings className="w-4 h-4 sm:w-5 sm:h-5 text-white" style={{ color: '#ffffff' }} />
                   {hasCustomKey && (
-                    <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-400 rounded-full border border-blue-600"></span>
+                    <span className="absolute top-1 right-1 w-2 h-2 bg-emerald-400 rounded-full border border-blue-600 animate-pulse"></span>
                   )}
                 </button>
 
                 {isSpeaking && (
                   <button 
                     onClick={stopSpeaking} 
-                    className="p-2 rounded-xl transition-colors shadow-sm"
+                    className="p-1.5 sm:p-2 rounded-xl transition-colors shadow-sm shrink-0"
                     style={{ backgroundColor: '#ef4444', color: '#ffffff' }}
                     title="Stop Audio Response"
                   >
-                    <VolumeX className="w-4.5 h-4.5 animate-bounce" style={{ color: '#ffffff' }} />
+                    <VolumeX className="w-4 h-4 animate-bounce" style={{ color: '#ffffff' }} />
                   </button>
                 )}
                 
@@ -517,11 +515,11 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
                     }
                     setIsOpen(false);
                   }}
-                  className="p-2 hover:bg-white/20 rounded-xl transition-colors"
+                  className="p-1.5 sm:p-2 hover:bg-white/20 rounded-xl transition-colors shrink-0"
                   style={{ color: '#ffffff' }}
                   title="Close Window"
                 >
-                  <X className="w-5 h-5" style={{ color: '#ffffff' }} />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: '#ffffff' }} />
                 </button>
               </div>
             </div>

@@ -221,19 +221,21 @@ class AiAssistantController extends Controller
     }
 
     /**
-     * Call Gemini API with model fallback
+     * Call Gemini API with model fallback to active working models.
      */
     private function callGeminiApi($prompt, $apiKey)
     {
         $models = [
-            'gemini-1.5-flash',
-            'gemini-2.0-flash',
-            'gemini-1.5-pro'
+            'gemini-flash-latest',
+            'gemini-3.5-flash',
+            'gemini-flash-lite-latest',
+            'gemini-3.1-flash-lite',
+            'gemini-2.0-flash-lite',
         ];
 
         foreach ($models as $model) {
             try {
-                $response = Http::timeout(15)->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
+                $response = Http::timeout(12)->post("https://generativelanguage.googleapis.com/v1beta/models/{$model}:generateContent?key={$apiKey}", [
                     'contents' => [
                         ['parts' => [['text' => $prompt]]]
                     ]
@@ -244,9 +246,11 @@ class AiAssistantController extends Controller
                     if ($text) {
                         return trim($text);
                     }
+                } else {
+                    Log::warning("Gemini model {$model} HTTP {$response->status()}: " . substr($response->body(), 0, 150));
                 }
             } catch (\Exception $e) {
-                Log::warning("Gemini model {$model} failed: " . $e->getMessage());
+                Log::warning("Gemini model {$model} exception: " . $e->getMessage());
             }
         }
 
@@ -340,7 +344,7 @@ Database Query Results (JSON): {$resultsJson}
 Instructions:
 1. Provide a concise, clear, complete, and direct answer.
 2. Format numbers, names, and key counts clearly.
-3. If results array is empty or count is 0, reply politely explaining that no matching records were found in the database.
+3. If results array is empty or count is 0, reply politely explaining that no matching records were found for this query in the database.
 4. Do NOT include SQL queries, code blocks, or technical error codes in your output.
 5. Make sure the text sounds natural and complete when read aloud by Text-to-Speech (TTS).
 6. Keep the response complete and under 3-4 clear sentences so the entire message is spoken smoothly.";
@@ -350,9 +354,29 @@ Instructions:
             return $response;
         }
 
+        // Direct Data Formatter Fallback if Gemini Summarizer is rate-limited or unavailable
+        if (!empty($results)) {
+            $count = count($results);
+            if ($lang === 'ml') {
+                $summary = "കണ്ടെത്തിയ വിവരങ്ങൾ ({$count} റെക്കോർഡുകൾ):\n";
+                foreach (array_slice($results, 0, 5) as $row) {
+                    $rowArr = (array) $row;
+                    $summary .= "• " . implode(' - ', array_values($rowArr)) . "\n";
+                }
+                return trim($summary);
+            } else {
+                $summary = "Found {$count} records in database:\n";
+                foreach (array_slice($results, 0, 5) as $row) {
+                    $rowArr = (array) $row;
+                    $summary .= "• " . implode(' - ', array_values($rowArr)) . "\n";
+                }
+                return trim($summary);
+            }
+        }
+
         if (empty($results)) {
             return ($lang === 'ml') 
-                ? "ചോദിച്ച വിവരങ്ങളുമായി ബന്ധപ്പെട്ട റെക്കോർഡുകളൊന്നും ഡാറ്റാബേസിൽ കണ്ടെത്തിയില്ല." 
+                ? "ചോദിച്ച റെക്കോർഡുകളൊന്നും ഡാറ്റാബേസിൽ കണ്ടെത്തിയില്ല." 
                 : "No matching records were found in the database.";
         }
         
