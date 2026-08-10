@@ -162,7 +162,7 @@ class HandleInertiaRequests extends Middleware
                 $defaultRolePermissions = [
                     'manager' => $allModulesList,
                     'editor' => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications'],
-                    'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications'],
+                    'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications'],
                 ];
                 $allowedModules = $defaultRolePermissions[$userRoleKey] ?? ($plan === 'premium' ? $premiumModules : $basicModules);
             }
@@ -171,11 +171,21 @@ class HandleInertiaRequests extends Middleware
                 $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
             }
 
+            // Auto-enable designers_worklist if user has any assigned worklist items
+            if ($user && !in_array('designers_worklist', $allowedModules)) {
+                $hasAssignedWorklistItems = \App\Models\DesignersWorklist::whereHas('assignedUsers', function ($q) use ($user) {
+                    $q->where('users.id', $user->id);
+                })->exists();
+                if ($hasAssignedWorklistItems) {
+                    $allowedModules[] = 'designers_worklist';
+                }
+            }
+
             // Strictly intersect with the tenant's actual subscription plan + add-ons + core admin modules
             $tenantMaxModules = array_unique(array_merge(
                 $plan === 'premium' ? $premiumModules : $basicModules,
                 is_array($userAdditionalModules) ? $userAdditionalModules : [],
-                ['dashboard', 'pricing', 'settings', 'modules', 'notifications']
+                ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'designers_worklist']
             ));
 
             $allowedModules = array_values(array_intersect($allowedModules, $tenantMaxModules));

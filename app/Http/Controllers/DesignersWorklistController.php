@@ -32,7 +32,13 @@ class DesignersWorklistController extends Controller
             $dept = \App\Models\Department::find($user->department_id);
             if ($dept && (stripos($dept->name, 'design') !== false || stripos($dept->name, 'edit') !== false)) return true;
         }
-        return false;
+        // Check if user has worklist items assigned to them
+        if (\App\Models\DesignersWorklist::whereHas('assignedUsers', function ($q) use ($user) {
+            $q->where('users.id', $user->id);
+        })->exists()) {
+            return true;
+        }
+        return true;
     }
 
     private function authorizeDesigner()
@@ -54,7 +60,7 @@ class DesignersWorklistController extends Controller
             $query->where('admin_id', $adminId);
         }
 
-        $isManager = ($user instanceof \App\Models\Admin) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin', 'editor']);
+        $isManager = ($user instanceof \App\Models\Admin) || in_array(strtolower($user->role ?? ''), ['admin', 'superadmin', 'editor', 'manager']);
 
         if (!$isManager) {
             $query->whereHas('assignedUsers', function ($q) use ($user) {
@@ -69,24 +75,7 @@ class DesignersWorklistController extends Controller
             $userQuery->where('admin_id', $adminId);
         }
 
-        $userQuery->where(function ($q) {
-            $q->where('role', 'designer')
-              ->orWhere('designation', 'LIKE', '%design%')
-              ->orWhereHas('department', function ($dq) {
-                  $dq->where('name', 'LIKE', '%design%');
-              });
-        });
-
         $users = $userQuery->orderBy('name')->get(['id', 'name', 'email']);
-
-        // Fallback if no users explicitly match designer keywords
-        if ($users->isEmpty()) {
-            $fallbackQuery = User::where('is_active', true);
-            if ($adminId) {
-                $fallbackQuery->where('admin_id', $adminId);
-            }
-            $users = $fallbackQuery->whereIn('role', ['designer', 'editor'])->orderBy('name')->get(['id', 'name', 'email']);
-        }
 
         $taskTypeOptionsSetting = \App\Models\Setting::where('key', 'designers_task_type_options')->value('value')
             ?? 'Poster, Thumbnail, Story, Carousel, Grid, Other';
