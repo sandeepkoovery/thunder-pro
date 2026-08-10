@@ -101,7 +101,9 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
         (currentAdditionalModules || []).includes(mod.key)
     );
 
-    const addOnsTotal = assignedModulesDetails.reduce((sum, mod) => sum + Number(mod.price || 499), 0);
+    const addOnsTotal = currentPlan === 'premium' 
+        ? assignedModulesDetails.reduce((sum, mod) => sum + Number(mod.price || 499), 0)
+        : 0;
     const grandTotal = basePlanPrice + addOnsTotal;
 
     // Super Admin: Module Assignment Modal State

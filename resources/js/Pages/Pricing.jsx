@@ -57,6 +57,9 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
     const { auth } = usePage().props;
     const currentUser = auth?.user;
 
+    const isAdmin = currentUser && ['admin', 'superadmin'].includes(currentUser.role);
+    const isRegularUser = currentUser && !['admin', 'superadmin'].includes(currentUser.role);
+
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [selectedAdditionalModules, setSelectedAdditionalModules] = useState(currentAdditionalModules || []);
     const [isCheckoutModalOpen, setIsCheckoutModalOpen] = useState(false);
@@ -112,6 +115,10 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
         const basePrice = planName === 'premium'
             ? parseFloat(settings.premium_plan_price || 2999)
             : parseFloat(settings.basic_plan_price || 999);
+
+        if (planName !== 'premium') {
+            return basePrice;
+        }
 
         let addOnsSum = 0;
         if (settings.additional_modules && Array.isArray(settings.additional_modules)) {
@@ -341,24 +348,26 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
                                     </div>
                                 </div>
 
-                                <div>
-                                    {currentPlan === 'basic' ? (
-                                        <button 
-                                            disabled
-                                            className="w-full py-3 bg-[#00a896] text-white text-xs font-bold uppercase tracking-wider cursor-default shadow-md"
-                                        >
-                                            ACTIVE PLAN
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleSelectPlan('basic')}
-                                            disabled={loading}
-                                            className="w-full py-3 bg-[#00a896] hover:bg-[#009282] text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-98 shadow-sm flex items-center justify-center gap-2"
-                                        >
-                                            SELECT
-                                        </button>
-                                    )}
-                                </div>
+                                {!isRegularUser && (
+                                    <div>
+                                        {currentPlan === 'basic' ? (
+                                            <button 
+                                                disabled
+                                                className="w-full py-3 bg-[#00a896] text-white text-xs font-bold uppercase tracking-wider cursor-default shadow-md opacity-90 flex items-center justify-center gap-2"
+                                            >
+                                                <CheckCircle2 size={16} /> ACTIVE PLAN
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleSelectPlan('basic')}
+                                                disabled={loading}
+                                                className="w-full py-3 bg-[#00a896] hover:bg-[#009282] text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-98 shadow-sm flex items-center justify-center gap-2"
+                                            >
+                                                {isAdmin ? 'SELECT BASIC' : 'SELECT'}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 
@@ -376,9 +385,11 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
 
                                     {/* Price */}
                                     <div className="text-center mb-6">
-                                        <span className="text-5xl font-light text-gray-800 tracking-tight">₹{computeTotalPrice('premium')}</span>
+                                        <span className="text-5xl font-light text-gray-800 tracking-tight">
+                                            ₹{isAdmin ? computeTotalPrice('premium') : settings.premium_plan_price}
+                                        </span>
                                         <span className="text-xs font-normal text-gray-400 block mt-1">per month</span>
-                                        {selectedAdditionalModules.length > 0 && (
+                                        {isAdmin && selectedAdditionalModules.length > 0 && (
                                             <span className="inline-block mt-1 px-2.5 py-0.5 bg-purple-50 text-purple-600 font-bold text-[11px] rounded-full">
                                                 Base ₹{settings.premium_plan_price} + {selectedAdditionalModules.length} Add-on(s)
                                             </span>
@@ -405,24 +416,26 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
                                     </div>
                                 </div>
 
-                                <div>
-                                    {currentPlan === 'premium' ? (
-                                        <button 
-                                            disabled
-                                            className="w-full py-3 bg-[#d90429] text-white text-xs font-bold uppercase tracking-wider cursor-default shadow-md"
-                                        >
-                                            ACTIVE PLAN
-                                        </button>
-                                    ) : (
-                                        <button
-                                            onClick={() => handleSelectPlan('premium')}
-                                            disabled={loading}
-                                            className="w-full py-3 bg-[#d90429] hover:bg-[#b80322] text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-98 shadow-sm flex items-center justify-center gap-2"
-                                        >
-                                            SELECT
-                                        </button>
-                                    )}
-                                </div>
+                                {!isRegularUser && (
+                                    <div>
+                                        {currentPlan === 'premium' ? (
+                                            <button 
+                                                disabled
+                                                className="w-full py-3 bg-[#d90429] text-white text-xs font-bold uppercase tracking-wider cursor-default shadow-md opacity-90 flex items-center justify-center gap-2"
+                                            >
+                                                <CheckCircle2 size={16} /> ACTIVE PLAN
+                                            </button>
+                                        ) : (
+                                            <button
+                                                onClick={() => handleSelectPlan('premium')}
+                                                disabled={loading}
+                                                className="w-full py-3 bg-[#d90429] hover:bg-[#b80322] text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-98 shadow-sm flex items-center justify-center gap-2"
+                                            >
+                                                {isAdmin ? 'UPGRADE TO PREMIUM' : 'SELECT'}
+                                            </button>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </div>
 

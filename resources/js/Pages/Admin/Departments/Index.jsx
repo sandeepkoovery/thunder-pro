@@ -225,9 +225,12 @@ export default function Index({ departments, filters }) {
                                             </td>
 
                                             <td className="py-4 px-5">
-                                                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 font-extrabold text-xs">
-                                                    <Users size={12} />
-                                                    <span>{dept.employees_count || 0} Employees</span>
+                                                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-100/90 text-slate-700 text-xs border border-slate-200/50">
+                                                    <Users size={13} className="text-slate-500 shrink-0" />
+                                                    <span className="inline-flex items-center gap-1">
+                                                        <strong className="font-extrabold text-slate-900">{dept.employees_count || 0}</strong>
+                                                        <span className="text-slate-600 font-medium">{dept.employees_count === 1 ? 'Employee' : 'Employees'}</span>
+                                                    </span>
                                                 </div>
                                             </td>
 

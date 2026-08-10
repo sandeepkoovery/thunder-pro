@@ -165,13 +165,26 @@ class PricingController extends Controller
 
         $admin = null;
         if ($user) {
-            $admin = \App\Models\Admin::where('email', $user->email)->first();
+            if (!empty($user->admin_id)) {
+                $admin = \App\Models\Admin::find($user->admin_id);
+            }
+            if (!$admin) {
+                $admin = \App\Models\Admin::where('email', $user->email)->first();
+            }
         }
+
+        $currentPlan = null;
+        if ($user) {
+            $rawPlan = $admin?->plan ?? $user?->plan ?? 'basic';
+            $currentPlan = strtolower($rawPlan);
+        }
+
+        $isPremium = ($admin?->plan === 'premium');
 
         return Inertia::render('Pricing', [
             'settings' => $settings,
-            'currentPlan' => $admin?->plan ?? $user?->plan ?? null,
-            'currentAdditionalModules' => $admin?->additional_modules ?? [],
+            'currentPlan' => $currentPlan,
+            'currentAdditionalModules' => $isPremium ? ($admin?->additional_modules ?? []) : [],
             'razorpayKey' => config('services.razorpay.key_id', env('RAZORPAY_KEY_ID', 'rzp_test_worknest_key')),
         ]);
     }
@@ -182,7 +195,15 @@ class PricingController extends Controller
         $isSuperAdmin = $user->role === 'superadmin';
         $settings = $this->getPricingSettings();
 
-        $admin = \App\Models\Admin::where('email', $user->email)->first();
+        $admin = null;
+        if ($user) {
+            if (!empty($user->admin_id)) {
+                $admin = \App\Models\Admin::find($user->admin_id);
+            }
+            if (!$admin) {
+                $admin = \App\Models\Admin::where('email', $user->email)->first();
+            }
+        }
 
         $admins = [];
         if ($isSuperAdmin) {
@@ -191,11 +212,13 @@ class PricingController extends Controller
                 ->get(['id', 'name', 'email', 'plan', 'additional_modules', 'company_name', 'phone', 'is_active']);
         }
 
+        $isPremium = ($admin?->plan === 'premium');
+
         return Inertia::render('Admin/Pricing/Index', [
             'settings' => $settings,
             'admins' => $admins,
-            'currentPlan' => $admin?->plan ?? 'basic',
-            'currentAdditionalModules' => $admin?->additional_modules ?? [],
+            'currentPlan' => strtolower($admin?->plan ?? $user?->plan ?? 'basic'),
+            'currentAdditionalModules' => $isPremium ? ($admin?->additional_modules ?? []) : [],
         ]);
     }
 
@@ -211,7 +234,7 @@ class PricingController extends Controller
             return back()->with('error', 'Only standard admins can subscribe to plans.');
         }
 
-        $additionalModules = $request->input('additional_modules', []);
+        $additionalModules = $request->plan === 'premium' ? $request->input('additional_modules', []) : [];
 
         $admin = \App\Models\Admin::where('email', $user->email)->first();
         if ($admin) {
