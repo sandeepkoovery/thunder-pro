@@ -17,6 +17,7 @@ import {
   Palette,
   List,
   Sparkles,
+  ShieldCheck,
   Building2,
   Layers,
 } from "lucide-react";
@@ -30,7 +31,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
   const isManagementAdmin = ['admin', 'superadmin'].includes(auth?.user?.role);
   const isAdmin = ['admin', 'superadmin', 'manager', 'editor'].includes(auth?.user?.role);
 
-  const superAdminAllowedModules = ['dashboard', 'pricing', 'settings'];
+  const superAdminAllowedModules = ['dashboard', 'admin_users', 'pricing', 'settings'];
   const isVisible = (module) => {
     if (isSuperAdmin) return superAdminAllowedModules.includes(module);
     if (hiddenMenuItems.includes(module)) return false;
@@ -140,6 +141,11 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
         key: 'modules',
         order: getModuleOrder('modules', 16),
         element: <NavItem key="modules" href={route("admin.modules.index")} icon={Layers} label="Modules List" routeName="admin.modules" visible={isVisible("modules")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'admin_users',
+        order: getModuleOrder('admin_users', 16.5),
+        element: <NavItem key="admin_users" href={route("admin.admin-users.index")} icon={ShieldCheck} label="Admin Users" routeName="admin.admin-users" visible={isVisible("admin_users")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'pricing',

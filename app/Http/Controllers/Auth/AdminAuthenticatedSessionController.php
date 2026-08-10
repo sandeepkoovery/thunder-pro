@@ -57,23 +57,24 @@ class AdminAuthenticatedSessionController extends Controller
         $admin = Auth::user();
 
         if ($admin) {
-            $isDisabled = false;
             if ($admin instanceof \App\Models\Admin) {
-                if ($admin->role !== 'superadmin' && !$admin->is_active) {
-                    $isDisabled = true;
+                if ($admin->role !== 'superadmin') {
+                    if (($admin->approval_status ?? 'approved') === 'rejected') {
+                        Auth::guard('admin')->logout();
+                        Auth::guard('web')->logout();
+                        throw ValidationException::withMessages([
+                            'email' => 'Your administrator account has been rejected or disabled.',
+                        ]);
+                    }
                 }
             } elseif ($admin instanceof \App\Models\User) {
                 if (!$admin->is_active) {
-                    $isDisabled = true;
+                    Auth::guard('admin')->logout();
+                    Auth::guard('web')->logout();
+                    throw ValidationException::withMessages([
+                        'email' => 'Your account has been deactivated.',
+                    ]);
                 }
-            }
-
-            if ($isDisabled) {
-                Auth::guard('admin')->logout();
-                Auth::guard('web')->logout();
-                throw ValidationException::withMessages([
-                    'email' => 'Your administrator account has been deactivated.',
-                ]);
             }
         }
 

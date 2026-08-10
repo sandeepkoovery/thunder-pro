@@ -24,6 +24,7 @@ class Admin extends Authenticatable
         'image',
         'thumb',
         'is_active',
+        'approval_status',
         'month_start_day',
         'month_end_day',
     ];

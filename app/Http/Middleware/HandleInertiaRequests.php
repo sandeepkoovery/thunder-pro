@@ -195,11 +195,33 @@ class HandleInertiaRequests extends Middleware
             });
         }
 
+        $approvalStatus = 'approved';
+        $isPendingApproval = false;
+
+        if ($user) {
+            if ($user instanceof \App\Models\Admin) {
+                if ($user->role !== 'superadmin') {
+                    $approvalStatus = $user->approval_status ?? 'approved';
+                    $isPendingApproval = ($approvalStatus === 'pending');
+                }
+            } elseif ($user instanceof \App\Models\User) {
+                if ($user->admin_id) {
+                    $parentAdmin = \App\Models\Admin::find($user->admin_id);
+                    if ($parentAdmin) {
+                        $approvalStatus = $parentAdmin->approval_status ?? 'approved';
+                        $isPendingApproval = ($approvalStatus === 'pending');
+                    }
+                }
+            }
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $user ? array_merge($user->toArray(), [
                     'has_passkey' => ($user instanceof \App\Models\User) ? $user->hasPasskeys() : false,
+                    'approval_status' => $approvalStatus,
+                    'is_pending_approval' => $isPendingApproval,
                 ]) : null,
             ],
             'appUrl' => config('app.url'),

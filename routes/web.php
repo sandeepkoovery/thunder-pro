@@ -231,6 +231,16 @@ Route::middleware(['auth', 'is_admin'])
             Route::post('pricing/settings', [\App\Http\Controllers\Admin\PricingController::class, 'updateSettings'])->name('pricing.settings');
             Route::post('pricing/admin-plan/{user}', [\App\Http\Controllers\Admin\PricingController::class, 'updateAdminPlan'])->name('pricing.admin-plan');
             Route::post('pricing/admin-status/{id}', [\App\Http\Controllers\Admin\PricingController::class, 'toggleAdminStatus'])->name('pricing.admin-status');
+
+            // -------------------------
+            // ✅ SUPER ADMIN: ADMIN USERS & SUBSCRIPTIONS
+            // -------------------------
+            Route::get('admin-users', [\App\Http\Controllers\Admin\AdminUsersController::class, 'index'])->name('admin-users.index');
+            Route::post('admin-users', [\App\Http\Controllers\Admin\AdminUsersController::class, 'store'])->name('admin-users.store');
+            Route::put('admin-users/{id}', [\App\Http\Controllers\Admin\AdminUsersController::class, 'update'])->name('admin-users.update');
+            Route::patch('admin-users/{id}/approval', [\App\Http\Controllers\Admin\AdminUsersController::class, 'updateApproval'])->name('admin-users.approval');
+            Route::patch('admin-users/{id}/toggle', [\App\Http\Controllers\Admin\AdminUsersController::class, 'toggleStatus'])->name('admin-users.toggle');
+            Route::delete('admin-users/{id}', [\App\Http\Controllers\Admin\AdminUsersController::class, 'destroy'])->name('admin-users.destroy');
         });
 
         Route::resource('projects', AdminProjectController::class);

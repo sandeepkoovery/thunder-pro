@@ -81,11 +81,12 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
 
     // Form fields for registration / checkout
     const [formData, setFormData] = useState({
-        name: currentUser?.name || '',
+        company_name: currentUser?.company_name || currentUser?.address || '',
         email: currentUser?.email || '',
         password: '',
-        company_name: currentUser?.address || '',
+        password_confirmation: '',
         phone: currentUser?.phone || '',
+        accept_terms: false,
     });
 
     const [errors, setErrors] = useState({});
@@ -95,9 +96,13 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
     }, []);
 
     const handleFormChange = (e) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-        if (errors[e.target.name]) {
-            setErrors({ ...errors, [e.target.name]: '' });
+        const { name, value, type, checked } = e.target;
+        setFormData(prev => ({ 
+            ...prev, 
+            [name]: type === 'checkbox' ? checked : value 
+        }));
+        if (errors[name]) {
+            setErrors(prev => ({ ...prev, [name]: '' }));
         }
     };
 
@@ -151,10 +156,12 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
         
         // Basic validation
         const errs = {};
-        if (!formData.name) errs.name = 'Full name is required';
+        if (!formData.company_name) errs.company_name = 'Company Name is required';
         if (!formData.email) errs.email = 'Email address is required';
         if (!formData.password) errs.password = 'Password is required';
         if (formData.password && formData.password.length < 6) errs.password = 'Password must be at least 6 characters';
+        if (formData.password !== formData.password_confirmation) errs.password_confirmation = 'Passwords do not match';
+        if (!formData.accept_terms) errs.accept_terms = 'You must accept the terms and conditions';
 
         if (Object.keys(errs).length > 0) {
             setErrors(errs);
@@ -189,11 +196,16 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
 
         } catch (err) {
             console.error('Setup Error:', err);
-            const errMsg = err.response?.data?.message || 'Setup failed. Please try again.';
+            const serverErrors = err.response?.data?.errors;
+            const errMsg = serverErrors?.email?.[0] || err.response?.data?.message || 'Setup failed. Please try again.';
             toast.error(errMsg);
             setLoading(false);
-            if (errMsg.toLowerCase().includes('already registered')) {
-                setErrors(prev => ({ ...prev, email: errMsg }));
+
+            if (serverErrors || errMsg.toLowerCase().includes('already registered') || errMsg.toLowerCase().includes('already been taken')) {
+                setErrors(prev => ({
+                    ...prev,
+                    email: serverErrors?.email?.[0] || errMsg
+                }));
                 setIsCheckoutModalOpen(true);
             }
         }
@@ -478,19 +490,19 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
 
                             <form onSubmit={handleGuestCheckoutSubmit} className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Full Name *</label>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Company Name *</label>
                                     <div className="relative">
-                                        <User className="absolute left-3.5 top-3.5 text-slate-400" size={18} />
+                                        <Building className="absolute left-3.5 top-3.5 text-slate-400" size={18} />
                                         <input
                                             type="text"
-                                            name="name"
-                                            value={formData.name}
+                                            name="company_name"
+                                            value={formData.company_name}
                                             onChange={handleFormChange}
-                                            placeholder="John Doe"
+                                            placeholder="Acme Corp"
                                             className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#7460ee] focus:border-transparent font-medium"
                                         />
                                     </div>
-                                    {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                                    {errors.company_name && <p className="text-red-500 text-xs mt-1">{errors.company_name}</p>}
                                 </div>
 
                                 <div>
@@ -509,55 +521,73 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
                                     {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
                                 </div>
 
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Password *</label>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3.5 top-3.5 text-slate-400" size={18} />
+                                            <input
+                                                type="password"
+                                                name="password"
+                                                value={formData.password}
+                                                onChange={handleFormChange}
+                                                placeholder="••••••••"
+                                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#7460ee] focus:border-transparent font-medium"
+                                            />
+                                        </div>
+                                        {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Confirm Password *</label>
+                                        <div className="relative">
+                                            <Lock className="absolute left-3.5 top-3.5 text-slate-400" size={18} />
+                                            <input
+                                                type="password"
+                                                name="password_confirmation"
+                                                value={formData.password_confirmation}
+                                                onChange={handleFormChange}
+                                                placeholder="••••••••"
+                                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#7460ee] focus:border-transparent font-medium"
+                                            />
+                                        </div>
+                                        {errors.password_confirmation && <p className="text-red-500 text-xs mt-1">{errors.password_confirmation}</p>}
+                                    </div>
+                                </div>
+
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Password *</label>
+                                    <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Phone</label>
                                     <div className="relative">
-                                        <Lock className="absolute left-3.5 top-3.5 text-slate-400" size={18} />
+                                        <Phone className="absolute left-3.5 top-3.5 text-slate-400" size={18} />
                                         <input
-                                            type="password"
-                                            name="password"
-                                            value={formData.password}
+                                            type="text"
+                                            name="phone"
+                                            value={formData.phone}
                                             onChange={handleFormChange}
-                                            placeholder="••••••••"
+                                            placeholder="+91 9876543210"
                                             className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#7460ee] focus:border-transparent font-medium"
                                         />
                                     </div>
-                                    {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
+                                    {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
                                 </div>
 
-                                <div className="grid grid-cols-2 gap-3">
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Company Name</label>
-                                        <div className="relative">
-                                            <Building className="absolute left-3.5 top-3.5 text-slate-400" size={18} />
-                                            <input
-                                                type="text"
-                                                name="company_name"
-                                                value={formData.company_name}
-                                                onChange={handleFormChange}
-                                                placeholder="Acme Corp"
-                                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#7460ee] focus:border-transparent font-medium"
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Phone</label>
-                                        <div className="relative">
-                                            <Phone className="absolute left-3.5 top-3.5 text-slate-400" size={18} />
-                                            <input
-                                                type="text"
-                                                name="phone"
-                                                value={formData.phone}
-                                                onChange={handleFormChange}
-                                                placeholder="+91 9876543210"
-                                                className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-[#7460ee] focus:border-transparent font-medium"
-                                            />
-                                        </div>
-                                    </div>
+                                <div>
+                                    <label className="flex items-start gap-2.5 cursor-pointer mt-1">
+                                        <input
+                                            type="checkbox"
+                                            name="accept_terms"
+                                            checked={formData.accept_terms}
+                                            onChange={handleFormChange}
+                                            className="mt-0.5 rounded border-slate-300 text-[#7460ee] focus:ring-[#7460ee] w-4 h-4"
+                                        />
+                                        <span className="text-xs text-slate-600 font-medium">
+                                            I accept the <a href="#" onClick={(e) => e.preventDefault()} className="text-[#7460ee] font-semibold hover:underline">Terms &amp; Conditions</a> and Privacy Policy *
+                                        </span>
+                                    </label>
+                                    {errors.accept_terms && <p className="text-red-500 text-xs mt-1">{errors.accept_terms}</p>}
                                 </div>
 
-                                <div className="pt-4">
+                                <div className="pt-2">
                                     <button
                                         type="submit"
                                         className="w-full py-3.5 rounded-xl bg-[#7460ee] hover:bg-[#5e45d6] text-white font-extrabold text-sm uppercase tracking-wider transition-all shadow-lg shadow-[#7460ee]/25"

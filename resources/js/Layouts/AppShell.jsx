@@ -1,7 +1,7 @@
 // resources/js/Layouts/AppShell.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { Link, router, Head, usePage } from "@inertiajs/react";
-import { Menu, Search, Moon, Sun, ChevronDown, LogOut, Settings, User, CreditCard, DollarSign, HelpCircle, Power, Download } from "lucide-react";
+import { Menu, Search, Moon, Sun, ChevronDown, LogOut, Settings, User, CreditCard, DollarSign, HelpCircle, Power, Download, Clock, ShieldAlert } from "lucide-react";
 import NotificationDropdown from "@/Components/NotificationDropdown";
 import ThemeCustomizer from "@/Components/ThemeCustomizer";
 import AskWorkNestVoiceAssistant from "@/Components/AskWorkNestVoiceAssistant";
@@ -132,12 +132,14 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
 
   const logoWidth = collapsed && !isMobileOpen ? 70 : 240;
 
+  const isPendingApproval = Boolean(auth?.user?.is_pending_approval || pageProps.auth?.user?.is_pending_approval);
+
   return (
     <>
       <Head title={title} />
       <Toaster position="top-right" />
 
-      <div className="mp-wrapper">
+      <div className={`mp-wrapper relative ${isPendingApproval ? 'filter blur-md pointer-events-none select-none overflow-hidden max-h-screen' : ''}`}>
         {/* Blue topbar — full width */}
         <header className="mp-topbar">
           <div className="mp-topbar-logo-area hidden md:flex" style={{ width: logoWidth, minWidth: logoWidth, paddingLeft: collapsed && !isMobileOpen ? '0px' : '20px' }}>
@@ -310,6 +312,52 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
         <ThemeCustomizer isOpen={customizerOpen} setIsOpen={setCustomizerOpen} />
         <AskWorkNestVoiceAssistant />
       </div>
+
+      {/* FULL-SCREEN BLUR PENDING APPROVAL OVERLAY */}
+      {isPendingApproval && (
+        <div className="fixed inset-0 z-[99999] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-slate-100 text-center animate-in fade-in zoom-in duration-300 relative pointer-events-auto my-auto">
+            {/* Clock Icon */}
+            <div className="w-20 h-20 rounded-3xl bg-amber-100 text-amber-600 flex items-center justify-center mx-auto mb-5 border border-amber-200 shadow-inner">
+              <Clock size={40} className="animate-pulse" />
+            </div>
+
+            {/* Status Badge */}
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-50 text-amber-800 text-xs font-bold border border-amber-200 mb-4 shadow-sm">
+              <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-ping"></span>
+              <span>Pending Super Admin Approval</span>
+            </div>
+
+            {/* Title */}
+            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Account Pending Approval</h2>
+
+            {/* Description */}
+            <p className="text-slate-600 text-sm mt-3 leading-relaxed font-medium">
+              Your workspace administrator account is currently pending approval by the Super Administrator.
+            </p>
+
+            <div className="mt-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl p-4 text-xs font-semibold text-amber-900 text-left">
+              <div className="flex items-start gap-2">
+                <ShieldAlert size={16} className="text-amber-600 shrink-0 mt-0.5" />
+                <span>
+                  After approval of the Super Administrator, you will be able to access your dashboard, projects, employees, and all system features.
+                </span>
+              </div>
+            </div>
+
+            {/* Logout Action */}
+            <div className="mt-6 pt-5 border-t border-slate-100 flex items-center justify-center gap-3">
+              <button
+                onClick={handleLogout}
+                className="w-full py-3.5 rounded-2xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-sm shadow-lg shadow-slate-900/20 transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <LogOut size={18} />
+                <span>Log Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

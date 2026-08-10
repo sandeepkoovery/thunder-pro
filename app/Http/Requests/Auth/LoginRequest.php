@@ -77,20 +77,22 @@ class LoginRequest extends FormRequest
             ]);
         }
 
-        // Check if account is active (or if parent tenant admin is disabled)
+        // Check if account is active or rejected
         $user = Auth::user();
         if ($user) {
             $isDisabled = false;
             if ($user instanceof \App\Models\Admin) {
-                if ($user->role !== 'superadmin' && !$user->is_active) {
-                    $isDisabled = true;
+                if ($user->role !== 'superadmin') {
+                    if (($user->approval_status ?? 'approved') === 'rejected') {
+                        $isDisabled = true;
+                    }
                 }
             } elseif ($user instanceof \App\Models\User) {
                 if (!$user->is_active) {
                     $isDisabled = true;
                 } elseif ($user->admin_id) {
                     $parentAdmin = \App\Models\Admin::find($user->admin_id);
-                    if ($parentAdmin && !$parentAdmin->is_active) {
+                    if ($parentAdmin && ($parentAdmin->approval_status ?? 'approved') === 'rejected') {
                         $isDisabled = true;
                     }
                 }

@@ -169,54 +169,51 @@ class PaymentController extends Controller
 
         if (!$adminUser || !($adminUser instanceof Admin)) {
             $email = $request->input('email');
-            $name = $request->input('name');
+            $companyName = $request->input('company_name');
+            $name = $request->input('name') ?: ($companyName ?: 'Client Admin');
             $password = $request->input('password');
 
             if ($email) {
-                $adminUser = Admin::where('email', $email)->first();
-            }
-
-            if (!$adminUser) {
-                if (!$email || !$name || !$password) {
+                $existsInAdmins = Admin::where('email', $email)->exists();
+                $existsInUsers = User::where('email', $email)->exists();
+                if ($existsInAdmins || $existsInUsers) {
                     return response()->json([
                         'status' => 'error',
-                        'message' => 'User registration credentials missing.'
+                        'message' => 'This email address is already registered. Please use a different email address or sign in.',
+                        'errors' => [
+                            'email' => ['This email address is already registered. Please use a different email address.']
+                        ]
                     ], 422);
                 }
-
-                $adminUser = Admin::create([
-                    'name' => $name,
-                    'email' => $email,
-                    'password' => Hash::make($password),
-                    'role' => 'admin',
-                    'plan' => $plan,
-                    'additional_modules' => $additionalModules,
-                    'phone' => $request->input('phone'),
-                    'company_name' => $request->input('company_name'),
-                    'is_active' => true,
-                ]);
-            } else {
-                // Account with this email already exists
-                if ($password && !Hash::check($password, $adminUser->password)) {
-                    return response()->json([
-                        'status' => 'error',
-                        'message' => 'This email is already registered. The password entered does not match the existing account.'
-                    ], 422);
-                }
-
-                $adminUser->update([
-                    'role' => 'admin',
-                    'plan' => $plan,
-                    'additional_modules' => $additionalModules,
-                    'is_active' => true,
-                ]);
             }
+
+            if (!$email || !$password) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'User registration credentials missing.',
+                    'errors' => [
+                        'email' => ['Email address is required.']
+                    ]
+                ], 422);
+            }
+
+            $adminUser = Admin::create([
+                'name' => $name,
+                'email' => $email,
+                'password' => Hash::make($password),
+                'role' => 'admin',
+                'plan' => $plan,
+                'additional_modules' => $additionalModules,
+                'phone' => $request->input('phone'),
+                'company_name' => $request->input('company_name'),
+                'is_active' => false,
+                'approval_status' => 'pending',
+            ]);
         } else {
             $adminUser->update([
                 'role' => 'admin',
                 'plan' => $plan,
                 'additional_modules' => $additionalModules,
-                'is_active' => true,
             ]);
         }
 
@@ -226,7 +223,9 @@ class PaymentController extends Controller
 
         return response()->json([
             'status' => 'success',
-            'message' => 'Payment verified successfully! Welcome to your Admin Dashboard.',
+            'message' => $adminUser->approval_status === 'pending' 
+                ? 'Registration submitted! Your account is pending approval by the Super Administrator.'
+                : 'Payment verified successfully! Welcome to your Admin Dashboard.',
             'redirect' => route('dashboard'),
         ]);
     }
