@@ -27,15 +27,20 @@ class NotificationController extends Controller
         $notifications = [];
 
         // Determine if user is Admin or Super Admin
-        $isAdminOrSuper = in_array($user->role, ['admin', 'superadmin', 'super_admin']);
+        $isSuperAdmin = in_array($user->role, ['superadmin', 'super_admin']);
+        $isAdmin = $user->role === 'admin';
+        $isAdminOrSuper = $isSuperAdmin || $isAdmin;
 
         if ($isAdminOrSuper) {
-            // Admins see leave requests from all tenant employees
-            $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
-            $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->orWhere('id', $tenantAdminId)->pluck('id')->toArray();
+            // Admins see leave requests from their tenant employees
+            $leavesQuery = Leave::with('user');
+            if (!$isSuperAdmin) {
+                $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+                $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+                $leavesQuery->whereIn('user_id', $tenantUserIds);
+            }
 
-            $leaves = Leave::with('user')
-                ->whereIn('user_id', $tenantUserIds)
+            $leaves = $leavesQuery
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -129,16 +134,20 @@ class NotificationController extends Controller
             ->pluck('notification_id')
             ->toArray();
 
-        $isAdminOrSuper = in_array($user->role, ['admin', 'superadmin', 'super_admin']);
+        $isSuperAdmin = in_array($user->role, ['superadmin', 'super_admin']);
+        $isAdmin = $user->role === 'admin';
+        $isAdminOrSuper = $isSuperAdmin || $isAdmin;
 
         if ($isAdminOrSuper) {
-            $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
-            $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->orWhere('id', $tenantAdminId)->pluck('id')->toArray();
-
             // Admins see pending leaves from their tenant users
-            $pendingLeaves = Leave::with('user')
-                ->where('status', 'pending')
-                ->whereIn('user_id', $tenantUserIds)
+            $pendingLeavesQuery = Leave::with('user')->where('status', 'pending');
+            if (!$isSuperAdmin) {
+                $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+                $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+                $pendingLeavesQuery->whereIn('user_id', $tenantUserIds);
+            }
+
+            $pendingLeaves = $pendingLeavesQuery
                 ->orderBy('created_at', 'desc')
                 ->get();
 

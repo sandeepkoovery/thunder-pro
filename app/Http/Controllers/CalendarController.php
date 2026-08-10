@@ -68,10 +68,7 @@ class CalendarController extends Controller
         // Scope users list to same tenant for guest selection
         $usersQuery = User::where('is_active', true);
         if ($tenantAdminId !== null) {
-            $usersQuery->where(function ($q) use ($tenantAdminId) {
-                $q->where('admin_id', $tenantAdminId)
-                  ->orWhere('id', $tenantAdminId); // include the admin user themselves
-            });
+            $usersQuery->where('admin_id', $tenantAdminId);
         }
 
         return Inertia::render('Calendar/Index', [
