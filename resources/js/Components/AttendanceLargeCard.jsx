@@ -1,6 +1,7 @@
 import React from 'react';
 import { Loader2, Play, Square, Coffee, Clock } from 'lucide-react';
 import useAttendance from '@/hooks/useAttendance';
+import ConfirmPunchOutModal from '@/Components/ConfirmPunchOutModal';
 
 export default function AttendanceLargeCard() {
     const {
@@ -10,6 +11,9 @@ export default function AttendanceLargeCard() {
         breakTimer,
         sessionTimer,
         processing,
+        showPunchOutModal,
+        setShowPunchOutModal,
+        executePunchOut,
         handleAction
     } = useAttendance();
 
@@ -171,6 +175,13 @@ export default function AttendanceLargeCard() {
                     </p>
                 </div>
             </div>
+
+            <ConfirmPunchOutModal
+                isOpen={showPunchOutModal}
+                onClose={() => setShowPunchOutModal(false)}
+                onConfirm={executePunchOut}
+                processing={processing}
+            />
         </div>
     );
 }

@@ -94,13 +94,51 @@ export default function useAttendance() {
         return () => clearInterval(interval);
     }, [status]);
 
+    const [showPunchOutModal, setShowPunchOutModal] = useState(false);
+
+    const executePunchOut = async () => {
+        const url = route('attendance.punchOut');
+        setProcessing(true);
+
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            alert("Location access requires a secure HTTPS connection.");
+            setProcessing(false);
+            return;
+        }
+
+        try {
+            const pos = await getFreshLocation();
+            router.post(url, {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+                timestamp: pos.timestamp
+            }, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowPunchOutModal(false);
+                    fetchStatus();
+                },
+                onFinish: () => setProcessing(false),
+            });
+        } catch (err) {
+            console.error("Geo error", err);
+            alert(getGeoErrorMessage(err));
+            setProcessing(false);
+        }
+    };
+
     const handleAction = async (action) => {
         if (processing) return;
+
+        if (action === 'punch-out') {
+            setShowPunchOutModal(true);
+            return;
+        }
 
         let url = '';
         switch (action) {
             case 'punch-in': url = route('attendance.punchIn'); break;
-            case 'punch-out': url = route('attendance.punchOut'); break;
             case 'break-start': url = route('attendance.break.start'); break;
             case 'break-end': url = route('attendance.break.end'); break;
         }
@@ -118,18 +156,7 @@ export default function useAttendance() {
             });
         };
 
-        const handlePageExpired = (error) => {
-            if (error.response?.status === 419) {
-                if (confirm("Your session has expired or the page is out of date. Would you like to refresh?")) {
-                    window.location.reload();
-                }
-            } else {
-                alert("Something went wrong. Please try again.");
-            }
-            setProcessing(false);
-        };
-
-        if (action === 'punch-in' || action === 'punch-out') {
+        if (action === 'punch-in') {
             if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
                 alert("Location access requires a secure HTTPS connection.");
                 setProcessing(false);
@@ -150,9 +177,6 @@ export default function useAttendance() {
                 setProcessing(false);
             }
         } else {
-            // For simple actions (break), use axios first to check session if needed, 
-            // but router.post is standard for Inertia.
-            // If it fails with 419, Inertia usually handles it, but we can be explicit.
             executeRequest();
         }
     };
@@ -164,6 +188,9 @@ export default function useAttendance() {
         breakTimer,
         sessionTimer,
         processing,
+        showPunchOutModal,
+        setShowPunchOutModal,
+        executePunchOut,
         handleAction,
         fetchStatus
     };

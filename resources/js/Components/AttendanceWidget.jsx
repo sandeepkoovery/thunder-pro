@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Play, Square, Coffee, Clock, Loader2 } from 'lucide-react';
 
 import { getFreshLocation, getGeoErrorMessage } from '@/lib/geo';
+import ConfirmPunchOutModal from '@/Components/ConfirmPunchOutModal';
 
 export default function AttendanceWidget({ isDarkHeader = false }) {
     // Version: 1.2 (Mac Location Fix)
@@ -13,6 +14,7 @@ export default function AttendanceWidget({ isDarkHeader = false }) {
     const [breakTimer, setBreakTimer] = useState(0); // in seconds
     const [sessionTimer, setSessionTimer] = useState(0); // seconds strictly in the current active slice
     const [processing, setProcessing] = useState(false);
+    const [showPunchOutModal, setShowPunchOutModal] = useState(false);
 
     useEffect(() => {
         fetchStatus();
@@ -102,21 +104,57 @@ export default function AttendanceWidget({ isDarkHeader = false }) {
         return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
     };
 
+    const executePunchOut = async () => {
+        const url = route('attendance.punchOut');
+        setProcessing(true);
+
+        if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+            alert("Location access requires a secure HTTPS connection.");
+            setProcessing(false);
+            return;
+        }
+
+        try {
+            const pos = await getFreshLocation();
+            router.post(url, {
+                latitude: pos.coords.latitude,
+                longitude: pos.coords.longitude,
+                accuracy: pos.coords.accuracy,
+                timestamp: pos.timestamp
+            }, {
+                preserveScroll: true,
+                onSuccess: () => {
+                    setShowPunchOutModal(false);
+                    fetchStatus();
+                },
+                onFinish: () => setProcessing(false),
+            });
+        } catch (err) {
+            console.error("Geo error", err);
+            alert(getGeoErrorMessage(err));
+            setProcessing(false);
+        }
+    };
+
     const handleAction = async (action) => {
         if (processing) return;
+
+        if (action === 'punch-out') {
+            setShowPunchOutModal(true);
+            return;
+        }
 
         let url = '';
 
         switch (action) {
             case 'punch-in': url = route('attendance.punchIn'); break;
-            case 'punch-out': url = route('attendance.punchOut'); break;
             case 'break-start': url = route('attendance.break.start'); break;
             case 'break-end': url = route('attendance.break.end'); break;
         }
 
         setProcessing(true);
 
-        if (action === 'punch-in' || action === 'punch-out') {
+        if (action === 'punch-in') {
             // Geolocation requires HTTPS
             if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
                 alert("Location access requires a secure HTTPS connection.");
@@ -246,6 +284,13 @@ export default function AttendanceWidget({ isDarkHeader = false }) {
                 )}
 
             </div>
+
+            <ConfirmPunchOutModal
+                isOpen={showPunchOutModal}
+                onClose={() => setShowPunchOutModal(false)}
+                onConfirm={executePunchOut}
+                processing={processing}
+            />
         </div>
     );
 }
