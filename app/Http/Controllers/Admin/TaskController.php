@@ -19,12 +19,31 @@ class TaskController extends Controller
      */
     public function index()
     {
-        $tasks = Task::with(['project', 'assignees'])
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+
+        $tasksQuery = Task::whereHas('project', function($q) use ($isSuperAdmin, $tenantAdminId) {
+            if (!$isSuperAdmin) {
+                $q->where('admin_id', $tenantAdminId);
+            }
+        });
+
+        $tasks = $tasksQuery->with(['project', 'assignees'])
             ->orderByRaw("FIELD(priority, 'high', 'medium', 'low')")
             ->latest()
             ->paginate(10);
-        $projects = Project::all();
-        $users = User::where('is_active', true)->get();
+
+        $projectsQuery = Project::query();
+        $usersQuery = User::where('is_active', true);
+
+        if (!$isSuperAdmin) {
+            $projectsQuery->where('admin_id', $tenantAdminId);
+            $usersQuery->where('admin_id', $tenantAdminId);
+        }
+
+        $projects = $projectsQuery->get();
+        $users = $usersQuery->get();
 
         return Inertia::render('Admin/Tasks/Index', [
             'tasks' => $tasks,
@@ -38,8 +57,20 @@ class TaskController extends Controller
      */
     public function create()
     {
-        $projects = Project::all();
-        $users = User::where('is_active', true)->get();
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+
+        $projectsQuery = Project::query();
+        $usersQuery = User::where('is_active', true);
+
+        if (!$isSuperAdmin) {
+            $projectsQuery->where('admin_id', $tenantAdminId);
+            $usersQuery->where('admin_id', $tenantAdminId);
+        }
+
+        $projects = $projectsQuery->get();
+        $users = $usersQuery->get();
 
         return Inertia::render('Admin/Tasks/Create', [
             'projects' => $projects,

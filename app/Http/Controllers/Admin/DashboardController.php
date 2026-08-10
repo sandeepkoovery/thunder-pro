@@ -27,6 +27,16 @@ class DashboardController extends Controller
         $tenantUserIds = User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
         $tenantUserIds[] = $tenantAdminId;
 
+        $taskQuery = Task::whereHas('project', function($q) use ($isSuperAdmin, $tenantAdminId) {
+            if (!$isSuperAdmin) {
+                $q->where('admin_id', $tenantAdminId);
+            }
+        });
+
+        if ($userId) {
+            $taskQuery->whereHas('users', fn($q) => $q->where('users.id', $userId));
+        }
+
         $stats = [
             'total_users' => !$isSuperAdmin && $isAdminOrSuperAdmin 
                 ? User::where('admin_id', $tenantAdminId)->whereIn('role', ['user', 'manager', 'editor'])->where('is_active', true)->count() 
@@ -35,10 +45,10 @@ class DashboardController extends Controller
                 ? Leave::whereIn('user_id', $tenantUserIds)->where('status', 'pending')->count() 
                 : 0,
             'total_projects' => !$isSuperAdmin ? Project::where('admin_id', $tenantAdminId)->count() : 0,
-            'total_tasks' => !$isSuperAdmin ? Task::whereHas('project')->whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->count() : 0,
-            'pending_tasks' => !$isSuperAdmin ? Task::whereHas('project')->whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'pending')->count() : 0,
-            'in_progress_tasks' => !$isSuperAdmin ? Task::whereHas('project')->whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'in progress')->count() : 0,
-            'completed_tasks' => !$isSuperAdmin ? Task::whereHas('project')->whereHas('users', fn($q) => $q->whereIn('users.id', $tenantUserIds))->where('status', 'completed')->count() : 0,
+            'total_tasks' => (clone $taskQuery)->count(),
+            'pending_tasks' => (clone $taskQuery)->where('status', 'pending')->count(),
+            'in_progress_tasks' => (clone $taskQuery)->where('status', 'in progress')->count(),
+            'completed_tasks' => (clone $taskQuery)->where('status', 'completed')->count(),
             'total_admins' => $isSuperAdmin ? \App\Models\Admin::where('role', 'admin')->count() : 0,
         ];
 
@@ -57,15 +67,14 @@ class DashboardController extends Controller
             ->first();
 
         // personal tasks/stats for admins/editors/managers (since they are also users)
-        $user = auth()->user();
         $personalStats = [
-            'total_tasks' => $user->tasks()->count(),
-            'pending_tasks' => $user->tasks()->where('status', 'pending')->count(),
-            'in_progress_tasks' => $user->tasks()->where('status', 'in progress')->count(),
-            'completed_tasks' => $user->tasks()->where('status', 'completed')->count(),
+            'total_tasks' => (clone $taskQuery)->count(),
+            'pending_tasks' => (clone $taskQuery)->where('status', 'pending')->count(),
+            'in_progress_tasks' => (clone $taskQuery)->where('status', 'in progress')->count(),
+            'completed_tasks' => (clone $taskQuery)->where('status', 'completed')->count(),
         ];
 
-        $recentTasks = $user->tasks()
+        $recentTasks = (clone $taskQuery)
             ->with('project')
             ->latest()
             ->take(5)
