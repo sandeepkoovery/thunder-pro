@@ -38,7 +38,7 @@ class DesignersWorklistController extends Controller
         })->exists()) {
             return true;
         }
-        return true;
+        return false;
     }
 
     private function authorizeDesigner()

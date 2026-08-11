@@ -162,7 +162,8 @@ class HandleInertiaRequests extends Middleware
                 $defaultRolePermissions = [
                     'manager' => $allModulesList,
                     'editor' => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications'],
-                    'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications'],
+                    'designer' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications'],
+                    'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications'],
                 ];
                 $allowedModules = $defaultRolePermissions[$userRoleKey] ?? ($plan === 'premium' ? $premiumModules : $basicModules);
             }
@@ -171,13 +172,22 @@ class HandleInertiaRequests extends Middleware
                 $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
             }
 
-            // Auto-enable designers_worklist if user has any assigned worklist items
-            if ($user && !in_array('designers_worklist', $allowedModules)) {
+            // Only allow designers_worklist for regular 'user' role if they are a designer by designation/department or have assigned worklist tasks
+            if ($user && $user->role === 'user') {
+                $isDesignerByDesignation = !empty($user->designation) && (stripos($user->designation, 'design') !== false || stripos($user->designation, 'edit') !== false);
+                $isDesignerByDept = false;
+                if ($user->department_id) {
+                    $dept = \App\Models\Department::find($user->department_id);
+                    if ($dept && (stripos($dept->name, 'design') !== false || stripos($dept->name, 'edit') !== false)) {
+                        $isDesignerByDept = true;
+                    }
+                }
                 $hasAssignedWorklistItems = \App\Models\DesignersWorklist::whereHas('assignedUsers', function ($q) use ($user) {
                     $q->where('users.id', $user->id);
                 })->exists();
-                if ($hasAssignedWorklistItems) {
-                    $allowedModules[] = 'designers_worklist';
+
+                if (!$isDesignerByDesignation && !$isDesignerByDept && !$hasAssignedWorklistItems) {
+                    $allowedModules = array_values(array_diff($allowedModules, ['designers_worklist']));
                 }
             }
 
