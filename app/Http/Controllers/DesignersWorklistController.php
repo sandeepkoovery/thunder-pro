@@ -150,13 +150,18 @@ class DesignersWorklistController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
-        $this->authorizeDesigner();
+        $user = auth()->user();
+        $worklist = DesignersWorklist::findOrFail($id);
+
+        $isAssigned = $worklist->assignedUsers()->where('users.id', $user->id)->exists();
+        if (!$isAssigned && !$this->isDesignerUser($user)) {
+            abort(403, 'Unauthorized to update status for this task.');
+        }
 
         $validated = $request->validate([
             'status' => 'required|string|max:255',
         ]);
 
-        $worklist = DesignersWorklist::findOrFail($id);
         $worklist->update(['status' => $validated['status']]);
 
         return back()->with('success', 'Worklist status updated.');

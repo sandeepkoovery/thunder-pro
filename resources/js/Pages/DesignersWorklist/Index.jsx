@@ -127,10 +127,13 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
     };
 
     const handleInlineStatusChange = (id, newStatus) => {
-        router.put(route('designers-worklist.update', id), { status: newStatus }, {
+        router.patch(route('designers-worklist.status', id), { status: newStatus }, {
             preserveScroll: true,
             onSuccess: () => toast.success('Task status updated'),
-            onError: () => toast.error('Failed to update status'),
+            onError: (err) => {
+                console.error('Status update error:', err);
+                toast.error('Failed to update status');
+            },
         });
     };
 
