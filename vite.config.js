@@ -66,12 +66,13 @@ export default defineConfig({
                 ]
             },
             workbox: {
-                globDirectory: 'public',
+                globDirectory: 'public/build',
                 globPatterns: [
-                    'build/assets/*.{js,css}',
-                    'icons/*.png',
-                    'favicon.ico'
+                    'assets/*.{js,css}',
                 ],
+                cleanupOutdatedCaches: true,
+                skipWaiting: true,
+                clientsClaim: true,
                 navigateFallback: null,
                 runtimeCaching: [
                     {
