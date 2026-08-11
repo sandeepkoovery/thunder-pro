@@ -238,8 +238,8 @@ Route::middleware(['auth', 'is_admin'])
             Route::get('admin-users', [\App\Http\Controllers\Admin\AdminUsersController::class, 'index'])->name('admin-users.index');
             Route::post('admin-users', [\App\Http\Controllers\Admin\AdminUsersController::class, 'store'])->name('admin-users.store');
             Route::put('admin-users/{id}', [\App\Http\Controllers\Admin\AdminUsersController::class, 'update'])->name('admin-users.update');
-            Route::patch('admin-users/{id}/approval', [\App\Http\Controllers\Admin\AdminUsersController::class, 'updateApproval'])->name('admin-users.approval');
-            Route::patch('admin-users/{id}/toggle', [\App\Http\Controllers\Admin\AdminUsersController::class, 'toggleStatus'])->name('admin-users.toggle');
+            Route::match(['post', 'patch'], 'admin-users/{id}/approval', [\App\Http\Controllers\Admin\AdminUsersController::class, 'updateApproval'])->name('admin-users.approval');
+            Route::match(['post', 'patch'], 'admin-users/{id}/toggle', [\App\Http\Controllers\Admin\AdminUsersController::class, 'toggleStatus'])->name('admin-users.toggle');
             Route::delete('admin-users/{id}', [\App\Http\Controllers\Admin\AdminUsersController::class, 'destroy'])->name('admin-users.destroy');
         });
 
