@@ -18,9 +18,15 @@ class ProfileController extends Controller
      */
     public function edit(Request $request): Response
     {
+        $user = $request->user();
+        if ($user instanceof \App\Models\User && $user->department_id && !$user->relationLoaded('department')) {
+            $user->load('department');
+        }
+
         return Inertia::render('Profile/Edit', [
-            'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
+            'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
+            'departments' => \App\Models\Department::orderBy('name')->get(),
         ]);
     }
 
@@ -38,9 +44,11 @@ class ProfileController extends Controller
         $user->date_of_birth = $request->date_of_birth;
         $user->blood_group = $request->blood_group;
         $user->mobile = $request->mobile;
-        $user->address = $request->address;
         $user->emergency_contact_name = $request->emergency_contact_name;
         $user->emergency_contact_number = $request->emergency_contact_number;
+        if ($request->has('department_id')) {
+            $user->department_id = $request->department_id;
+        }
 
         if ($request->hasFile('thumb')) {
             $path = public_path('uploads/profile');

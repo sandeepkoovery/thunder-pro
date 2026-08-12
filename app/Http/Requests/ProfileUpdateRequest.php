@@ -26,6 +26,7 @@ class ProfileUpdateRequest extends FormRequest
             'address' => ['required', 'string'],
             'emergency_contact_name' => ['nullable', 'string', 'max:255'],
             'emergency_contact_number' => ['nullable', 'string', 'max:20'],
+            'department_id' => ['nullable', 'exists:departments,id'],
             'thumb' => ['nullable', 'image', 'max:2048'], // 2MB max
         ];
     }

@@ -225,6 +225,9 @@ class HandleInertiaRequests extends Middleware
                     $isPendingApproval = ($approvalStatus === 'pending');
                 }
             } elseif ($user instanceof \App\Models\User) {
+                if ($user->department_id && !$user->relationLoaded('department')) {
+                    $user->load('department');
+                }
                 if ($user->admin_id) {
                     $parentAdmin = \App\Models\Admin::find($user->admin_id);
                     if ($parentAdmin) {
@@ -239,6 +242,7 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $user ? array_merge($user->toArray(), [
+                    'department' => ($user instanceof \App\Models\User && $user->department_id) ? $user->department : null,
                     'has_passkey' => ($user instanceof \App\Models\User) ? $user->hasPasskeys() : false,
                     'approval_status' => $approvalStatus,
                     'is_pending_approval' => $isPendingApproval,

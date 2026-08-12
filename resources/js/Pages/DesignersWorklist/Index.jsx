@@ -501,38 +501,38 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
 
                 {/* 3. PREVIEW MODAL */}
                 {previewItem && (
-                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-                        <div className="bg-white rounded-3xl max-w-lg w-full p-8 shadow-2xl border border-slate-100 space-y-6">
+                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+                        <div className="bg-white rounded-3xl max-w-2xl w-full p-8 sm:p-9 shadow-2xl border border-slate-100 space-y-6 my-auto">
                             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                                 <div>
-                                    <span className="text-xs font-extrabold uppercase text-blue-600 bg-blue-50 px-3 py-1 rounded-full">
+                                    <span className="text-xs font-extrabold uppercase text-blue-600 bg-blue-50 px-3.5 py-1.5 rounded-full">
                                         {previewItem.task_type || 'POSTER'}
                                     </span>
-                                    <h3 className="text-xl font-extrabold text-gray-900 mt-2 uppercase">{previewItem.client_name}</h3>
+                                    <h3 className="text-2xl font-extrabold text-gray-900 mt-2.5 uppercase tracking-tight">{previewItem.client_name}</h3>
                                 </div>
-                                <button onClick={() => setPreviewItem(null)} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100">
-                                    <X size={20} />
+                                <button onClick={() => setPreviewItem(null)} className="p-2.5 rounded-2xl text-gray-400 hover:bg-gray-100 transition-colors">
+                                    <X size={22} />
                                 </button>
                             </div>
 
-                            <div className="space-y-4 text-xs text-gray-700">
+                            <div className="space-y-5 text-xs text-gray-700">
                                 <div>
-                                    <span className="font-bold text-gray-400 uppercase text-xs block">Task Date</span>
+                                    <span className="font-bold text-gray-400 uppercase text-xs block mb-1">Task Date</span>
                                     <span className="font-extrabold text-base text-gray-900">{previewItem.task_date || '-'}</span>
                                 </div>
 
                                 <div>
-                                    <span className="font-bold text-gray-400 uppercase text-xs block">Description / Guidelines</span>
-                                    <p className="p-4 bg-gray-50 rounded-2xl text-gray-800 text-sm font-medium leading-relaxed mt-1">
+                                    <span className="font-bold text-gray-400 uppercase text-xs block mb-1.5">Description / Guidelines</span>
+                                    <div className="p-6 bg-slate-50/90 rounded-2xl border border-slate-200/80 text-gray-800 text-sm font-medium leading-relaxed whitespace-pre-line min-h-[240px] max-h-[460px] overflow-y-auto shadow-inner">
                                         {previewItem.description || 'No specific guidelines provided.'}
-                                    </p>
+                                    </div>
                                 </div>
 
                                 <div>
-                                    <span className="font-bold text-gray-400 uppercase text-xs block mb-1">Assigned Designers</span>
+                                    <span className="font-bold text-gray-400 uppercase text-xs block mb-1.5">Assigned Designers</span>
                                     <div className="flex flex-wrap gap-2">
                                         {(previewItem.assigned_users || []).map(u => (
-                                            <span key={u.id} className="px-3 py-1 bg-blue-50 text-blue-600 rounded-full font-bold text-xs uppercase">
+                                            <span key={u.id} className="px-3.5 py-1.5 bg-blue-50 text-blue-600 rounded-full font-extrabold text-xs uppercase border border-blue-100/60">
                                                 {u.name}
                                             </span>
                                         ))}
@@ -546,7 +546,7 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                 {/* 4. CREATE / EDIT TASK MODAL (ADMIN ONLY) */}
                 {isCreateModalOpen && !isUser && (
                     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-                        <div className="bg-white rounded-3xl max-w-xl w-full p-8 shadow-2xl border border-slate-100 space-y-6 my-auto">
+                        <div className="bg-white rounded-3xl max-w-2xl w-full p-8 sm:p-9 shadow-2xl border border-slate-100 space-y-6 my-auto">
                             <div className="flex items-center justify-between border-b border-gray-100 pb-4">
                                 <h3 className="text-xl font-bold text-gray-900">
                                     {editingItem ? 'Edit Designer Task' : 'Add Designer Task'}
@@ -648,11 +648,11 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Description / Notes</label>
                                     <textarea
-                                        rows={4}
+                                        rows={8}
                                         value={form.data.description}
                                         onChange={(e) => form.setData('description', e.target.value)}
                                         placeholder="Creative brief and designer guidelines..."
-                                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-blue-500/20"
+                                        className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all min-h-[220px] leading-relaxed resize-y"
                                     />
                                 </div>
 
