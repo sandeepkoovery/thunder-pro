@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
+import DatePicker from '@/Components/DatePicker';
 import { 
     Calendar as CalendarIcon, 
     Plus, 
@@ -400,11 +401,10 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                         {/* DATE FILTER */}
                         <div className="min-w-[160px] flex-1 sm:flex-none">
                             <label className="block text-xs font-black uppercase tracking-wider text-gray-400 mb-1.5">DATE FILTER</label>
-                            <input
-                                type="date"
+                            <DatePicker
                                 value={selectedDateFilter}
-                                onChange={(e) => setSelectedDateFilter(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-800 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 cursor-pointer"
+                                onChange={(e) => setSelectedDateFilter(e.target ? e.target.value : e)}
+                                placeholder="Filter by Date"
                             />
                         </div>
 
@@ -822,11 +822,9 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="block font-bold text-gray-600 uppercase mb-1">Date</label>
-                                        <input
-                                            type="date"
+                                        <DatePicker
                                             value={form.data.date}
-                                            onChange={(e) => form.setData('date', e.target.value)}
-                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-bold text-gray-800"
+                                            onChange={(e) => form.setData('date', e.target ? e.target.value : e)}
                                         />
                                     </div>
                                     <div>

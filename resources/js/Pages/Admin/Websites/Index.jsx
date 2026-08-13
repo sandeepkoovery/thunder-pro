@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Head, useForm, router } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
+import DatePicker from "@/Components/DatePicker";
 import { Edit, Trash2, Plus, X, CheckCircle, AlertCircle, Globe, Server, RefreshCw, XCircle } from "lucide-react";
 
 // ── Shared helpers ────────────────────────────────────────────────────────────
@@ -125,7 +126,7 @@ function DomainsTab({ domains }) {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Expiration Date</label>
-                                    <input type="date" required value={data.expiration_date} onChange={e=>setData("expiration_date",e.target.value)} className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${errors.expiration_date?"border-red-500":"border-gray-300"}`}/>
+                                    <DatePicker value={data.expiration_date} onChange={e=>setData("expiration_date",e.target?e.target.value:e)} required />
                                 </div>
                             </div>
                             <div>
@@ -270,7 +271,7 @@ function HostingTab({ hostings }) {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Expiration Date *</label>
-                                    <input type="date" required value={data.expiration_date} onChange={e=>setData("expiration_date",e.target.value)} className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${errors.expiration_date?"border-red-500":"border-gray-300"}`}/>
+                                    <DatePicker value={data.expiration_date} onChange={e=>setData("expiration_date",e.target?e.target.value:e)} required />
                                 </div>
                             </div>
                             <div>

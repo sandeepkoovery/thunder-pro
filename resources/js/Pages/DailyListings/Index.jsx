@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
+import DatePicker from '@/Components/DatePicker';
 import html2canvas from 'html2canvas';
 import { 
     Calendar as CalendarIcon, 
@@ -349,18 +350,18 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                         </div>
 
                         {/* Date / Month Picker */}
-                        <div className="relative">
+                        <div className="relative min-w-[170px]">
                             {viewMode === 'DAILY' ? (
-                                <input
-                                    type="date"
+                                <DatePicker
                                     value={selectedDate}
                                     onChange={(e) => {
-                                        setSelectedDate(e.target.value);
-                                        if (e.target.value) {
-                                            setSelectedMonth(e.target.value.slice(0, 7));
+                                        const val = e.target ? e.target.value : e;
+                                        setSelectedDate(val);
+                                        if (val) {
+                                            setSelectedMonth(val.slice(0, 7));
                                         }
                                     }}
-                                    className="pl-4 pr-3 py-2 rounded-2xl border border-gray-200 bg-white text-xs font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                    placeholder="Select Date"
                                 />
                             ) : (
                                 <input
@@ -711,12 +712,10 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                             <form onSubmit={handleCreateSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Date *</label>
-                                    <input
-                                        type="date"
-                                        required
+                                    <DatePicker
                                         value={form.data.date}
-                                        onChange={(e) => form.setData('date', e.target.value)}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold"
+                                        onChange={(e) => form.setData('date', e.target ? e.target.value : e)}
+                                        required
                                     />
                                 </div>
 

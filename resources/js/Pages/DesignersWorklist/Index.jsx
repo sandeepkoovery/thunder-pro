@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
+import DatePicker from '@/Components/DatePicker';
 import { 
     Calendar as CalendarIcon, 
     Plus, 
@@ -225,13 +226,11 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                         </div>
 
                         {/* Date Picker Filter */}
-                        <div className="relative">
-                            <input
-                                type="date"
+                        <div className="relative min-w-[170px]">
+                            <DatePicker
                                 value={selectedDateFilter}
-                                onChange={(e) => setSelectedDateFilter(e.target.value)}
-                                className="px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                title="Filter by Date"
+                                onChange={(e) => setSelectedDateFilter(e.target ? e.target.value : e)}
+                                placeholder="Filter by Date"
                             />
                         </div>
 
@@ -571,15 +570,13 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
 
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Task Date *</label>
-                                        <input
-                                            type="date"
-                                            required
-                                            value={form.data.task_date}
-                                            onChange={(e) => form.setData('task_date', e.target.value)}
-                                            className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-bold focus:ring-2 focus:ring-blue-500/20"
-                                        />
-                                    </div>
+                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Task Date *</label>
+                                         <DatePicker
+                                             value={form.data.task_date}
+                                             onChange={(e) => form.setData('task_date', e.target ? e.target.value : e)}
+                                             required
+                                         />
+                                     </div>
                                     <div>
                                         <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Task Type *</label>
                                         <select

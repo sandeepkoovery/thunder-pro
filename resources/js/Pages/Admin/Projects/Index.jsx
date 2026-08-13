@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Head, useForm, router, Link } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
+import DatePicker from "@/Components/DatePicker";
 import { 
   Edit, 
   Trash2, 
@@ -706,20 +707,16 @@ export default function Index({ projects, statusCounts, filters, users, success 
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">Start Date</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={form.start_date}
-                    onChange={(e) => setData("start_date", e.target.value)}
-                    className={`w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all ${errors.start_date ? "border-red-200" : ""}`}
+                    onChange={(e) => setData("start_date", e.target ? e.target.value : e)}
                   />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">End Date</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     value={form.end_date}
-                    onChange={(e) => setData("end_date", e.target.value)}
-                    className={`w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all ${errors.end_date ? "border-red-200" : ""}`}
+                    onChange={(e) => setData("end_date", e.target ? e.target.value : e)}
                   />
                 </div>
               </div>

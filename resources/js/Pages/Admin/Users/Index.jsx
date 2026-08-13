@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { usePage, router, Link } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
+import DatePicker from "@/Components/DatePicker";
 import {
   Edit,
   Trash2,
@@ -927,12 +928,10 @@ export default function Index() {
                 {/* Joining Date */}
                 <div className="md:col-span-2 space-y-1">
                   <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Joining Date</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     name="joining_date"
                     value={form.joining_date}
-                    onChange={handleChange}
-                    className="w-full px-5 py-2.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm"
+                    onChange={(e) => setForm(prev => ({ ...prev, joining_date: e.target ? e.target.value : e }))}
                   />
                 </div>
 

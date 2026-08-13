@@ -1,5 +1,6 @@
 import { Transition } from '@headlessui/react';
 import { Link, useForm, usePage } from '@inertiajs/react';
+import DatePicker from '@/Components/DatePicker';
 import { User as UserIcon, Mail, Briefcase, Phone, Camera, CheckCircle } from 'lucide-react';
 
 export default function UpdateProfileInformation({
@@ -141,13 +142,10 @@ export default function UpdateProfileInformation({
                         {/* Date of Birth */}
                         <div className="space-y-2">
                             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">Date of Birth</label>
-                            <input
-                                id="date_of_birth"
-                                type="date"
+                            <DatePicker
                                 value={data.date_of_birth}
-                                onChange={(e) => setData('date_of_birth', e.target.value)}
+                                onChange={(e) => setData('date_of_birth', e.target ? e.target.value : e)}
                                 required
-                                className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all outline-none ${errors.date_of_birth ? "border-red-200 ring-red-50" : ""}`}
                             />
                             {errors.date_of_birth && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.date_of_birth}</p>}
                         </div>

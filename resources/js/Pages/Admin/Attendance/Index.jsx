@@ -9,6 +9,7 @@ import InputError from '@/Components/InputError';
 import PrimaryButton from '@/Components/PrimaryButton';
 import SecondaryButton from '@/Components/SecondaryButton';
 import MonthPicker from '@/Components/MonthPicker';
+import DatePicker from '@/Components/DatePicker';
 import CalendarView from '@/Components/CalendarView';
 
 export default function Index({ attendanceData, filters, users, viewType, totalMonthlyMinutes, selectedUser, leaves, settings, exportPreviewData }) {
@@ -731,11 +732,10 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                 </div>
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.05em]">Date (Daily View)</label>
-                                    <input
-                                        type="date"
+                                    <DatePicker
                                         value={filters.date || ''}
-                                        onChange={(e) => handleFilterChange('date', e.target.value)}
-                                        className="text-[14px] border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-400/20 bg-gray-50/50 font-semibold text-gray-700 h-11 transition-all hover:bg-white hover:border-gray-300"
+                                        onChange={(val) => handleFilterChange('date', val.target ? val.target.value : val)}
+                                        placeholder="Select Date"
                                     />
                                 </div>
                                 <div className="flex flex-col gap-1.5">

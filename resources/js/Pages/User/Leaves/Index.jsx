@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Head, router, usePage } from "@inertiajs/react";
 import UserLayout from "@/Layouts/UserLayout";
+import DatePicker from "@/Components/DatePicker";
 import { Eye, Plus, X, Calendar, FileText, Trash2 } from "lucide-react";
 
 export default function UserLeaves() {
@@ -348,12 +349,11 @@ export default function UserLeaves() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block font-medium text-gray-700 mb-1">From Date *</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     name="from_date"
                     value={form.from_date}
-                    onChange={handleChange}
-                    className={`w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${errors.from_date ? "border-red-500" : "border-gray-300"}`}
+                    onChange={(e) => setForm(prev => ({ ...prev, from_date: e.target ? e.target.value : e }))}
+                    required
                   />
                   {errors.from_date && (
                     <p className="text-red-600 text-sm mt-1">{errors.from_date}</p>
@@ -362,13 +362,12 @@ export default function UserLeaves() {
 
                 <div>
                   <label className="block font-medium text-gray-700 mb-1">To Date *</label>
-                  <input
-                    type="date"
+                  <DatePicker
                     name="to_date"
                     value={form.to_date}
-                    onChange={handleChange}
+                    onChange={(e) => setForm(prev => ({ ...prev, to_date: e.target ? e.target.value : e }))}
                     disabled={form.day_type !== "full"}
-                    className={`w-full border px-3 py-2 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none ${form.day_type !== "full" ? "bg-gray-50 text-gray-500" : ""} ${errors.to_date ? "border-red-500" : "border-gray-300"}`}
+                    required={form.day_type === "full"}
                   />
                   {errors.to_date && (
                     <p className="text-red-600 text-sm mt-1">{errors.to_date}</p>

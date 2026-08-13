@@ -1,6 +1,7 @@
 import React from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
+import DatePicker from "@/Components/DatePicker";
 import { Check, X, Calendar, User, FileText, Eye, Trash2, Pencil } from "lucide-react";
 import toast from "react-hot-toast";
 
@@ -470,22 +471,18 @@ export default function Index({ leaves, users, filters, stats }) {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase mb-1">From Date</label>
-                                    <input
-                                        type="date"
+                                    <DatePicker
                                         value={editForm.from_date}
-                                        onChange={(e) => setEditForm({ ...editForm, from_date: e.target.value })}
-                                        className="w-full border-gray-300 rounded-lg text-sm"
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, from_date: e.target ? e.target.value : e }))}
                                         required
                                     />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-gray-400 uppercase mb-1">To Date</label>
-                                    <input
-                                        type="date"
+                                    <DatePicker
                                         value={editForm.to_date}
-                                        onChange={(e) => setEditForm({ ...editForm, to_date: e.target.value })}
-                                        className="w-full border-gray-300 rounded-lg text-sm"
-                                        required
+                                        onChange={(e) => setEditForm(prev => ({ ...prev, to_date: e.target ? e.target.value : e }))}
+                                        required={editForm.day_type === 'full'}
                                         disabled={editForm.day_type !== 'full'}
                                     />
                                 </div>
