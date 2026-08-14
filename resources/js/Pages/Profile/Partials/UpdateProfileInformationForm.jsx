@@ -102,7 +102,7 @@ export default function UpdateProfileInformation({
                                 value={data.first_name}
                                 onChange={(e) => setData('first_name', e.target.value)}
                                 required
-                                className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 outline-none ${errors.first_name ? "border-red-200 ring-red-50" : ""}`}
+                                className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 outline-none ${errors.first_name ? "border-red-400 ring-red-50" : ""}`}
                                 placeholder="First Name"
                             />
                             {errors.first_name && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.first_name}</p>}
@@ -116,7 +116,7 @@ export default function UpdateProfileInformation({
                                 value={data.last_name}
                                 onChange={(e) => setData('last_name', e.target.value)}
                                 required
-                                className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 outline-none ${errors.last_name ? "border-red-200 ring-red-50" : ""}`}
+                                className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 outline-none ${errors.last_name ? "border-red-400 ring-red-50" : ""}`}
                                 placeholder="Last Name"
                             />
                             {errors.last_name && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.last_name}</p>}
@@ -129,7 +129,7 @@ export default function UpdateProfileInformation({
                                 id="gender"
                                 value={data.gender}
                                 onChange={(e) => setData('gender', e.target.value)}
-                                className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all outline-none cursor-pointer appearance-none ${errors.gender ? "border-red-200 ring-red-50" : ""}`}
+                                className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all outline-none cursor-pointer appearance-none ${errors.gender ? "border-red-400 ring-red-50" : ""}`}
                             >
                                 <option value="">Select Gender</option>
                                 <option value="male">Male</option>
@@ -157,7 +157,7 @@ export default function UpdateProfileInformation({
                                 id="blood_group"
                                 value={data.blood_group}
                                 onChange={(e) => setData('blood_group', e.target.value)}
-                                className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 outline-none ${errors.blood_group ? "border-red-200 ring-red-50" : ""}`}
+                                className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 outline-none ${errors.blood_group ? "border-red-400 ring-red-50" : ""}`}
                                 placeholder="E.g. A+, O-, B+"
                             />
                             {errors.blood_group && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.blood_group}</p>}
@@ -178,7 +178,7 @@ export default function UpdateProfileInformation({
                                 value={data.mobile}
                                 onChange={(e) => setData('mobile', e.target.value)}
                                 required
-                                className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 outline-none ${errors.mobile ? "border-red-200 ring-red-50" : ""}`}
+                                className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 outline-none ${errors.mobile ? "border-red-400 ring-red-50" : ""}`}
                                 placeholder="Mobile Number"
                             />
                             {errors.mobile && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.mobile}</p>}
@@ -193,7 +193,7 @@ export default function UpdateProfileInformation({
                                 value={data.email}
                                 onChange={(e) => setData('email', e.target.value)}
                                 required
-                                className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 outline-none ${errors.email ? "border-red-200 ring-red-50" : ""}`}
+                                className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 outline-none ${errors.email ? "border-red-400 ring-red-50" : ""}`}
                                 placeholder="Email Address"
                             />
                             {errors.email && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.email}</p>}
@@ -208,7 +208,7 @@ export default function UpdateProfileInformation({
                                 value={data.address}
                                 onChange={(e) => setData('address', e.target.value)}
                                 required
-                                className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 outline-none resize-none ${errors.address ? "border-red-200 ring-red-50" : ""}`}
+                                className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 outline-none resize-none ${errors.address ? "border-red-400 ring-red-50" : ""}`}
                                 placeholder="Current Residential Address"
                             />
                             {errors.address && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.address}</p>}
@@ -221,7 +221,7 @@ export default function UpdateProfileInformation({
                                 id="emergency_contact_name"
                                 value={data.emergency_contact_name}
                                 onChange={(e) => setData('emergency_contact_name', e.target.value)}
-                                className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 outline-none ${errors.emergency_contact_name ? "border-red-200 ring-red-50" : ""}`}
+                                className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 outline-none ${errors.emergency_contact_name ? "border-red-400 ring-red-50" : ""}`}
                                 placeholder="Contact Name"
                             />
                             {errors.emergency_contact_name && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.emergency_contact_name}</p>}
@@ -234,7 +234,7 @@ export default function UpdateProfileInformation({
                                 id="emergency_contact_number"
                                 value={data.emergency_contact_number}
                                 onChange={(e) => setData('emergency_contact_number', e.target.value)}
-                                className={`w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 outline-none ${errors.emergency_contact_number ? "border-red-200 ring-red-50" : ""}`}
+                                className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 outline-none ${errors.emergency_contact_number ? "border-red-400 ring-red-50" : ""}`}
                                 placeholder="Contact Number"
                             />
                             {errors.emergency_contact_number && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.emergency_contact_number}</p>}

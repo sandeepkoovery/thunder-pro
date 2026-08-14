@@ -208,47 +208,49 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         };
 
         return (
-            <form onSubmit={handleSubmit} className="p-4 bg-green-50/50 rounded-[20px] border border-green-100 mb-6 shadow-sm">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center text-green-600 font-bold text-xs">+</div>
-                    <span className="font-bold text-green-800 text-sm">Add New Break</span>
+            <form onSubmit={handleSubmit} className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 mb-5 shadow-2xs transition-all">
+                <div className="flex items-center gap-2 mb-3.5">
+                    <div className="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center text-[#7e89ca]">
+                        <Clock className="w-4 h-4" />
+                    </div>
+                    <span className="font-bold text-slate-800 text-sm">Add New Break</span>
                 </div>
-                <div className="grid grid-cols-2 gap-4 mb-2">
+                <div className="grid grid-cols-2 gap-4 mb-3">
                     <div>
-                        <InputLabel value="Start Time" className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5" />
-                        <TextInput
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-0.5">Start Time *</label>
+                        <input
                             type="time"
-                            className="w-full text-sm rounded-xl"
+                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] outline-none transition-all"
                             value={data.start_time}
                             onChange={(e) => setData('start_time', e.target.value)}
                             required
                         />
-                        <InputError message={errors.start_time} className="text-xs mt-1" />
+                        {errors.start_time && <p className="text-red-500 text-xs mt-1">{errors.start_time}</p>}
                     </div>
                     <div>
-                        <InputLabel value="End Time" className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5" />
-                        <TextInput
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-0.5">End Time (Optional)</label>
+                        <input
                             type="time"
-                            className="w-full text-sm rounded-xl"
+                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] outline-none transition-all"
                             value={data.end_time}
                             onChange={(e) => setData('end_time', e.target.value)}
                         />
-                        <InputError message={errors.end_time} className="text-xs mt-1" />
+                        {errors.end_time && <p className="text-red-500 text-xs mt-1">{errors.end_time}</p>}
                     </div>
                 </div>
-                {localError && <p className="text-red-500 text-[11px] font-bold mb-3">{localError}</p>}
-                <div className="flex justify-end gap-2">
+                {localError && <p className="text-rose-500 text-xs font-semibold mb-3 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">{localError}</p>}
+                <div className="flex items-center justify-end gap-2 pt-1">
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="px-4 py-2 text-[12px] font-bold text-gray-500 hover:text-gray-700 bg-white border border-gray-200 rounded-xl transition-all"
+                        className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 rounded-xl shadow-2xs hover:bg-slate-50 transition-all cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={processing}
-                        className="px-6 py-2 text-[12px] font-bold text-white bg-green-600 rounded-xl hover:bg-green-700 hover:shadow-lg disabled:opacity-50 transition-all"
+                        className="px-5 py-2 text-xs font-bold text-white bg-[#1e88e5] hover:bg-[#1565c0] rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 active:scale-95"
                     >
                         Save Break
                     </button>
@@ -337,43 +339,46 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         };
 
         return (
-            <form onSubmit={handleSubmit} className="p-3 bg-blue-50/50 rounded-xl border border-blue-100">
-                <div className="grid grid-cols-2 gap-3 mb-2">
+            <form onSubmit={handleSubmit} className="p-4 bg-indigo-50/40 rounded-2xl border border-indigo-100 my-2 transition-all">
+                <div className="flex items-center gap-2 mb-3">
+                    <span className="font-bold text-slate-800 text-xs uppercase tracking-wider">Edit Break Details</span>
+                </div>
+                <div className="grid grid-cols-2 gap-3 mb-3">
                     <div>
-                        <InputLabel value="Start Time" className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1" />
-                        <TextInput
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Start Time *</label>
+                        <input
                             type="time"
-                            className="w-full text-xs h-9 px-2 rounded-lg"
+                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] outline-none transition-all"
                             value={data.start_time}
                             onChange={(e) => setData('start_time', e.target.value)}
                             required
                         />
-                        <InputError message={errors.start_time} className="text-xs mt-1" />
+                        {errors.start_time && <p className="text-red-500 text-xs mt-1">{errors.start_time}</p>}
                     </div>
                     <div>
-                        <InputLabel value="End Time" className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1" />
-                        <TextInput
+                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">End Time</label>
+                        <input
                             type="time"
-                            className="w-full text-xs h-9 px-2 rounded-lg"
+                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] outline-none transition-all"
                             value={data.end_time}
                             onChange={(e) => setData('end_time', e.target.value)}
                         />
-                        <InputError message={errors.end_time} className="text-xs mt-1" />
+                        {errors.end_time && <p className="text-red-500 text-xs mt-1">{errors.end_time}</p>}
                     </div>
                 </div>
-                {localError && <p className="text-red-500 text-[10px] font-bold mb-2">{localError}</p>}
-                <div className="flex justify-end gap-2">
+                {localError && <p className="text-rose-500 text-xs font-semibold mb-3 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">{localError}</p>}
+                <div className="flex items-center justify-end gap-2">
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="px-3 py-1.5 text-xs font-bold text-gray-500 hover:text-gray-700 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-all"
+                        className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 rounded-xl shadow-2xs hover:bg-slate-50 transition-all cursor-pointer"
                     >
                         Cancel
                     </button>
                     <button
                         type="submit"
                         disabled={processing}
-                        className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 rounded-lg hover:bg-blue-700 hover:shadow-md disabled:opacity-50 transition-all"
+                        className="px-4 py-1.5 text-xs font-bold text-white bg-[#1e88e5] hover:bg-[#1565c0] rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 active:scale-95"
                     >
                         Save
                     </button>
@@ -1335,26 +1340,20 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                     </h2>
 
                     <div className="mb-4">
-                        <InputLabel htmlFor="punch_in" value="Check In" />
-                        <TextInput
-                            id="punch_in"
-                            type="datetime-local"
-                            className="mt-1 block w-full"
+                        <InputLabel htmlFor="punch_in" value="Check In Date" />
+                        <DatePicker
                             value={data.punch_in}
-                            onChange={(e) => setData('punch_in', e.target.value)}
+                            onChange={(e) => setData('punch_in', e.target ? e.target.value : e)}
                             required
                         />
                         <InputError message={errors.punch_in} className="mt-2" />
                     </div>
 
                     <div className="mb-4">
-                        <InputLabel htmlFor="punch_out" value="Check Out" />
-                        <TextInput
-                            id="punch_out"
-                            type="datetime-local"
-                            className="mt-1 block w-full"
+                        <InputLabel htmlFor="punch_out" value="Check Out Date" />
+                        <DatePicker
                             value={data.punch_out}
-                            onChange={(e) => setData('punch_out', e.target.value)}
+                            onChange={(e) => setData('punch_out', e.target ? e.target.value : e)}
                         />
                         <InputError message={errors.punch_out} className="mt-2" />
                     </div>
@@ -1392,18 +1391,28 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                         <div className="flex items-center gap-2">
                             <button
                                 onClick={() => setShowAddBreak(!showAddBreak)}
-                                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+                                className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                                     showAddBreak 
-                                        ? 'bg-gray-100 text-gray-600 hover:bg-gray-200' 
-                                        : 'bg-blue-600 text-white hover:bg-blue-700 shadow-2xs hover:shadow-xs'
+                                        ? 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200' 
+                                        : 'bg-[#1e88e5] text-white hover:bg-[#1565c0] shadow-2xs hover:shadow-xs'
                                 }`}
                             >
-                                <Plus className="w-3.5 h-3.5" />
-                                {showAddBreak ? 'Close' : 'Add Break'}
+                                {showAddBreak ? (
+                                    <>
+                                        <X className="w-3.5 h-3.5" />
+                                        Cancel
+                                    </>
+                                ) : (
+                                    <>
+                                        <Plus className="w-3.5 h-3.5" />
+                                        Add Break
+                                    </>
+                                )}
                             </button>
                             <button 
                                 onClick={() => { setViewingBreaks(null); setEditingBreakId(null); setShowAddBreak(false); }} 
-                                className="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-xl transition-colors"
+                                className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
+                                title="Close Modal"
                             >
                                 <X className="w-4 h-4" />
                             </button>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Head, useForm, router } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
+import DatePicker from "@/Components/DatePicker";
 import {
     Edit, Trash2, Plus, X, CheckCircle, AlertCircle, Server
 } from "lucide-react";
@@ -348,12 +349,10 @@ export default function Index({ hostings, filters, success }) {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-1">Expiration Date *</label>
-                                    <input
-                                        type="date"
+                                    <DatePicker
                                         required
                                         value={data.expiration_date}
-                                        onChange={e => setData("expiration_date", e.target.value)}
-                                        className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition ${errors.expiration_date ? "border-red-500" : "border-gray-300"}`}
+                                        onChange={e => setData("expiration_date", e.target ? e.target.value : e)}
                                     />
                                     {errors.expiration_date && <p className="text-red-500 text-xs mt-1">{errors.expiration_date}</p>}
                                 </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
+import DatePicker from '@/Components/DatePicker';
 import { Head, useForm, router } from '@inertiajs/react';
 import { 
     Globe, 
@@ -519,12 +520,10 @@ export default function Index({ domains = [], hostings = [] }) {
 
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Expiration Date *</label>
-                                    <input
-                                        type="date"
+                                    <DatePicker
                                         required
                                         value={domainForm.data.expiration_date}
-                                        onChange={(e) => domainForm.setData('expiration_date', e.target.value)}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold"
+                                        onChange={(e) => domainForm.setData('expiration_date', e.target ? e.target.value : e)}
                                     />
                                 </div>
 
@@ -639,12 +638,10 @@ export default function Index({ domains = [], hostings = [] }) {
 
                                 <div>
                                     <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Expiration Date *</label>
-                                    <input
-                                        type="date"
+                                    <DatePicker
                                         required
                                         value={hostingForm.data.expiration_date}
-                                        onChange={(e) => hostingForm.setData('expiration_date', e.target.value)}
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold"
+                                        onChange={(e) => hostingForm.setData('expiration_date', e.target ? e.target.value : e)}
                                     />
                                 </div>
 

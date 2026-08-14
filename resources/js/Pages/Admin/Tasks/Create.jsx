@@ -1,5 +1,6 @@
 import React from "react";
 import { useForm, Link } from "@inertiajs/react";
+import DatePicker from "@/Components/DatePicker";
 
 export default function Create({ projects, users }) {
   const { data, setData, post, errors } = useForm({
@@ -83,17 +84,15 @@ export default function Create({ projects, users }) {
           <option>completed</option>
           <option>on hold</option>
         </select>
-        <input
-          type="date"
-          className="border p-2"
+        <DatePicker
+          placeholder="Start Date"
           value={data.start_date}
-          onChange={(e) => setData("start_date", e.target.value)}
+          onChange={(e) => setData("start_date", e.target ? e.target.value : e)}
         />
-        <input
-          type="date"
-          className="border p-2"
+        <DatePicker
+          placeholder="End Date"
           value={data.end_date}
-          onChange={(e) => setData("end_date", e.target.value)}
+          onChange={(e) => setData("end_date", e.target ? e.target.value : e)}
         />
         <select
           className="border p-2 w-full"

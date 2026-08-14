@@ -4,7 +4,7 @@
 
    Font:             Poppins (300 base)
    Body bg:          #eef5f9
-   Body color:       #67757c
+   Body color:       #6d6b77
    Topbar bg:        #1e88e5 (skin1)
    Sidebar bg:       #fff
    Active nav:       #49d9a0 (mint pill)
@@ -32,8 +32,8 @@
   --theme-success: #21c1d6;
   --theme-danger: #fc4b6c;
   --theme-warning: #ffb22b;
-  --theme-muted: #67757c;
-  --theme-text-muted: #a1aab2;
+  --theme-muted: #6d6b77;
+  --theme-text-muted: #6d6b77;
   --theme-heading: #455a64;
   --theme-sidebar-text: #263238;
   --theme-sidebar-icon: #1e88e5;
@@ -81,6 +81,26 @@ h3 { font-size: 21px !important; }
 h4 { font-size: 18px !important; }
 h5 { font-size: 16px !important; }
 h6 { font-size: 14px !important; }
+
+/* ── Global Textbox & Form Input Visibility Styles ── */
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+textarea,
+select {
+  border: 1px solid #d1d5db !important;
+  color: #1e293b !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"])::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important;
+  opacity: 1 !important;
+}
+
+input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):focus,
+textarea:focus,
+select:focus {
+  border-color: #7e89ca !important;
+}
 
 /* ── MaterialPro typography (matches WrapPixel demo) ── */
 .mp-wrapper,
@@ -590,7 +610,7 @@ body:has(.mp-wrapper) {
   font-weight: 400 !important;
   color: var(--theme-heading) !important;
   background-color: #f2f4f8;
-  border: 1px solid transparent;
+  border: 1px solid #d1d5db;
   border-radius: var(--theme-radius-sm);
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
   outline: none;

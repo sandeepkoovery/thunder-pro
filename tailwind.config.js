@@ -28,8 +28,8 @@ export default {
                 mp: {
                     bg: '#eef5f9',
                     heading: '#455a64',
-                    body: '#67757c',
-                    muted: '#a1aab2',
+                    body: '#6d6b77',
+                    muted: '#6d6b77',
                     sidebar: '#607d8b',
                     'sidebar-icon': '#99abb4',
                     purple: '#7460ee',

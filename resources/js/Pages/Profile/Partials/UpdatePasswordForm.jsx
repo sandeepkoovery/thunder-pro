@@ -1,11 +1,15 @@
 import { Transition } from '@headlessui/react';
 import { useForm } from '@inertiajs/react';
-import { useRef } from 'react';
-import { Lock, Shield, CheckCircle, Fingerprint } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Lock, Shield, CheckCircle, Fingerprint, Eye, EyeOff } from 'lucide-react';
 
 export default function UpdatePasswordForm({ className = '' }) {
     const passwordInput = useRef();
     const currentPasswordInput = useRef();
+
+    const [showCurrent, setShowCurrent] = useState(false);
+    const [showNew, setShowNew] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     const {
         data,
@@ -48,16 +52,27 @@ export default function UpdatePasswordForm({ className = '' }) {
                     {/* Current Password */}
                     <div className="space-y-2">
                         <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">Current Password</label>
-                        <input
-                            id="current_password"
-                            ref={currentPasswordInput}
-                            value={data.current_password}
-                            onChange={(e) => setData('current_password', e.target.value)}
-                            type="password"
-                            autoComplete="current-password"
-                            className={`w-full bg-white border border-gray-100 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 ${errors.current_password ? "border-red-200 ring-red-50" : ""}`}
-                            placeholder="••••••••"
-                        />
+                        <div className="relative">
+                            <input
+                                id="current_password"
+                                ref={currentPasswordInput}
+                                value={data.current_password}
+                                onChange={(e) => setData('current_password', e.target.value)}
+                                type={showCurrent ? 'text' : 'password'}
+                                autoComplete="current-password"
+                                className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 pr-11 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 ${errors.current_password ? "border-red-400 ring-red-50" : ""}`}
+                                placeholder="••••••••"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setShowCurrent((v) => !v)}
+                                className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-[#7e89ca] transition-colors"
+                                tabIndex={-1}
+                                aria-label={showCurrent ? 'Hide password' : 'Show password'}
+                            >
+                                {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                            </button>
+                        </div>
                         {errors.current_password && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.current_password}</p>}
                     </div>
 
@@ -65,31 +80,53 @@ export default function UpdatePasswordForm({ className = '' }) {
                         {/* New Password */}
                         <div className="space-y-2">
                             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">New Password</label>
-                            <input
-                                id="password"
-                                ref={passwordInput}
-                                value={data.password}
-                                onChange={(e) => setData('password', e.target.value)}
-                                type="password"
-                                autoComplete="new-password"
-                                className={`w-full bg-white border border-gray-100 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 ${errors.password ? "border-red-200 ring-red-50" : ""}`}
-                                placeholder="Min 8 Characters"
-                            />
+                            <div className="relative">
+                                <input
+                                    id="password"
+                                    ref={passwordInput}
+                                    value={data.password}
+                                    onChange={(e) => setData('password', e.target.value)}
+                                    type={showNew ? 'text' : 'password'}
+                                    autoComplete="new-password"
+                                    className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 pr-11 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 ${errors.password ? "border-red-400 ring-red-50" : ""}`}
+                                    placeholder="Min 8 Characters"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowNew((v) => !v)}
+                                    className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-[#7e89ca] transition-colors"
+                                    tabIndex={-1}
+                                    aria-label={showNew ? 'Hide password' : 'Show password'}
+                                >
+                                    {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
                             {errors.password && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.password}</p>}
                         </div>
 
                         {/* Confirm Password */}
                         <div className="space-y-2">
                             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-wider ml-1">Confirm Password</label>
-                            <input
-                                id="password_confirmation"
-                                value={data.password_confirmation}
-                                onChange={(e) => setData('password_confirmation', e.target.value)}
-                                type="password"
-                                autoComplete="new-password"
-                                className={`w-full bg-white border border-gray-100 rounded-xl px-4 py-3 text-sm font-semibold text-gray-700 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-200 ${errors.password_confirmation ? "border-red-200 ring-red-50" : ""}`}
-                                placeholder="Repeat Password"
-                            />
+                            <div className="relative">
+                                <input
+                                    id="password_confirmation"
+                                    value={data.password_confirmation}
+                                    onChange={(e) => setData('password_confirmation', e.target.value)}
+                                    type={showConfirm ? 'text' : 'password'}
+                                    autoComplete="new-password"
+                                    className={`w-full bg-white border border-gray-300 shadow-xs rounded-xl px-4 py-3 pr-11 text-sm font-semibold text-gray-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] transition-all placeholder:text-gray-400 ${errors.password_confirmation ? "border-red-400 ring-red-50" : ""}`}
+                                    placeholder="Repeat Password"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirm((v) => !v)}
+                                    className="absolute inset-y-0 right-3 flex items-center text-gray-400 hover:text-[#7e89ca] transition-colors"
+                                    tabIndex={-1}
+                                    aria-label={showConfirm ? 'Hide password' : 'Show password'}
+                                >
+                                    {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                </button>
+                            </div>
                             {errors.password_confirmation && <p className="text-red-500 text-[10px] font-bold uppercase mt-1 ml-1">{errors.password_confirmation}</p>}
                         </div>
                     </div>
