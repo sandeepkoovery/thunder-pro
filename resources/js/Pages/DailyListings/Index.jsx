@@ -19,7 +19,8 @@ import {
     Download,
     CheckSquare,
     Sparkles,
-    FileImage
+    FileImage,
+    ExternalLink
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -44,6 +45,11 @@ export default function Index({ worksheets = [], settings, users = [] }) {
     const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
     const [isCapturing, setIsCapturing] = useState(false);
     const previewCardRef = useRef(null);
+
+    const taskTypeOptions = useMemo(() => {
+        const raw = settings?.task_type_options || 'REEL, YT VIDEO, STORY, Listing, Design, Content, Maintenance, Review';
+        return raw.split(',').map(s => s.trim()).filter(Boolean);
+    }, [settings?.task_type_options]);
 
     // Format Date Header for Image Preview (e.g. Wednesday, August 5, 2026)
     const formatFullDateHeader = (dateStr) => {
@@ -172,12 +178,27 @@ export default function Index({ worksheets = [], settings, users = [] }) {
         }
     };
 
+    const handleOpenCreate = () => {
+        setEditingItem(null);
+        form.setData({
+            date: selectedDate,
+            client_name: '',
+            task_type: taskTypeOptions[0] || '',
+            status: 'DONE',
+            file_name: '',
+            drive_link: '',
+            project: '',
+            user_id: '',
+        });
+        setIsCreateModalOpen(true);
+    };
+
     const handleOpenEdit = (item) => {
         setEditingItem(item);
         form.setData({
             date: item.date || selectedDate,
             client_name: item.client_name || '',
-            task_type: item.task_type || 'POSTER',
+            task_type: item.task_type || (taskTypeOptions[0] || ''),
             status: item.status || 'DONE',
             file_name: item.file_name || '',
             drive_link: item.drive_link || '',
@@ -393,12 +414,7 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                         {isUser && (
                             <button
                                 type="button"
-                                onClick={() => {
-                                    setEditingItem(null);
-                                    form.reset();
-                                    form.setData('date', selectedDate);
-                                    setIsCreateModalOpen(true);
-                                }}
+                                onClick={handleOpenCreate}
                                 className="px-5 py-2.5 rounded-2xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
                             >
                                 <Plus size={16} /> ADD TASK
@@ -540,6 +556,8 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                                             <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">CLIENT</th>
                                                             <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">TASK TYPE</th>
                                                             <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">STATUS</th>
+                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">FILE NAME</th>
+                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">LINK</th>
                                                             <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">PROJECT</th>
                                                             <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">ADDED ON</th>
                                                             <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400 text-right">ACTION</th>
@@ -577,6 +595,26 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                                                         }`}>
                                                                             {item.status || 'DONE'}
                                                                         </span>
+                                                                    </td>
+
+                                                                    {/* FILE NAME */}
+                                                                    <td className="py-4 px-6 font-semibold text-slate-700 text-sm">{item.file_name || '-'}</td>
+
+                                                                    {/* DRIVE LINK */}
+                                                                    <td className="py-4 px-6">
+                                                                        {item.drive_link ? (
+                                                                            <a
+                                                                                href={item.drive_link.startsWith('http') ? item.drive_link : `https://${item.drive_link}`}
+                                                                                target="_blank"
+                                                                                rel="noopener noreferrer"
+                                                                                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-100/80 transition-all"
+                                                                                title={item.drive_link}
+                                                                            >
+                                                                                <ExternalLink size={12} /> Link
+                                                                            </a>
+                                                                        ) : (
+                                                                            <span className="text-gray-400 text-xs font-medium">—</span>
+                                                                        )}
                                                                     </td>
 
                                                                     {/* PROJECT */}
@@ -627,13 +665,15 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                         <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">CLIENT</th>
                                         <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">TASK TYPE</th>
                                         <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">STATUS</th>
+                                        <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">FILE NAME</th>
+                                        <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">LINK</th>
                                         <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400 text-right">ACTIONS</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {filteredWorksheets.length === 0 ? (
                                         <tr>
-                                            <td colSpan={5} className="py-24 text-center">
+                                            <td colSpan={7} className="py-24 text-center">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-3">
                                                         <CalendarIcon className="text-gray-300" size={32} />
@@ -668,6 +708,22 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                                             {item.status || 'DONE'}
                                                         </span>
                                                     </td>
+                                                    <td className="py-4 px-6 font-semibold text-slate-700 text-sm">{item.file_name || '-'}</td>
+                                                    <td className="py-4 px-6">
+                                                        {item.drive_link ? (
+                                                            <a
+                                                                href={item.drive_link.startsWith('http') ? item.drive_link : `https://${item.drive_link}`}
+                                                                target="_blank"
+                                                                rel="noopener noreferrer"
+                                                                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-100/80 transition-all"
+                                                                title={item.drive_link}
+                                                            >
+                                                                <ExternalLink size={12} /> Link
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs font-medium">—</span>
+                                                        )}
+                                                    </td>
                                                     <td className="py-4 px-6 text-right whitespace-nowrap">
                                                         <div className="flex items-center justify-end gap-2">
                                                             <button
@@ -696,22 +752,34 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                     </div>
                 )}
 
-                {/* 4. CREATE / EDIT TASK MODAL */}
+                {/* 4. CREATE / EDIT TASK MODAL (Exact match to Screenshot) */}
                 {isCreateModalOpen && (
-                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-                        <div className="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-slate-100 space-y-6">
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-4">
-                                <h3 className="text-lg font-bold text-gray-900">
-                                    {editingItem ? 'Edit Task Entry' : 'Log Daily Task'}
-                                </h3>
-                                <button onClick={() => setIsCreateModalOpen(false)} className="p-2 rounded-xl text-gray-400 hover:bg-gray-100">
-                                    <X size={20} />
+                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+                        <div className="bg-white rounded-3xl max-w-md w-full p-7 sm:p-8 shadow-2xl border border-slate-100 space-y-5 my-auto max-h-[92vh] overflow-y-auto">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-3.5">
+                                <div>
+                                    <h3 className="text-base font-black text-slate-900 uppercase tracking-tight">
+                                        {editingItem ? 'EDIT TASK' : 'LOG NEW TASK'}
+                                    </h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                        Fill in the details below
+                                    </p>
+                                </div>
+                                <button 
+                                    type="button"
+                                    onClick={() => setIsCreateModalOpen(false)} 
+                                    className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
+                                >
+                                    <X size={18} />
                                 </button>
                             </div>
 
                             <form onSubmit={handleCreateSubmit} className="space-y-4">
+                                {/* DATE */}
                                 <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Date *</label>
+                                    <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
+                                        DATE
+                                    </label>
                                     <DatePicker
                                         value={form.data.date}
                                         onChange={(e) => form.setData('date', e.target ? e.target.value : e)}
@@ -719,69 +787,137 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                     />
                                 </div>
 
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Client Name *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={form.data.client_name}
-                                        onChange={(e) => form.setData('client_name', e.target.value)}
-                                        placeholder="KALPAKA - Herbal Body Pack"
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
+                                {/* CLIENT NAME */}
+                                {(settings?.client_name_enabled !== false) && (
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Task Type *</label>
+                                        <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
+                                            CLIENT NAME
+                                        </label>
                                         <input
                                             type="text"
                                             required
-                                            value={form.data.task_type}
-                                            onChange={(e) => form.setData('task_type', e.target.value)}
-                                            placeholder="POSTER / STORY"
-                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm uppercase"
+                                            value={form.data.client_name}
+                                            onChange={(e) => form.setData('client_name', e.target.value)}
+                                            placeholder="Enter client name"
+                                            className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/30 text-sm font-semibold text-slate-800 focus:bg-white focus:ring-4 focus:ring-slate-100 focus:border-slate-400 transition-all outline-none"
                                         />
                                     </div>
+                                )}
+
+                                {/* CATEGORY / TASK TYPE */}
+                                {(settings?.task_type_enabled !== false) && (
                                     <div>
-                                        <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Status</label>
+                                        <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
+                                            CATEGORY
+                                        </label>
+                                        {settings?.task_type_freetext ? (
+                                            <input
+                                                type="text"
+                                                required
+                                                value={form.data.task_type}
+                                                onChange={(e) => form.setData('task_type', e.target.value)}
+                                                placeholder="Enter task type"
+                                                className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/30 text-sm font-bold text-slate-800 uppercase focus:bg-white focus:ring-4 focus:ring-slate-100 focus:border-slate-400 transition-all outline-none"
+                                            />
+                                        ) : (
+                                            <select
+                                                value={form.data.task_type}
+                                                onChange={(e) => form.setData('task_type', e.target.value)}
+                                                required
+                                                className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/30 text-sm font-bold text-slate-800 uppercase focus:bg-white focus:ring-4 focus:ring-slate-100 focus:border-slate-400 transition-all outline-none cursor-pointer"
+                                            >
+                                                <option value="" disabled>SELECT CATEGORY</option>
+                                                {taskTypeOptions.map((opt, idx) => (
+                                                    <option key={idx} value={opt}>{opt}</option>
+                                                ))}
+                                            </select>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* STATUS */}
+                                {(settings?.status_enabled !== false) && (
+                                    <div>
+                                        <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
+                                            STATUS
+                                        </label>
                                         <select
                                             value={form.data.status}
                                             onChange={(e) => form.setData('status', e.target.value)}
-                                            className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold"
+                                            required
+                                            className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/30 text-sm font-bold text-slate-800 uppercase focus:bg-white focus:ring-4 focus:ring-slate-100 focus:border-slate-400 transition-all outline-none cursor-pointer"
                                         >
+                                            <option value="" disabled>SELECT STATUS</option>
                                             <option value="DONE">DONE</option>
                                             <option value="NOT DONE">NOT DONE</option>
                                             <option value="IN PROGRESS">IN PROGRESS</option>
                                         </select>
                                     </div>
-                                </div>
+                                )}
 
-                                <div>
-                                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">Project (Optional)</label>
-                                    <input
-                                        type="text"
-                                        value={form.data.project}
-                                        onChange={(e) => form.setData('project', e.target.value)}
-                                        placeholder="Associated Project"
-                                        className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm"
-                                    />
-                                </div>
+                                {/* FILE NAME */}
+                                {(settings?.file_name_enabled !== false) && (
+                                    <div>
+                                        <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
+                                            FILE NAME
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={form.data.file_name}
+                                            onChange={(e) => form.setData('file_name', e.target.value)}
+                                            placeholder="Enter file name"
+                                            className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/30 text-sm font-semibold text-slate-800 focus:bg-white focus:ring-4 focus:ring-slate-100 focus:border-slate-400 transition-all outline-none"
+                                        />
+                                    </div>
+                                )}
 
-                                <div className="flex justify-end gap-3 pt-4 border-t border-gray-100">
+                                {/* DRIVE LINK */}
+                                {(settings?.drive_link_enabled !== false) && (
+                                    <div>
+                                        <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
+                                            DRIVE LINK
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={form.data.drive_link}
+                                            onChange={(e) => form.setData('drive_link', e.target.value)}
+                                            placeholder="https://drive.google.com/..."
+                                            className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/30 text-sm font-semibold text-slate-800 focus:bg-white focus:ring-4 focus:ring-slate-100 focus:border-slate-400 transition-all outline-none"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* PROJECT (OPTIONAL) */}
+                                {(settings?.project_enabled !== false) && (
+                                    <div>
+                                        <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
+                                            PROJECT (OPTIONAL)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={form.data.project}
+                                            onChange={(e) => form.setData('project', e.target.value)}
+                                            placeholder="Associated Project"
+                                            className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/30 text-sm font-semibold text-slate-800 focus:bg-white focus:ring-4 focus:ring-slate-100 focus:border-slate-400 transition-all outline-none"
+                                        />
+                                    </div>
+                                )}
+
+                                {/* ACTION BUTTONS: DISCARD & SAVE CHANGES */}
+                                <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-100 mt-6">
                                     <button
                                         type="button"
                                         onClick={() => setIsCreateModalOpen(false)}
-                                        className="px-4 py-2 rounded-xl bg-gray-100 text-gray-600 text-xs font-bold uppercase"
+                                        className="px-6 py-2.5 rounded-2xl border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
                                     >
-                                        Cancel
+                                        DISCARD
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={form.processing}
-                                        className="px-5 py-2 rounded-xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold uppercase shadow-md"
+                                        className="px-6 py-2.5 rounded-2xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer active:scale-98 disabled:opacity-50"
                                     >
-                                        {form.processing ? 'Saving...' : editingItem ? 'Update Task' : 'Add Task'}
+                                        {form.processing ? 'SAVING...' : 'SAVE CHANGES'}
                                     </button>
                                 </div>
                             </form>
