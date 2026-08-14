@@ -148,10 +148,6 @@ export default function Show() {
                   value={user.gender ? (user.gender.charAt(0).toUpperCase() + user.gender.slice(1)) : 'Male'} 
                 />
                 <DetailItem 
-                  label="Marital Status" 
-                  value={user.marital_status || 'Single'} 
-                />
-                <DetailItem 
                   label="Nationality" 
                   value={user.nationality || 'American'} 
                 />
@@ -187,18 +183,6 @@ export default function Show() {
                 <DetailItem 
                   label="Employment Type" 
                   value={user.employment_type || 'Full Time'} 
-                />
-                <DetailItem 
-                  label="Reporting To" 
-                  value={user.reporting_manager?.name || 'Jenson Roy'} 
-                />
-                <DetailItem 
-                  label="Work Location" 
-                  value={user.branch ? `HQ — ${user.branch}` : 'HQ — San Francisco'} 
-                />
-                <DetailItem 
-                  label="Shift" 
-                  value={user.shift || '9:00 AM – 6:00 PM'} 
                 />
               </div>
             </div>
