@@ -25,6 +25,7 @@ import BottomNav from "@/Components/BottomNav";
 
 export default function UserLayout({ children, title = "Dashboard" }) {
   const { auth, flash, sharedSettings, allowedModules, moduleOrder = {}, expiringWebsitesCount } = usePage().props;
+  const isSuperAdmin = auth?.user?.role === "superadmin";
   const betaMenuItems = Array.isArray(sharedSettings?.beta_menu_items) ? sharedSettings.beta_menu_items : [];
   const hiddenMenuItems = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
   const user = auth?.user;
