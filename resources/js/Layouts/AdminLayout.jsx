@@ -25,11 +25,20 @@ import AppShell, { NavItem } from "@/Layouts/AppShell";
 
 export default function AdminLayout({ children, title = "Dashboard" }) {
   const { auth, flash, sharedSettings, expiringWebsitesCount, allowedModules, moduleOrder = {} } = usePage().props;
-  const isSuperAdmin = auth?.user?.role === "superadmin";
-  const betaMenuItems = isSuperAdmin ? [] : (Array.isArray(sharedSettings?.beta_menu_items) ? sharedSettings.beta_menu_items : []);
-  const hiddenMenuItems = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
-  const isManagementAdmin = ['admin', 'superadmin'].includes(auth?.user?.role);
-  const isAdmin = ['admin', 'superadmin', 'manager', 'editor'].includes(auth?.user?.role);
+  const user = auth?.user;
+  const userRole = user?.role?.toLowerCase() || '';
+  const userDesignation = user?.designation?.toLowerCase() || '';
+  const deptName = user?.department?.name?.toLowerCase() || '';
+
+  const isManagementAdmin = ['admin', 'superadmin', 'manager', 'editor'].includes(userRole);
+  const isDesignerDepartment = 
+    isManagementAdmin ||
+    userRole === 'designer' ||
+    userRole === 'editor' ||
+    userDesignation.includes('design') ||
+    userDesignation.includes('edit') ||
+    deptName.includes('design') ||
+    deptName.includes('edit');
 
   const superAdminAllowedModules = ['dashboard', 'admin_users', 'pricing', 'settings'];
   const isVisible = (module) => {
@@ -110,7 +119,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
       {
         key: 'designers_worklist',
         order: getModuleOrder('designers_worklist', 10),
-        element: <NavItem key="designers_worklist" href={route("designers-worklist.index")} icon={Palette} label="Designers Worklist" routeName="designers-worklist" visible={isVisible("designers_worklist")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="designers_worklist" href={route("designers-worklist.index")} icon={Palette} label="Designers Worklist" routeName="designers-worklist" visible={isVisible("designers_worklist") && isDesignerDepartment} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'drive',
