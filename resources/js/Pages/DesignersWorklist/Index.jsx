@@ -3,6 +3,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
 import DatePicker from '@/Components/DatePicker';
+import MonthPicker from '@/Components/MonthPicker';
 import { 
     Calendar as CalendarIcon, 
     Plus, 
@@ -215,13 +216,11 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                     <div className="flex flex-wrap items-center gap-3 self-end md:self-center">
                         
                         {/* Month Picker Filter */}
-                        <div className="relative">
-                            <input
-                                type="month"
+                        <div className="relative min-w-[170px]">
+                            <MonthPicker
                                 value={selectedMonthFilter}
-                                onChange={(e) => setSelectedMonthFilter(e.target.value)}
-                                className="px-4 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
-                                title="Filter by Month"
+                                onChange={(val) => setSelectedMonthFilter(val?.target ? val.target.value : val)}
+                                placeholder="Filter by Month"
                             />
                         </div>
 

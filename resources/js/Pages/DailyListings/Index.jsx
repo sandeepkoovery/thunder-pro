@@ -3,6 +3,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
 import DatePicker from '@/Components/DatePicker';
+import MonthPicker from '@/Components/MonthPicker';
 import html2canvas from 'html2canvas';
 import { 
     Calendar as CalendarIcon, 
@@ -385,11 +386,13 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                     placeholder="Select Date"
                                 />
                             ) : (
-                                <input
-                                    type="month"
+                                <MonthPicker
                                     value={selectedMonth}
-                                    onChange={(e) => setSelectedMonth(e.target.value)}
-                                    className="pl-4 pr-3 py-2 rounded-2xl border border-gray-200 bg-white text-xs font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                                    onChange={(val) => {
+                                        const monthVal = val?.target ? val.target.value : val;
+                                        setSelectedMonth(monthVal);
+                                    }}
+                                    placeholder="Select Month"
                                 />
                             )}
                         </div>

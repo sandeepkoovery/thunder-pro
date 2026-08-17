@@ -3,6 +3,7 @@ import AdminLayout from '@/Layouts/AdminLayout';
 import UserLayout from '@/Layouts/UserLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
 import DatePicker from '@/Components/DatePicker';
+import MonthPicker from '@/Components/MonthPicker';
 import { 
     Calendar as CalendarIcon, 
     Plus, 
@@ -390,11 +391,10 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                                 {isUser ? 'MONTH' : 'MONTH (MONTHLY VIEW)'}
                                 {monthRangeText && <span className="text-[10px] text-orange-600 font-extrabold ml-1">({monthRangeText})</span>}
                             </label>
-                            <input
-                                type="month"
+                            <MonthPicker
                                 value={selectedMonthFilter}
-                                onChange={(e) => setSelectedMonthFilter(e.target.value)}
-                                className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-800 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 cursor-pointer"
+                                onChange={(val) => setSelectedMonthFilter(val?.target ? val.target.value : val)}
+                                placeholder="Select Month"
                             />
                         </div>
 

@@ -1,90 +1,288 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from 'lucide-react';
 
-export default function MonthPicker({ value, onChange, className = "" }) {
+export default function MonthPicker({
+    value = '',
+    onChange,
+    placeholder = 'Select Month',
+    className = '',
+    inputClassName = '',
+    disabled = false,
+}) {
     const [isOpen, setIsOpen] = useState(false);
-    const containerRef = useRef(null);
+    const triggerRef = useRef(null);
+    const popoverRef = useRef(null);
+    const [popoverPos, setPopoverPos] = useState({ top: 0, left: 0 });
 
-    // Parse initial value (YYYY-MM)
-    const initialDate = value ? new Date(value + '-01') : new Date();
-    const [viewYear, setViewYear] = useState(initialDate.getFullYear());
+    const parseValue = (valStr) => {
+        if (!valStr) return new Date();
+        const parts = String(valStr).split('-');
+        if (parts.length >= 2) {
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10) - 1;
+            const d = new Date(year, month, 1);
+            if (!isNaN(d.getTime())) return d;
+        }
+        return new Date();
+    };
 
-    const months = [
-        'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-        'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-    ];
+    const committedDate = value ? parseValue(value) : null;
+    const [viewYear, setViewYear] = useState(() => (committedDate ? committedDate.getFullYear() : new Date().getFullYear()));
+    const [isYearPickerOpen, setIsYearPickerOpen] = useState(false);
 
-    const currentMonth = value ? parseInt(value.split('-')[1]) - 1 : -1;
-    const currentYear = value ? parseInt(value.split('-')[0]) : -1;
+    useEffect(() => {
+        if (value) {
+            const d = parseValue(value);
+            setViewYear(d.getFullYear());
+        }
+    }, [value]);
+
+    const updatePosition = () => {
+        if (triggerRef.current) {
+            const rect = triggerRef.current.getBoundingClientRect();
+            const popoverWidth = 280;
+            const popoverHeight = 320;
+
+            let top = rect.bottom + window.scrollY + 6;
+            let left = rect.left + window.scrollX;
+
+            if (left + popoverWidth > window.innerWidth - 16) {
+                left = Math.max(16, window.innerWidth - popoverWidth - 16);
+            }
+
+            if (rect.bottom + popoverHeight > window.innerHeight && rect.top > popoverHeight) {
+                top = rect.top + window.scrollY - popoverHeight - 6;
+            }
+
+            setPopoverPos({ top, left });
+        }
+    };
+
+    useEffect(() => {
+        if (isOpen) {
+            updatePosition();
+            window.addEventListener('resize', updatePosition);
+            window.addEventListener('scroll', updatePosition, true);
+            return () => {
+                window.removeEventListener('resize', updatePosition);
+                window.removeEventListener('scroll', updatePosition, true);
+            };
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         const handleClickOutside = (event) => {
-            if (containerRef.current && !containerRef.current.contains(event.target)) {
+            if (
+                triggerRef.current && !triggerRef.current.contains(event.target) &&
+                popoverRef.current && !popoverRef.current.contains(event.target)
+            ) {
                 setIsOpen(false);
+                setIsYearPickerOpen(false);
             }
         };
-        document.addEventListener('mousedown', handleClickOutside);
+        if (isOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [isOpen]);
 
-    const handleMonthClick = (monthIndex) => {
-        const formattedMonth = String(monthIndex + 1).padStart(2, '0');
-        onChange(`${viewYear}-${formattedMonth}`);
+    const monthsShort = [
+        'Jan', 'Feb', 'Mar', 'Apr',
+        'May', 'Jun', 'Jul', 'Aug',
+        'Sep', 'Oct', 'Nov', 'Dec'
+    ];
+
+    const monthsFull = [
+        'January', 'February', 'March', 'April',
+        'May', 'June', 'July', 'August',
+        'September', 'October', 'November', 'December'
+    ];
+
+    const emitChange = (valStr) => {
+        if (onChange) {
+            onChange(valStr);
+            if (typeof onChange === 'function') {
+                const eventMock = { target: { value: valStr } };
+                onChange(eventMock);
+            }
+        }
+    };
+
+    const handleSelectMonth = (monthIndex) => {
+        const m = String(monthIndex + 1).padStart(2, '0');
+        const formatted = `${viewYear}-${m}`;
+        emitChange(formatted);
+        setIsOpen(false);
+        setIsYearPickerOpen(false);
+    };
+
+    const handleClear = (e) => {
+        e.stopPropagation();
+        emitChange('');
         setIsOpen(false);
     };
 
-    const displayValue = value ? new Date(value + '-01').toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Select Month';
+    const handleThisMonth = (e) => {
+        e.stopPropagation();
+        const now = new Date();
+        const y = now.getFullYear();
+        const m = String(now.getMonth() + 1).padStart(2, '0');
+        setViewYear(y);
+        emitChange(`${y}-${m}`);
+        setIsOpen(false);
+    };
+
+    const currentYearNum = new Date().getFullYear();
+    const yearsList = Array.from({ length: 30 }, (_, i) => currentYearNum - 15 + i);
+
+    const formatTriggerDisplay = () => {
+        if (!value) return placeholder;
+        const d = parseValue(value);
+        if (isNaN(d.getTime())) return placeholder;
+        return `${monthsFull[d.getMonth()]}, ${d.getFullYear()}`;
+    };
 
     return (
-        <div className={`relative ${className}`} ref={containerRef}>
+        <div className={`relative inline-block w-full ${className}`}>
             <button
+                ref={triggerRef}
                 type="button"
-                onClick={() => setIsOpen(!isOpen)}
-                className="w-full flex items-center justify-between gap-3 px-4 h-11 bg-gray-50/50 border border-gray-200 rounded-xl shadow-sm text-[14px] font-semibold text-gray-800 hover:bg-white hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all font-sans"
+                disabled={disabled}
+                onClick={() => {
+                    if (!disabled) {
+                        if (!isOpen && committedDate) {
+                            setViewYear(committedDate.getFullYear());
+                        }
+                        setIsOpen(!isOpen);
+                    }
+                }}
+                className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-2xl border text-xs font-bold transition-all cursor-pointer outline-none ${
+                    isOpen
+                        ? 'border-[#0f172a] ring-4 ring-slate-100 bg-white shadow-sm'
+                        : 'border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50/50 shadow-xs'
+                } ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''} ${inputClassName}`}
             >
-                <span className={value ? 'text-gray-900' : 'text-gray-400'}>{displayValue}</span>
-                <Calendar className="w-4 h-4 text-blue-500" />
+                <div className="flex items-center gap-2 overflow-hidden text-left">
+                    <CalendarIcon size={15} className={`shrink-0 ${value ? 'text-[#0f172a]' : 'text-gray-400'}`} />
+                    <span className={`truncate ${value ? 'text-gray-900 font-extrabold' : 'text-gray-400 font-normal'}`}>
+                        {formatTriggerDisplay()}
+                    </span>
+                </div>
+
+                {value && !disabled && (
+                    <span
+                        onClick={handleClear}
+                        className="p-1 rounded-md text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+                        title="Clear month"
+                    >
+                        <X size={13} />
+                    </span>
+                )}
             </button>
 
-            {isOpen && (
-                <div className="absolute z-50 mt-1 w-64 bg-white border border-gray-200 rounded-lg shadow-xl p-4">
-                    <div className="flex items-center justify-between mb-4">
+            {isOpen && createPortal(
+                <div
+                    ref={popoverRef}
+                    style={{
+                        position: 'absolute',
+                        top: `${popoverPos.top}px`,
+                        left: `${popoverPos.left}px`,
+                        zIndex: 999999,
+                    }}
+                    className="w-72 bg-white rounded-3xl shadow-2xl border border-slate-100 p-5 animate-in fade-in zoom-in-95 duration-150 select-none font-sans"
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between mb-4 pb-2 border-b border-gray-100">
                         <button
                             type="button"
-                            onClick={() => setViewYear(viewYear - 1)}
-                            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                            onClick={() => setIsYearPickerOpen(!isYearPickerOpen)}
+                            className="text-base font-black text-slate-900 hover:text-blue-600 flex items-center gap-1.5 transition-colors cursor-pointer"
                         >
-                            <ChevronLeft className="w-5 h-5 text-gray-600" />
+                            <span>{viewYear}</span>
                         </button>
-                        <span className="text-lg font-bold text-gray-800">{viewYear}</span>
-                        <button
-                            type="button"
-                            onClick={() => setViewYear(viewYear + 1)}
-                            className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                        >
-                            <ChevronRight className="w-5 h-5 text-gray-600" />
-                        </button>
+
+                        <div className="flex items-center gap-1.5">
+                            <button
+                                type="button"
+                                onClick={() => setViewYear(viewYear - 1)}
+                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                                <ChevronLeft size={16} />
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setViewYear(viewYear + 1)}
+                                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 flex items-center justify-center transition-colors cursor-pointer"
+                            >
+                                <ChevronRight size={16} />
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-2">
-                        {months.map((month, index) => {
-                            const isSelected = currentYear === viewYear && currentMonth === index;
-                            return (
+                    {/* Year Picker Grid Overlay */}
+                    {isYearPickerOpen ? (
+                        <div className="p-1 max-h-56 overflow-y-auto grid grid-cols-3 gap-2 border-t border-gray-100">
+                            {yearsList.map((y) => (
                                 <button
-                                    key={month}
+                                    key={y}
                                     type="button"
-                                    onClick={() => handleMonthClick(index)}
-                                    className={`py-3 text-sm font-medium rounded-lg transition-all ${isSelected
-                                        ? 'bg-blue-600 text-white shadow-md'
-                                        : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-                                        }`}
+                                    onClick={() => {
+                                        setViewYear(y);
+                                        setIsYearPickerOpen(false);
+                                    }}
+                                    className={`py-2 text-xs font-bold rounded-xl transition-all cursor-pointer ${
+                                        y === viewYear
+                                            ? 'bg-[#0f172a] text-white shadow-sm'
+                                            : 'text-gray-700 hover:bg-gray-100'
+                                    }`}
                                 >
-                                    {month}
+                                    {y}
                                 </button>
-                            );
-                        })}
+                            ))}
+                        </div>
+                    ) : (
+                        /* Month Grid (4 columns x 3 rows) */
+                        <div className="grid grid-cols-4 gap-2.5 my-2">
+                            {monthsShort.map((m, idx) => {
+                                const isSelected = committedDate && committedDate.getFullYear() === viewYear && committedDate.getMonth() === idx;
+                                return (
+                                    <button
+                                        key={m}
+                                        type="button"
+                                        onClick={() => handleSelectMonth(idx)}
+                                        className={`py-2.5 px-1 text-xs font-bold rounded-2xl transition-all cursor-pointer text-center ${
+                                            isSelected
+                                                ? 'bg-[#0f172a] text-white font-black shadow-md scale-105'
+                                                : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'
+                                        }`}
+                                    >
+                                        {m}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    )}
+
+                    {/* Footer Actions: Clear & This Month */}
+                    <div className="flex items-center justify-between pt-3 mt-3 border-t border-gray-100 text-xs">
+                        <button
+                            type="button"
+                            onClick={handleClear}
+                            className="font-bold text-slate-400 hover:text-slate-600 transition-colors cursor-pointer"
+                        >
+                            Clear
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleThisMonth}
+                            className="font-bold text-blue-600 hover:text-blue-800 transition-colors cursor-pointer"
+                        >
+                            This month
+                        </button>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </div>
     );
