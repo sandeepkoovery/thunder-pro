@@ -260,7 +260,7 @@ export default function Index({ worksheets = [], settings, users = [] }) {
         }).length;
         const approved = filteredWorksheets.filter(w => {
             const st = (w.status || '').toUpperCase();
-            return st === 'APPROVED' || st === 'DONE';
+            return st === 'APPROVED';
         }).length;
 
         return { total, completed, inProgress, pendingNotDone, approved };
@@ -589,8 +589,12 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                                                     {/* STATUS */}
                                                                     <td className="py-4 px-6">
                                                                         <span className={`inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border text-center leading-none ${
-                                                                            statusUpper === 'DONE' || statusUpper === 'COMPLETED'
+                                                                            statusUpper === 'APPROVED'
+                                                                                ? 'bg-purple-50 text-purple-600 border-purple-100'
+                                                                                : statusUpper === 'DONE' || statusUpper === 'COMPLETED'
                                                                                 ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                                : statusUpper === 'IN PROGRESS'
+                                                                                ? 'bg-blue-50 text-blue-600 border-blue-100'
                                                                                 : 'bg-red-50 text-red-600 border-red-100'
                                                                         }`}>
                                                                             {item.status || 'DONE'}
@@ -701,8 +705,12 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                                     </td>
                                                     <td className="py-4 px-6">
                                                         <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase border text-center ${
-                                                            statusUpper === 'DONE' || statusUpper === 'COMPLETED'
+                                                            statusUpper === 'APPROVED'
+                                                                ? 'bg-purple-50 text-purple-600 border-purple-100'
+                                                                : statusUpper === 'DONE' || statusUpper === 'COMPLETED'
                                                                 ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                : statusUpper === 'IN PROGRESS'
+                                                                ? 'bg-blue-50 text-blue-600 border-blue-100'
                                                                 : 'bg-red-50 text-red-600 border-red-100'
                                                         }`}>
                                                             {item.status || 'DONE'}
@@ -851,6 +859,7 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                             <option value="DONE">DONE</option>
                                             <option value="NOT DONE">NOT DONE</option>
                                             <option value="IN PROGRESS">IN PROGRESS</option>
+                                            <option value="APPROVED">APPROVED</option>
                                         </select>
                                     </div>
                                 )}
