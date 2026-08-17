@@ -43,60 +43,51 @@ class DailyListingsController extends Controller
 
         $isAdmin = ($user instanceof \App\Models\Admin) || in_array($user->role, ['admin', 'superadmin']);
 
-        if ($isAdmin) {
-            $settings = DailyWorksheetSetting::where('admin_id', $adminId)
-                ->where(function ($q) {
-                    $q->whereNull('user_id')->orWhere('user_id', 0);
-                })
-                ->first();
+        $settings = DailyWorksheetSetting::where('admin_id', $adminId)
+            ->where(function ($q) {
+                $q->whereNull('user_id')->orWhere('user_id', 0);
+            })
+            ->first();
 
-            if (!$settings) {
-                try {
-                    $settings = DailyWorksheetSetting::create([
-                        'admin_id' => $adminId,
-                        'user_id' => null,
-                        'client_name_enabled' => true,
-                        'task_type_enabled' => true,
-                        'status_enabled' => true,
-                        'file_name_enabled' => true,
-                        'drive_link_enabled' => true,
-                        'project_enabled' => true,
-                        'task_type_options' => 'Listing, Design, Content, Maintenance, Review',
-                        'task_type_freetext' => false,
-                    ]);
-                } catch (\Throwable $e) {
-                    // Fallback if DB table user_id column strictly rejects null
-                    $settings = DailyWorksheetSetting::create([
-                        'admin_id' => $adminId,
-                        'user_id' => $user->id ?? 0,
-                        'client_name_enabled' => true,
-                        'task_type_enabled' => true,
-                        'status_enabled' => true,
-                        'file_name_enabled' => true,
-                        'drive_link_enabled' => true,
-                        'project_enabled' => true,
-                        'task_type_options' => 'Listing, Design, Content, Maintenance, Review',
-                        'task_type_freetext' => false,
-                    ]);
-                }
-            }
-        } else {
+        if (!$settings) {
             $settings = DailyWorksheetSetting::where('user_id', $user->id)->first();
-            if (!$settings) {
-                $adminSettings = $adminId ? DailyWorksheetSetting::where('admin_id', $adminId)->where(function ($q) { $q->whereNull('user_id')->orWhere('user_id', 0); })->first() : null;
+        }
+
+        if (!$settings) {
+            try {
                 $settings = DailyWorksheetSetting::create([
                     'admin_id' => $adminId,
-                    'user_id' => $user->id,
-                    'client_name_enabled' => $adminSettings ? $adminSettings->client_name_enabled : true,
-                    'task_type_enabled' => $adminSettings ? $adminSettings->task_type_enabled : true,
-                    'status_enabled' => $adminSettings ? $adminSettings->status_enabled : true,
-                    'file_name_enabled' => $adminSettings ? $adminSettings->file_name_enabled : true,
-                    'drive_link_enabled' => $adminSettings ? $adminSettings->drive_link_enabled : true,
-                    'project_enabled' => $adminSettings ? $adminSettings->project_enabled : true,
-                    'task_type_options' => $adminSettings ? $adminSettings->task_type_options : 'Listing, Design, Content, Maintenance, Review',
-                    'task_type_freetext' => $adminSettings ? $adminSettings->task_type_freetext : false,
+                    'user_id' => null,
+                    'client_name_enabled' => true,
+                    'task_type_enabled' => true,
+                    'status_enabled' => true,
+                    'file_name_enabled' => true,
+                    'drive_link_enabled' => true,
+                    'project_enabled' => true,
+                    'task_type_options' => 'Listing, Design, Content, Maintenance, Review',
+                    'task_type_freetext' => false,
+                ]);
+            } catch (\Throwable $e) {
+                $settings = DailyWorksheetSetting::create([
+                    'admin_id' => $adminId,
+                    'user_id' => $user->id ?? 0,
+                    'client_name_enabled' => true,
+                    'task_type_enabled' => true,
+                    'status_enabled' => true,
+                    'file_name_enabled' => true,
+                    'drive_link_enabled' => true,
+                    'project_enabled' => true,
+                    'task_type_options' => 'Listing, Design, Content, Maintenance, Review',
+                    'task_type_freetext' => false,
                 ]);
             }
+        } else {
+            $settings->file_name_enabled = true;
+            $settings->drive_link_enabled = true;
+            $settings->project_enabled = true;
+            $settings->client_name_enabled = true;
+            $settings->task_type_enabled = true;
+            $settings->status_enabled = true;
         }
 
         $userQuery = User::where('is_active', true);
