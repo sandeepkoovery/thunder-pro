@@ -262,7 +262,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
                   width: '100%',
                   padding: 0
                 }}
-                className="border-none outline-none focus:outline-none focus:ring-0 focus:border-none shadow-none ring-0 placeholder:text-white/60"
+                className="mp-search-input border-none outline-none focus:outline-none focus:ring-0 focus:border-none shadow-none ring-0 placeholder:text-white/60 text-white"
               />
               {globalSearchQuery && (
                 <button 

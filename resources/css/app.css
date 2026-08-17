@@ -83,23 +83,23 @@ h5 { font-size: 16px !important; }
 h6 { font-size: 14px !important; }
 
 /* ── Global Textbox & Form Input Visibility Styles ── */
-input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
+input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
 textarea,
 select {
-  border: 1px solid #d1d5db !important;
-  color: #1e293b !important;
+  border: 1px solid #d1d5db;
+  color: #1e293b;
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"])::placeholder,
+input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"])::placeholder,
 textarea::placeholder {
   color: #94a3b8 !important;
   opacity: 1 !important;
 }
 
-input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):focus,
+input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):focus,
 textarea:focus,
 select:focus {
-  border-color: #7e89ca !important;
+  border-color: #7e89ca;
 }
 
 /* ── MaterialPro typography (matches WrapPixel demo) ── */
