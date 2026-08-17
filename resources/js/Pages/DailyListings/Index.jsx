@@ -807,7 +807,7 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                 </div>
 
                                 {/* CLIENT NAME */}
-                                {(settings?.client_name_enabled !== false) && (
+                                {Boolean(settings?.client_name_enabled ?? true) && (
                                     <div>
                                         <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
                                             CLIENT NAME
@@ -824,18 +824,18 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                 )}
 
                                 {/* CATEGORY / TASK TYPE */}
-                                {(settings?.task_type_enabled !== false) && (
+                                {Boolean(settings?.task_type_enabled ?? true) && (
                                     <div>
                                         <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
                                             CATEGORY
                                         </label>
-                                        {settings?.task_type_freetext ? (
+                                        {Boolean(settings?.task_type_freetext) ? (
                                             <input
                                                 type="text"
                                                 required
                                                 value={form.data.task_type}
                                                 onChange={(e) => form.setData('task_type', e.target.value)}
-                                                placeholder="Enter task type"
+                                                placeholder="Enter category"
                                                 className="w-full px-4 py-2.5 rounded-2xl border border-slate-200 bg-slate-50/30 text-sm font-bold text-slate-800 uppercase focus:bg-white focus:ring-4 focus:ring-slate-100 focus:border-slate-400 transition-all outline-none"
                                             />
                                         ) : (
@@ -855,7 +855,7 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                 )}
 
                                 {/* STATUS */}
-                                {(settings?.status_enabled !== false) && (
+                                {Boolean(settings?.status_enabled ?? true) && (
                                     <div>
                                         <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
                                             STATUS
@@ -876,7 +876,7 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                 )}
 
                                 {/* FILE NAME */}
-                                {(settings?.file_name_enabled !== false) && (
+                                {Boolean(settings?.file_name_enabled ?? true) && (
                                     <div>
                                         <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
                                             FILE NAME
@@ -892,7 +892,7 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                 )}
 
                                 {/* DRIVE LINK */}
-                                {(settings?.drive_link_enabled !== false) && (
+                                {Boolean(settings?.drive_link_enabled ?? true) && (
                                     <div>
                                         <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
                                             DRIVE LINK
@@ -908,7 +908,7 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                 )}
 
                                 {/* PROJECT (OPTIONAL) */}
-                                {(settings?.project_enabled !== false) && (
+                                {Boolean(settings?.project_enabled ?? true) && (
                                     <div>
                                         <label className="block text-[11px] font-extrabold text-slate-400 uppercase tracking-wider mb-1.5 ml-0.5">
                                             PROJECT (OPTIONAL)

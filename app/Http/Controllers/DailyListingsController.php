@@ -43,21 +43,21 @@ class DailyListingsController extends Controller
 
         $isAdmin = ($user instanceof \App\Models\Admin) || in_array($user->role, ['admin', 'superadmin']);
 
-        $settings = DailyWorksheetSetting::where('admin_id', $adminId)
-            ->where(function ($q) {
-                $q->whereNull('user_id')->orWhere('user_id', 0);
-            })
-            ->first();
+        $settings = DailyWorksheetSetting::where('user_id', $user->id)->first();
 
-        if (!$settings) {
-            $settings = DailyWorksheetSetting::where('user_id', $user->id)->first();
+        if (!$settings && $adminId) {
+            $settings = DailyWorksheetSetting::where('admin_id', $adminId)
+                ->where(function ($q) {
+                    $q->whereNull('user_id')->orWhere('user_id', 0);
+                })
+                ->first();
         }
 
         if (!$settings) {
             try {
                 $settings = DailyWorksheetSetting::create([
                     'admin_id' => $adminId,
-                    'user_id' => null,
+                    'user_id' => $user->id,
                     'client_name_enabled' => true,
                     'task_type_enabled' => true,
                     'status_enabled' => true,
@@ -81,13 +81,6 @@ class DailyListingsController extends Controller
                     'task_type_freetext' => false,
                 ]);
             }
-        } else {
-            $settings->file_name_enabled = true;
-            $settings->drive_link_enabled = true;
-            $settings->project_enabled = true;
-            $settings->client_name_enabled = true;
-            $settings->task_type_enabled = true;
-            $settings->status_enabled = true;
         }
 
         $userQuery = User::where('is_active', true);
