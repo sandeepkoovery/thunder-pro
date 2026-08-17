@@ -1,7 +1,6 @@
-// resources/js/Layouts/AppShell.jsx
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { Link, router, Head, usePage } from "@inertiajs/react";
-import { Menu, Search, Moon, Sun, ChevronDown, LogOut, Settings, User, CreditCard, DollarSign, HelpCircle, Power, Download, Clock, ShieldAlert } from "lucide-react";
+import { Menu, Search, Moon, Sun, ChevronDown, LogOut, Settings, User, CreditCard, DollarSign, HelpCircle, Power, Download, Clock, ShieldAlert, FolderKanban, Users as UsersIcon, Building2, FileText, CalendarDays, Sparkles, List, Palette, MessageSquare, Bell } from "lucide-react";
 import NotificationDropdown from "@/Components/NotificationDropdown";
 import ThemeCustomizer from "@/Components/ThemeCustomizer";
 import AskWorkNestVoiceAssistant from "@/Components/AskWorkNestVoiceAssistant";
@@ -52,6 +51,74 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const profileDropdownRef = useRef(null);
+
+  // Global Search State
+  const [globalSearchQuery, setGlobalSearchQuery] = useState('');
+  const [isSearchDropdownOpen, setIsSearchDropdownOpen] = useState(false);
+  const searchContainerRef = useRef(null);
+
+  const globalSearchItems = useMemo(() => {
+    const items = [];
+    try {
+      if (route().has('dashboard')) items.push({ label: 'Dashboard', href: route('dashboard'), category: 'Navigation' });
+      if (route().has('projects.index')) items.push({ label: 'Projects', href: route('projects.index'), category: 'Projects' });
+      if (route().has('admin.users.index')) items.push({ label: 'Employees / Users', href: route('admin.users.index'), category: 'Management' });
+      if (route().has('admin.departments.index')) items.push({ label: 'Departments', href: route('admin.departments.index'), category: 'Management' });
+      if (route().has('attendance.index')) items.push({ label: 'Attendance', href: route('attendance.index'), category: 'Time & Leave' });
+      if (route().has('admin.attendance.index')) items.push({ label: 'Admin Attendance', href: route('admin.attendance.index'), category: 'Time & Leave' });
+      if (route().has('leave.index')) items.push({ label: 'Leaves', href: route('leave.index'), category: 'Time & Leave' });
+      if (route().has('calendar.index')) items.push({ label: 'Calendar', href: route('calendar.index'), category: 'Planning' });
+      if (route().has('content-calendar.index')) items.push({ label: 'Content Calendar', href: route('content-calendar.index'), category: 'Planning' });
+      if (route().has('daily-listings.index')) items.push({ label: 'Daily Listings / Worksheets', href: route('daily-listings.index'), category: 'Worksheets' });
+      if (route().has('designers-worklist.index')) items.push({ label: 'Designers Worklist', href: route('designers-worklist.index'), category: 'Worksheets' });
+      if (route().has('drive.index')) items.push({ label: 'Drive & Files', href: route('drive.index'), category: 'Files' });
+      if (route().has('chat.index')) items.push({ label: 'Chat & Messages', href: route('chat.index'), category: 'Communication' });
+      if (route().has('notifications.index')) items.push({ label: 'Notifications', href: route('notifications.index'), category: 'Communication' });
+      if (route().has('admin.websites.index')) items.push({ label: 'Websites & Domains', href: route('admin.websites.index'), category: 'Management' });
+      if (route().has('admin.settings.index')) items.push({ label: 'Settings', href: route('admin.settings.index'), category: 'System' });
+      if (route().has('profile.edit')) items.push({ label: 'My Profile', href: route('profile.edit'), category: 'Account' });
+    } catch (e) {
+      console.warn('Error building search routes:', e);
+    }
+    return items;
+  }, []);
+
+  const searchResults = useMemo(() => {
+    if (!globalSearchQuery.trim()) return [];
+    const q = globalSearchQuery.toLowerCase().trim();
+    return globalSearchItems.filter(item => 
+      item.label.toLowerCase().includes(q) || 
+      item.category.toLowerCase().includes(q)
+    );
+  }, [globalSearchQuery, globalSearchItems]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target)) {
+        setIsSearchDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectSearchResult = (item) => {
+    setIsSearchDropdownOpen(false);
+    setGlobalSearchQuery('');
+    router.visit(item.href);
+  };
+
+  const handleSearchKeyDown = (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (searchResults.length > 0) {
+        handleSelectSearchResult(searchResults[0]);
+      }
+    } else if (e.key === 'Escape') {
+      setIsSearchDropdownOpen(false);
+    }
+  };
+
   const [themeMode, setThemeMode] = useState(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("tp-theme-mode") || "light";
@@ -171,9 +238,61 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
               <img src={getAssetUrl('images/worknest_logo.png?v=4')} alt="WorkNest" className="w-8 h-8 rounded-lg object-contain" />
               <span className="text-white font-black text-sm tracking-wider uppercase">WorkNest</span>
             </div>
-            <div className="mp-topbar-search-wrap">
+
+            {/* Global Search Bar */}
+            <div className="mp-topbar-search-wrap relative" ref={searchContainerRef}>
               <Search size={16} color="rgba(255,255,255,0.7)" style={{ marginRight: 8, flexShrink: 0 }} />
-              <input type="text" placeholder="Search..." />
+              <input 
+                type="text" 
+                placeholder="Search..." 
+                value={globalSearchQuery}
+                onChange={(e) => {
+                  setGlobalSearchQuery(e.target.value);
+                  setIsSearchDropdownOpen(true);
+                }}
+                onFocus={() => setIsSearchDropdownOpen(true)}
+                onKeyDown={handleSearchKeyDown}
+              />
+              {globalSearchQuery && (
+                <button 
+                  type="button" 
+                  onClick={() => { setGlobalSearchQuery(''); setIsSearchDropdownOpen(false); }}
+                  className="text-white/70 hover:text-white text-xs font-bold ml-1 px-1 cursor-pointer"
+                >
+                  ✕
+                </button>
+              )}
+
+              {/* Search Results Dropdown Popover */}
+              {isSearchDropdownOpen && globalSearchQuery.trim() !== '' && (
+                <div className="absolute left-0 top-full mt-2 w-72 bg-slate-900 border border-slate-800 text-slate-100 rounded-2xl shadow-2xl overflow-hidden z-50 p-2 font-sans animate-in fade-in duration-100">
+                  <div className="px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-800/80 mb-1 flex justify-between items-center">
+                    <span>Results</span>
+                    <span className="text-[9px] text-slate-500 font-bold">press enter to select</span>
+                  </div>
+
+                  {searchResults.length > 0 ? (
+                    <div className="max-h-64 overflow-y-auto space-y-1">
+                      {searchResults.map((item, idx) => (
+                        <div
+                          key={idx}
+                          onClick={() => handleSelectSearchResult(item)}
+                          className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors cursor-pointer group"
+                        >
+                          <span className="truncate">{item.label}</span>
+                          <span className="text-[10px] font-semibold text-slate-400 group-hover:text-blue-100 uppercase bg-slate-800 group-hover:bg-blue-700 px-2 py-0.5 rounded-full ml-2 shrink-0">
+                            {item.category}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-4 text-center text-xs font-semibold text-slate-400">
+                      No matching pages found.
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

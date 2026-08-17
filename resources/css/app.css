@@ -296,10 +296,18 @@ body:has(.mp-wrapper) {
   margin-left: 8px;
 }
 
-.mp-topbar-search-wrap input {
+.mp-topbar-search-wrap input,
+.mp-topbar-search-wrap input:focus,
+.mp-topbar-search-wrap input:focus-visible,
+.mp-topbar-search-wrap input:hover {
   background: transparent !important;
   border: none !important;
   outline: none !important;
+  box-shadow: none !important;
+  -webkit-box-shadow: none !important;
+  ring: 0 !important;
+  --tw-ring-color: transparent !important;
+  --tw-ring-shadow: none !important;
   color: #ffffff !important;
   font-size: 0.875rem !important;
   font-weight: 400 !important;
