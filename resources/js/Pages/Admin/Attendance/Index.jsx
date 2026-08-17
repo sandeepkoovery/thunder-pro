@@ -493,8 +493,13 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         const formatDateForInput = (dateStr) => {
             if (!dateStr) return '';
             const d = new Date(dateStr);
-            const offset = d.getTimezoneOffset() * 60000;
-            return new Date(d.getTime() - offset).toISOString().slice(0, 16);
+            if (isNaN(d.getTime())) return '';
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const minutes = String(d.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}T${hours}:${minutes}`;
         };
 
         let defaultPunchIn = '';
@@ -510,6 +515,26 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             punch_in: record.punch_in_raw ? formatDateForInput(record.punch_in_raw) : defaultPunchIn,
             punch_out: record.punch_out_raw ? formatDateForInput(record.punch_out_raw) : '',
         });
+    };
+
+    const getInDate = (punchInStr) => {
+        if (!punchInStr) return '';
+        return String(punchInStr).slice(0, 10);
+    };
+
+    const getInTime = (punchInStr) => {
+        if (!punchInStr || String(punchInStr).length < 16) return '';
+        return String(punchInStr).slice(11, 16);
+    };
+
+    const getOutDate = (punchOutStr) => {
+        if (!punchOutStr) return '';
+        return String(punchOutStr).slice(0, 10);
+    };
+
+    const getOutTime = (punchOutStr) => {
+        if (!punchOutStr || String(punchOutStr).length < 16) return '';
+        return String(punchOutStr).slice(11, 16);
     };
 
     const closeEditModal = () => {
@@ -1333,32 +1358,97 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             </div>
 
             <Modal show={!!editingAttendance} onClose={closeEditModal}>
-                <form onSubmit={handleSubmit} className="p-6">
-                    <h2 className="text-lg font-medium text-gray-900 mb-4">
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <h2 className="text-lg font-bold text-gray-900 mb-2">
                         {editingAttendance?.attendance_id ? 'Edit Attendance' : 'Add Attendance'}
                         {viewType === 'daily' ? ` - ${editingAttendance?.name}` : ` - ${selectedUser?.name}`}
                     </h2>
 
-                    <div className="mb-4">
-                        <InputLabel htmlFor="punch_in" value="Check In Date" />
-                        <DatePicker
-                            value={data.punch_in}
-                            onChange={(e) => setData('punch_in', e.target ? e.target.value : e)}
-                            required
-                        />
-                        <InputError message={errors.punch_in} className="mt-2" />
+                    {/* CHECK IN DATE & TIME */}
+                    <div className="space-y-1">
+                        <InputLabel htmlFor="punch_in_date" value="Check In Date & Time *" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date</span>
+                                <DatePicker
+                                    value={getInDate(data.punch_in)}
+                                    onChange={(dateVal) => {
+                                        const val = dateVal?.target ? dateVal.target.value : dateVal;
+                                        if (!val) {
+                                            setData('punch_in', '');
+                                        } else {
+                                            const time = getInTime(data.punch_in) || '09:00';
+                                            setData('punch_in', `${val}T${time}`);
+                                        }
+                                    }}
+                                    required
+                                />
+                            </div>
+                            <div>
+                                <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Time</span>
+                                <input
+                                    type="time"
+                                    id="punch_in_time"
+                                    value={getInTime(data.punch_in)}
+                                    onChange={(e) => {
+                                        const timeVal = e.target.value;
+                                        const dateVal = getInDate(data.punch_in) || data.date || filters.date || new Date().toISOString().slice(0, 10);
+                                        setData('punch_in', `${dateVal}T${timeVal || '09:00'}`);
+                                    }}
+                                    required
+                                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
+                                />
+                            </div>
+                        </div>
+                        <InputError message={errors.punch_in} className="mt-1" />
                     </div>
 
-                    <div className="mb-4">
-                        <InputLabel htmlFor="punch_out" value="Check Out Date" />
-                        <DatePicker
-                            value={data.punch_out}
-                            onChange={(e) => setData('punch_out', e.target ? e.target.value : e)}
-                        />
-                        <InputError message={errors.punch_out} className="mt-2" />
+                    {/* CHECK OUT DATE & TIME */}
+                    <div className="space-y-1">
+                        <InputLabel htmlFor="punch_out_date" value="Check Out Date & Time" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date</span>
+                                <DatePicker
+                                    value={getOutDate(data.punch_out)}
+                                    onChange={(dateVal) => {
+                                        const val = dateVal?.target ? dateVal.target.value : dateVal;
+                                        if (!val) {
+                                            setData('punch_out', '');
+                                        } else {
+                                            const time = getOutTime(data.punch_out) || '18:00';
+                                            setData('punch_out', `${val}T${time}`);
+                                        }
+                                    }}
+                                />
+                            </div>
+                            <div>
+                                <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Time</span>
+                                <input
+                                    type="time"
+                                    id="punch_out_time"
+                                    value={getOutTime(data.punch_out)}
+                                    onChange={(e) => {
+                                        const timeVal = e.target.value;
+                                        const dateVal = getOutDate(data.punch_out) || getInDate(data.punch_in) || data.date || filters.date || new Date().toISOString().slice(0, 10);
+                                        if (!timeVal) {
+                                            if (!getOutDate(data.punch_out)) {
+                                                setData('punch_out', '');
+                                            } else {
+                                                setData('punch_out', `${dateVal}T00:00`);
+                                            }
+                                        } else {
+                                            setData('punch_out', `${dateVal}T${timeVal}`);
+                                        }
+                                    }}
+                                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
+                                />
+                            </div>
+                        </div>
+                        <InputError message={errors.punch_out} className="mt-1" />
                     </div>
 
-                    <div className="flex items-center justify-end mt-6">
+                    <div className="flex items-center justify-end mt-6 pt-3 border-t border-gray-100">
                         <SecondaryButton onClick={closeEditModal} className="mr-3">
                             Cancel
                         </SecondaryButton>
