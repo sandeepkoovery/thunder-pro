@@ -33,12 +33,15 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
   const userDesignation = user?.designation?.toLowerCase() || '';
   const deptName = user?.department?.name?.toLowerCase() || '';
 
-  const isManagementAdmin = ['admin', 'superadmin', 'manager'].includes(userRole);
+  const isManagementAdmin = ['admin', 'superadmin', 'manager', 'editor'].includes(userRole);
   const isDesignerDepartment = 
     isManagementAdmin ||
     userRole === 'designer' ||
+    userRole === 'editor' ||
     userDesignation.includes('design') ||
-    deptName.includes('design');
+    userDesignation.includes('edit') ||
+    deptName.includes('design') ||
+    deptName.includes('edit');
 
   const superAdminAllowedModules = ['dashboard', 'admin_users', 'pricing', 'settings'];
   const isVisible = (module) => {
