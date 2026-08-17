@@ -101,11 +101,8 @@ export default function MonthPicker({
 
     const emitChange = (valStr) => {
         if (onChange) {
-            onChange(valStr);
-            if (typeof onChange === 'function') {
-                const eventMock = { target: { value: valStr } };
-                onChange(eventMock);
-            }
+            const eventMock = { target: { name: name || '', value: valStr } };
+            onChange(eventMock);
         }
     };
 
@@ -138,9 +135,14 @@ export default function MonthPicker({
 
     const formatTriggerDisplay = () => {
         if (!value) return placeholder;
-        const d = parseValue(value);
-        if (isNaN(d.getTime())) return placeholder;
-        return `${monthsFull[d.getMonth()]}, ${d.getFullYear()}`;
+        const str = typeof value === 'object' && value?.target ? value.target.value : String(value);
+        if (!str) return placeholder;
+        const parts = str.split('-');
+        if (parts.length < 2) return placeholder;
+        const year = parseInt(parts[0], 10);
+        const month = parseInt(parts[1], 10) - 1;
+        if (isNaN(year) || isNaN(month) || month < 0 || month > 11) return placeholder;
+        return `${monthsFull[month]}, ${year}`;
     };
 
     return (

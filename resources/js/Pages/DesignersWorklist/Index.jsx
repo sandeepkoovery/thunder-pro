@@ -150,13 +150,21 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
 
     // Filtered Worklist Items
     const filteredWorklists = useMemo(() => {
+        const monthVal = typeof selectedMonthFilter === 'object' && selectedMonthFilter?.target
+            ? selectedMonthFilter.target.value
+            : String(selectedMonthFilter || '');
+
+        const dateVal = typeof selectedDateFilter === 'object' && selectedDateFilter?.target
+            ? selectedDateFilter.target.value
+            : String(selectedDateFilter || '');
+
         return worklists.filter(item => {
-            if (selectedMonthFilter && item.task_date) {
-                if (!item.task_date.startsWith(selectedMonthFilter)) {
+            if (monthVal && item.task_date) {
+                if (!String(item.task_date).startsWith(monthVal)) {
                     return false;
                 }
             }
-            if (selectedDateFilter && item.task_date !== selectedDateFilter) {
+            if (dateVal && item.task_date !== dateVal) {
                 return false;
             }
             if (selectedDesignerFilter) {

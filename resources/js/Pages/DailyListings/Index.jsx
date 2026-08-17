@@ -220,15 +220,23 @@ export default function Index({ worksheets = [], settings, users = [] }) {
 
     // Filtered Worksheets
     const filteredWorksheets = useMemo(() => {
+        const selectedMonthStr = typeof selectedMonth === 'object' && selectedMonth?.target
+            ? selectedMonth.target.value
+            : String(selectedMonth || '');
+
+        const selectedDateStr = typeof selectedDate === 'object' && selectedDate?.target
+            ? selectedDate.target.value
+            : String(selectedDate || '');
+
         return worksheets.filter(w => {
             if (!w.date) return false;
 
             if (viewMode === 'DAILY') {
-                if (selectedDate && w.date !== selectedDate) {
+                if (selectedDateStr && w.date !== selectedDateStr) {
                     return false;
                 }
             } else if (viewMode === 'MONTHLY') {
-                const targetMonth = selectedMonth || (selectedDate ? selectedDate.slice(0, 7) : todayStr.slice(0, 7));
+                const targetMonth = selectedMonthStr || (selectedDateStr ? selectedDateStr.slice(0, 7) : todayStr.slice(0, 7));
                 if (!w.date.startsWith(targetMonth)) {
                     return false;
                 }
