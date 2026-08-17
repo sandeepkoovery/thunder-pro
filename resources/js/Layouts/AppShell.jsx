@@ -252,6 +252,17 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
                 }}
                 onFocus={() => setIsSearchDropdownOpen(true)}
                 onKeyDown={handleSearchKeyDown}
+                style={{
+                  border: 'none',
+                  outline: 'none',
+                  boxShadow: 'none',
+                  background: 'transparent',
+                  color: '#ffffff',
+                  fontSize: '13px',
+                  width: '100%',
+                  padding: 0
+                }}
+                className="border-none outline-none focus:outline-none focus:ring-0 focus:border-none shadow-none ring-0 placeholder:text-white/60"
               />
               {globalSearchQuery && (
                 <button 
@@ -272,7 +283,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
                   </div>
 
                   {searchResults.length > 0 ? (
-                    <div className="max-h-64 overflow-y-auto space-y-1">
+                    <div className="max-h-64 overflow-y-auto space-y-1 custom-fancy-scrollbar pr-1">
                       {searchResults.map((item, idx) => (
                         <div
                           key={idx}

@@ -299,15 +299,22 @@ body:has(.mp-wrapper) {
 .mp-topbar-search-wrap input,
 .mp-topbar-search-wrap input:focus,
 .mp-topbar-search-wrap input:focus-visible,
-.mp-topbar-search-wrap input:hover {
+.mp-topbar-search-wrap input:focus-within,
+.mp-topbar-search-wrap input:hover,
+.mp-topbar-search-wrap input:active {
   background: transparent !important;
-  border: none !important;
-  outline: none !important;
+  border: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  border-color: transparent !important;
+  outline: 0 !important;
+  outline-style: none !important;
   box-shadow: none !important;
   -webkit-box-shadow: none !important;
   ring: 0 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
   --tw-ring-color: transparent !important;
-  --tw-ring-shadow: none !important;
   color: #ffffff !important;
   font-size: 0.875rem !important;
   font-weight: 400 !important;
@@ -317,6 +324,23 @@ body:has(.mp-wrapper) {
 
 .mp-topbar-search-wrap input::placeholder {
   color: rgba(255, 255, 255, 0.65) !important;
+}
+
+/* Fancy custom scrollbar */
+.custom-fancy-scrollbar::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+.custom-fancy-scrollbar::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 999px;
+}
+.custom-fancy-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(59, 130, 246, 0.6);
+  border-radius: 999px;
+}
+.custom-fancy-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(59, 130, 246, 1);
 }
 
 .mp-topbar-right {
