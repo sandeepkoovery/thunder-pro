@@ -140,7 +140,9 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
   };
 
   const pageProps = usePage().props;
-  const isSuperAdmin = (auth?.user || pageProps.auth?.user)?.role === 'superadmin';
+  const currentUser = auth?.user || pageProps.auth?.user;
+  const isSuperAdmin = currentUser?.role === 'superadmin';
+  const isAdmin = currentUser?.role === 'admin' || isSuperAdmin;
   const isPremiumPlan = pageProps.userPlan === 'premium' || isSuperAdmin;
 
   useEffect(() => {
@@ -239,72 +241,74 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
               <span className="text-white font-black text-sm tracking-wider uppercase">WorkNest</span>
             </div>
 
-            {/* Global Search Bar */}
-            <div className="mp-topbar-search-wrap relative" ref={searchContainerRef}>
-              <Search size={16} color="rgba(255,255,255,0.7)" style={{ marginRight: 8, flexShrink: 0 }} />
-              <input 
-                type="text" 
-                placeholder="Search..." 
-                value={globalSearchQuery}
-                onChange={(e) => {
-                  setGlobalSearchQuery(e.target.value);
-                  setIsSearchDropdownOpen(true);
-                }}
-                onFocus={() => setIsSearchDropdownOpen(true)}
-                onKeyDown={handleSearchKeyDown}
-                style={{
-                  border: 'none',
-                  outline: 'none',
-                  boxShadow: 'none',
-                  background: 'transparent',
-                  color: '#ffffff',
-                  fontSize: '13px',
-                  width: '100%',
-                  padding: 0
-                }}
-                className="mp-search-input border-none outline-none focus:outline-none focus:ring-0 focus:border-none shadow-none ring-0 placeholder:text-white/60 text-white"
-              />
-              {globalSearchQuery && (
-                <button 
-                  type="button" 
-                  onClick={() => { setGlobalSearchQuery(''); setIsSearchDropdownOpen(false); }}
-                  className="text-white/70 hover:text-white text-xs font-bold ml-1 px-1 cursor-pointer"
-                >
-                  ✕
-                </button>
-              )}
+            {/* Global Search Bar (Admin Only) */}
+            {isAdmin && (
+              <div className="mp-topbar-search-wrap relative" ref={searchContainerRef}>
+                <Search size={16} color="rgba(255,255,255,0.7)" style={{ marginRight: 8, flexShrink: 0 }} />
+                <input 
+                  type="text" 
+                  placeholder="Search..." 
+                  value={globalSearchQuery}
+                  onChange={(e) => {
+                    setGlobalSearchQuery(e.target.value);
+                    setIsSearchDropdownOpen(true);
+                  }}
+                  onFocus={() => setIsSearchDropdownOpen(true)}
+                  onKeyDown={handleSearchKeyDown}
+                  style={{
+                    border: 'none',
+                    outline: 'none',
+                    boxShadow: 'none',
+                    background: 'transparent',
+                    color: '#ffffff',
+                    fontSize: '13px',
+                    width: '100%',
+                    padding: 0
+                  }}
+                  className="mp-search-input border-none outline-none focus:outline-none focus:ring-0 focus:border-none shadow-none ring-0 placeholder:text-white/60 text-white"
+                />
+                {globalSearchQuery && (
+                  <button 
+                    type="button" 
+                    onClick={() => { setGlobalSearchQuery(''); setIsSearchDropdownOpen(false); }}
+                    className="text-white/70 hover:text-white text-xs font-bold ml-1 px-1 cursor-pointer"
+                  >
+                    ✕
+                  </button>
+                )}
 
-              {/* Search Results Dropdown Popover */}
-              {isSearchDropdownOpen && globalSearchQuery.trim() !== '' && (
-                <div className="absolute left-0 top-full mt-2 w-72 bg-slate-900 border border-slate-800 text-slate-100 rounded-2xl shadow-2xl overflow-hidden z-50 p-2 font-sans animate-in fade-in duration-100">
-                  <div className="px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-800/80 mb-1 flex justify-between items-center">
-                    <span>Results</span>
-                    <span className="text-[9px] text-slate-500 font-bold">press enter to select</span>
+                {/* Search Results Dropdown Popover */}
+                {isSearchDropdownOpen && globalSearchQuery.trim() !== '' && (
+                  <div className="absolute left-0 top-full mt-2 w-72 bg-slate-900 border border-slate-800 text-slate-100 rounded-2xl shadow-2xl overflow-hidden z-50 p-2 font-sans animate-in fade-in duration-100">
+                    <div className="px-3 py-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-800/80 mb-1 flex justify-between items-center">
+                      <span>Results</span>
+                      <span className="text-[9px] text-slate-500 font-bold">press enter to select</span>
+                    </div>
+
+                    {searchResults.length > 0 ? (
+                      <div className="max-h-64 overflow-y-auto space-y-1 custom-fancy-scrollbar pr-1">
+                        {searchResults.map((item, idx) => (
+                          <div
+                            key={idx}
+                            onClick={() => handleSelectSearchResult(item)}
+                            className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors cursor-pointer group"
+                          >
+                            <span className="truncate">{item.label}</span>
+                            <span className="text-[10px] font-semibold text-slate-400 group-hover:text-blue-100 uppercase bg-slate-800 group-hover:bg-blue-700 px-2 py-0.5 rounded-full ml-2 shrink-0">
+                              {item.category}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="p-4 text-center text-xs font-semibold text-slate-400">
+                        No matching pages found.
+                      </div>
+                    )}
                   </div>
-
-                  {searchResults.length > 0 ? (
-                    <div className="max-h-64 overflow-y-auto space-y-1 custom-fancy-scrollbar pr-1">
-                      {searchResults.map((item, idx) => (
-                        <div
-                          key={idx}
-                          onClick={() => handleSelectSearchResult(item)}
-                          className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold hover:bg-blue-600 hover:text-white transition-colors cursor-pointer group"
-                        >
-                          <span className="truncate">{item.label}</span>
-                          <span className="text-[10px] font-semibold text-slate-400 group-hover:text-blue-100 uppercase bg-slate-800 group-hover:bg-blue-700 px-2 py-0.5 rounded-full ml-2 shrink-0">
-                            {item.category}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-4 text-center text-xs font-semibold text-slate-400">
-                      No matching pages found.
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
           </div>
 
           <div className="mp-topbar-right">
