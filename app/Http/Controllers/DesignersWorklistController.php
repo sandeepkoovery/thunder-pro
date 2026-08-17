@@ -75,6 +75,14 @@ class DesignersWorklistController extends Controller
             $userQuery->where('admin_id', $adminId);
         }
 
+        $userQuery->where(function ($q) {
+            $q->where('role', 'designer')
+              ->orWhere('designation', 'LIKE', '%design%')
+              ->orWhereHas('department', function ($dq) {
+                  $dq->where('name', 'LIKE', '%design%');
+              });
+        });
+
         $users = $userQuery->orderBy('name')->get(['id', 'name', 'email']);
 
         $taskTypeOptionsSetting = \App\Models\Setting::where('key', 'designers_task_type_options')->value('value')
