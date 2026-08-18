@@ -285,10 +285,30 @@ class AttendanceController extends Controller
         $users = $usersQuery->orderBy('name')->get();
         $filters = $request->only(['date', 'month', 'user_id', 'display']);
 
+        $correctionRequests = \App\Models\AttendanceCorrectionRequest::where(function ($q) use ($adminId) {
+            if ($adminId > 0) {
+                $q->where('admin_id', $adminId);
+            }
+        })
+            ->with(['user', 'attendance', 'attendanceBreak', 'actionedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         // Mode 1: Monthly View (Month selected OR Calendar Display forced)
         if ($request->filled('month') || $request->input('display') === 'calendar') {
-            $monthStr = $request->input('month', Carbon::now()->format('Y-m'));
-            $month = Carbon::parse($monthStr);
+            $monthInput = $request->input('month');
+            if (is_array($monthInput)) {
+                $monthStr = $monthInput['target']['value'] ?? (is_string(reset($monthInput)) ? reset($monthInput) : Carbon::now()->format('Y-m'));
+            } else {
+                $monthStr = is_string($monthInput) && !empty($monthInput) ? $monthInput : Carbon::now()->format('Y-m');
+            }
+
+            try {
+                $month = Carbon::parse($monthStr);
+            } catch (\Exception $e) {
+                $month = Carbon::now();
+                $monthStr = $month->format('Y-m');
+            }
 
             // Month view is for an individual user; if no user selected, default to first user
             $userId = $request->user_id;
@@ -481,6 +501,7 @@ class AttendanceController extends Controller
                     'leaves' => $leaves,
                     'settings' => $settings,
                     'exportPreviewData' => $exportPreviewData,
+                    'correctionRequests' => $correctionRequests,
                 ]);
             } else {
                 // All Users Monthly View
@@ -560,6 +581,7 @@ class AttendanceController extends Controller
                     'leaves' => collect([]),
                     'settings' => $settings,
                     'exportPreviewData' => $exportPreviewData,
+                    'correctionRequests' => $correctionRequests,
                 ]);
             }
         }
@@ -678,6 +700,7 @@ class AttendanceController extends Controller
             'filters' => array_merge($filters, ['date' => $date]),
             'viewType' => 'daily',
             'exportPreviewData' => $exportPreviewData,
+            'correctionRequests' => $correctionRequests,
         ]);
     }
 
@@ -880,11 +903,18 @@ class AttendanceController extends Controller
     public function userIndex(Request $request)
     {
         $userId = auth()->id();
-        $monthStr = $request->input('month', Carbon::now()->format('Y-m'));
+        $monthInput = $request->input('month');
+        if (is_array($monthInput)) {
+            $monthStr = $monthInput['target']['value'] ?? (is_string(reset($monthInput)) ? reset($monthInput) : Carbon::now()->format('Y-m'));
+        } else {
+            $monthStr = is_string($monthInput) && !empty($monthInput) ? $monthInput : Carbon::now()->format('Y-m');
+        }
+
         try {
             $month = Carbon::parse($monthStr);
         } catch (\Exception $e) {
             $month = Carbon::now();
+            $monthStr = $month->format('Y-m');
         }
 
         // Generate all dates for the month (25th of previous month to 24th of current month)
@@ -894,6 +924,7 @@ class AttendanceController extends Controller
         // Get all attendance records for the month range
         $attendances = Attendance::where('user_id', $userId)
             ->whereBetween('date', [$startDate->toDateString(), $realEndDate->toDateString()])
+            ->with('breaks')
             ->get()
             ->keyBy(function ($item) {
                 return $item->date instanceof \Carbon\Carbon ? $item->date->format('Y-m-d') : $item->date;
@@ -991,12 +1022,19 @@ class AttendanceController extends Controller
                 'punch_out_raw' => $attendance && $attendance->punch_out ? Carbon::parse($attendance->punch_out, 'Asia/Kolkata')->toIso8601String() : null,
                 'total_worked_minutes' => $attendance ? $attendance->total_worked_minutes : 0,
                 'total_break_minutes' => $attendance ? ($attendance->total_break_minutes ?? 0) : 0,
+                'breaks' => $attendance ? $attendance->breaks : [],
             ];
         }
+
+        $correctionRequests = \App\Models\AttendanceCorrectionRequest::where('user_id', $userId)
+            ->with(['attendanceBreak', 'actionedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
 
         return Inertia::render('User/Attendance/Index', [
             'attendanceData' => $attendanceData,
             'totalMonthlyMinutes' => $totalMonthlyMinutes,
+            'correctionRequests' => $correctionRequests,
             'filters' => [
                 'month' => $monthStr,
             ],

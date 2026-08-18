@@ -115,7 +115,6 @@ select:focus {
 .mp-main li,
 .mp-main label,
 .mp-main .text-body {
-  color: var(--theme-muted);
   font-weight: 300;
 }
 

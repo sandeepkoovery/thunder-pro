@@ -48,7 +48,7 @@ export default function UserLayout({ children, title = "Dashboard" }) {
     return Array.isArray(allowedModules) && allowedModules.includes(module);
   };
 
-  const [sidebarCounts, setSidebarCounts] = useState({ unread_chats: 0, pending_leaves: 0 });
+  const [sidebarCounts, setSidebarCounts] = useState({ unread_chats: 0, pending_leaves: 0, pending_corrections: 0 });
 
   const fetchSidebarCounts = async () => {
     try {
@@ -76,7 +76,7 @@ export default function UserLayout({ children, title = "Dashboard" }) {
       { key: 'projects', order: getModuleOrder('projects', 2), element: <NavItem key="projects" href={route(isManagementAdmin ? "admin.projects.index" : "projects.index")} icon={FolderKanban} label="Projects" routeName={isManagementAdmin ? "admin.projects" : "projects"} visible={isVisible("projects")} beta={betaMenuItems.includes("projects")} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
       { key: 'users', order: getModuleOrder('users', 3), element: <NavItem key="users" href={route("admin.users.index")} icon={UsersIcon} label="Employees" routeName="admin.users" visible={isVisible("users")} beta={betaMenuItems.includes("users")} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
       { key: 'departments', order: getModuleOrder('departments', 4), element: <NavItem key="departments" href={route("admin.departments.index")} icon={Building2} label="Departments" routeName="admin.departments" visible={isVisible("departments")} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
-      { key: 'attendance', order: getModuleOrder('attendance', 5), element: <NavItem key="attendance" href={route(isManagementAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isManagementAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
+      { key: 'attendance', order: getModuleOrder('attendance', 5), element: <NavItem key="attendance" href={route(isManagementAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isManagementAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} badge={sidebarCounts.pending_corrections} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
       { key: 'leaves', order: getModuleOrder('leaves', 6), element: <NavItem key="leave" href={route(isManagementAdmin ? "admin.leaves.index" : "leave.index")} icon={FileText} label="Leaves" routeName={isManagementAdmin ? "admin.leaves" : "leave"} visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
       { key: 'calendar', order: getModuleOrder('calendar', 7), element: <NavItem key="calendar" href={route("calendar.index")} icon={CalendarDays} label="Calendar" routeName="calendar" visible={isVisible("calendar")} beta={betaMenuItems.includes("calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
       { key: 'content_calendar', order: getModuleOrder('content_calendar', 8), element: <NavItem key="content_calendar" href={route("content-calendar.index")} icon={Sparkles} label="Content Calendar" routeName="content-calendar" visible={isVisible("content_calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },

@@ -11,14 +11,26 @@ use Illuminate\Support\Facades\Schema;
 class AiAssistantController extends Controller
 {
     /**
-     * Get the effective Gemini API Key for the logged-in user or admin.
+     * Check if the logged-in user is a tenant admin (role === 'admin').
+     * Excludes regular users/employees and superadmins.
+     */
+    private function isTenantAdmin()
+    {
+        $user = auth()->user();
+        if (!$user) {
+            return false;
+        }
+        return ($user->role === 'admin');
+    }
+
+    /**
+     * Get the effective Gemini API Key for the logged-in admin.
      */
     private function getEffectiveApiKey()
     {
         $user = auth()->user();
-        if ($user) {
-            $prefix = ($user instanceof \App\Models\Admin) ? 'gemini_api_key_admin_' : 'gemini_api_key_user_';
-            $keyName = $prefix . $user->id;
+        if ($user && $user->role === 'admin') {
+            $keyName = 'gemini_api_key_admin_' . $user->id;
 
             $setting = DB::table('settings')->where('key', $keyName)->first();
             if ($setting && !empty(trim($setting->value))) {
@@ -30,17 +42,16 @@ class AiAssistantController extends Controller
     }
 
     /**
-     * Fetch the user's stored Gemini API Key settings.
+     * Fetch the admin's stored Gemini API Key settings.
      */
     public function getKey(Request $request)
     {
-        $user = auth()->user();
-        if (!$user) {
-            return response()->json(['gemini_api_key' => '', 'has_custom_key' => false]);
+        if (!$this->isTenantAdmin()) {
+            return response()->json(['message' => 'AI Assistant is only available for admins.'], 403);
         }
 
-        $prefix = ($user instanceof \App\Models\Admin) ? 'gemini_api_key_admin_' : 'gemini_api_key_user_';
-        $keyName = $prefix . $user->id;
+        $user = auth()->user();
+        $keyName = 'gemini_api_key_admin_' . $user->id;
         $setting = DB::table('settings')->where('key', $keyName)->first();
 
         $customKey = $setting ? ($setting->value ?? '') : '';
@@ -54,22 +65,21 @@ class AiAssistantController extends Controller
     }
 
     /**
-     * Save the user's personal Gemini API Key.
+     * Save the admin's personal Gemini API Key.
      */
     public function saveKey(Request $request)
     {
+        if (!$this->isTenantAdmin()) {
+            return response()->json(['message' => 'AI Assistant is only available for admins.'], 403);
+        }
+
         $request->validate([
             'gemini_api_key' => 'nullable|string',
         ]);
 
         $user = auth()->user();
-        if (!$user) {
-            return response()->json(['message' => 'Unauthenticated'], 401);
-        }
-
         $apiKey = trim($request->input('gemini_api_key', ''));
-        $prefix = ($user instanceof \App\Models\Admin) ? 'gemini_api_key_admin_' : 'gemini_api_key_user_';
-        $keyName = $prefix . $user->id;
+        $keyName = 'gemini_api_key_admin_' . $user->id;
 
         DB::table('settings')->updateOrInsert(
             ['key' => $keyName],
@@ -94,6 +104,10 @@ class AiAssistantController extends Controller
      */
     public function chat(Request $request)
     {
+        if (!$this->isTenantAdmin()) {
+            return response()->json(['response' => 'AI Assistant is only available for admins.'], 403);
+        }
+
         $request->validate([
             'message' => 'required|string',
             'language' => 'nullable|string|in:en,ml',
@@ -158,6 +172,10 @@ class AiAssistantController extends Controller
      */
     public function tts(Request $request)
     {
+        if (!$this->isTenantAdmin()) {
+            return response('', 403);
+        }
+
         $text = trim($request->input('text', ''));
         $lang = $request->input('lang', 'ml');
 

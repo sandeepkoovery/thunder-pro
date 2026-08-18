@@ -64,11 +64,11 @@ const CuteBotIcon = ({ className = "w-7 h-7" }) => (
 export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpen }) {
   const { auth, allowedModules = [], sharedSettings = {} } = usePage().props;
 
-  const isSuperAdmin = auth?.user?.role === 'superadmin';
+  const userRole = auth?.user?.role || '';
   const hiddenModules = Array.isArray(sharedSettings?.hidden_modules) ? sharedSettings.hidden_modules : [];
 
-  // 1. Super Admin should NEVER see AI assistant
-  if (isSuperAdmin) {
+  // 1. Chatbot is ONLY for tenant admins (role === 'admin'). Hide for employees/users and superadmins.
+  if (userRole !== 'admin') {
     return null;
   }
 
@@ -77,7 +77,7 @@ export default function AskWorkNestVoiceAssistant({ externalOpen, setExternalOpe
     return null;
   }
 
-  // 3. Check if AI assistant module is allowed for this user/admin
+  // 3. Check if AI assistant module is allowed for this admin
   if (Array.isArray(allowedModules) && allowedModules.length > 0 && !allowedModules.includes('ai_assistant')) {
     return null;
   }

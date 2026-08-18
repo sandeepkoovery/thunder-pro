@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, router, useForm, Link } from '@inertiajs/react';
-import { Filter, Edit, RotateCcw, MapPin, Smartphone, Monitor, Info, X, Download, Coffee, Clock, Plus, Home, Phone, MessageSquare, ChevronRight, FileText, Printer } from 'lucide-react';
+import { Filter, Edit, RotateCcw, MapPin, Smartphone, Monitor, Info, X, Download, Coffee, Clock, Plus, Home, Phone, MessageSquare, ChevronRight, FileText, Printer, Trash2, Eye } from 'lucide-react';
 import Modal from '@/Components/Modal';
 import TextInput from '@/Components/TextInput';
 import InputLabel from '@/Components/InputLabel';
@@ -12,10 +12,18 @@ import MonthPicker from '@/Components/MonthPicker';
 import DatePicker from '@/Components/DatePicker';
 import CalendarView from '@/Components/CalendarView';
 
-export default function Index({ attendanceData, filters, users, viewType, totalMonthlyMinutes, selectedUser, leaves, settings, exportPreviewData }) {
+export default function Index({ attendanceData, filters, users, viewType, totalMonthlyMinutes, selectedUser, leaves, settings, exportPreviewData, correctionRequests = [] }) {
     const [displayMode, setDisplayMode] = useState(filters.display || 'table');
     const [editingAttendance, setEditingAttendance] = useState(null);
     const [selectedUserIds, setSelectedUserIds] = useState([]);
+
+    const [selectedReqStatus, setSelectedReqStatus] = useState('all');
+    const [approvingReq, setApprovingReq] = useState(null);
+    const [rejectingReq, setRejectingReq] = useState(null);
+    const [viewingReasonReq, setViewingReasonReq] = useState(null);
+    const [adminNoteText, setAdminNoteText] = useState('');
+
+    const pendingRequestsCount = (correctionRequests || []).filter(r => r.status === 'pending').length;
 
     useEffect(() => {
         if (exportPreviewData && exportPreviewData.length > 0) {
@@ -51,7 +59,14 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
     const absentRecords = attendanceData ? attendanceData.filter(r => r?.status === 'Absent') : [];
 
     const totalAttendanceDays = presentRecords.length;
-    const totalWorkedHours = Math.round((totalMonthlyMinutes || 0) / 60);
+    const formatWorkedTime = (totalMins) => {
+        if (!totalMins || totalMins <= 0) return '0 hrs 0 mins';
+        const hrs = Math.floor(totalMins / 60);
+        const mins = totalMins % 60;
+        if (mins === 0) return `${hrs} hours`;
+        if (hrs === 0) return `${mins} mins`;
+        return `${hrs} hrs ${mins} mins`;
+    };
 
     const onTimePct = Math.round((onTimeRecords.length / totalDays) * 100) || 0;
     const latePct = Math.round((lateRecords.length / totalDays) * 100) || 0;
@@ -458,9 +473,10 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                 }
             }
         } else if (key === 'month') {
-            if (value) {
+            const monthVal = (typeof value === 'object' && value?.target) ? value.target.value : (typeof value === 'string' ? value : value);
+            if (monthVal) {
                 delete newFilters.date;
-                newFilters.month = value;
+                newFilters.month = monthVal;
                 // Month view is for individual user; if no user selected, default to first user
                 if (!newFilters.user_id && users && users.length > 0) {
                     newFilters.user_id = users[0].id;
@@ -483,8 +499,23 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         });
     };
 
+    const [deletingReqId, setDeletingReqId] = useState(null);
+
     const handleReset = () => {
         router.get(route('admin.attendance.index'), {}, { replace: true });
+    };
+
+    const handleDeleteRequest = (id) => {
+        setDeletingReqId(id);
+    };
+
+    const confirmDeleteRequest = () => {
+        if (deletingReqId) {
+            router.delete(route('attendance.correction.destroy', deletingReqId), {
+                preserveScroll: true,
+                onSuccess: () => setDeletingReqId(null),
+            });
+        }
     };
 
     const openEditModal = (record) => {
@@ -646,7 +677,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                         </div>
                                         <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
                                             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Total hours</span>
-                                            <span className="text-lg font-black text-slate-800 mt-0.5 block">{totalWorkedHours} hours</span>
+                                            <span className="text-lg font-black text-slate-800 mt-0.5 block">{formatWorkedTime(totalMonthlyMinutes)}</span>
                                         </div>
                                         <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
                                             <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Avg check in</span>
@@ -739,10 +770,26 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                         >
                             Export
                         </button>
+                        <button
+                            onClick={() => {
+                                setDisplayMode('requests');
+                            }}
+                            className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 flex items-center gap-2 ${displayMode === 'requests'
+                                ? 'border-blue-600 text-blue-600 font-extrabold'
+                                : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
+                                }`}
+                        >
+                            <span>Correction Requests</span>
+                            {pendingRequestsCount > 0 && (
+                                <span className="px-2 py-0.5 text-xs bg-amber-500 text-white rounded-full font-black">
+                                    {pendingRequestsCount}
+                                </span>
+                            )}
+                        </button>
                     </div>
 
-                    {/* Filters (Hidden in Export tab as Export tab has dedicated month selector) */}
-                    {displayMode !== 'export' && (
+                    {/* Filters (Hidden in Export tab and Requests tab) */}
+                    {displayMode !== 'export' && displayMode !== 'requests' && (
                         <div className="bg-white p-6 rounded-b-[24px] shadow-sm border border-gray-100 mb-6">
                             <div className="flex flex-wrap gap-6 items-end">
                                 <div className="flex flex-col gap-1.5">
@@ -785,6 +832,173 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                         <RotateCcw className="w-4 h-4" />
                                         Reset
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Correction Requests View */}
+                    {displayMode === 'requests' && (
+                        <div className="space-y-6">
+                            {/* Filter Bar */}
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                    {['all', 'pending', 'approved', 'rejected'].map(st => (
+                                        <button
+                                            key={st}
+                                            onClick={() => setSelectedReqStatus(st)}
+                                            className={`px-4 py-2 rounded-xl text-xs font-extrabold capitalize transition-all ${
+                                                selectedReqStatus === st
+                                                    ? 'bg-slate-900 text-white shadow-md'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            {st} {st === 'pending' && pendingRequestsCount > 0 ? `(${pendingRequestsCount})` : ''}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="text-xs font-bold text-gray-400">
+                                    Total Requests: {(correctionRequests || []).length}
+                                </div>
+                            </div>
+
+                            {/* Table of Requests */}
+                            <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 ring-1 ring-gray-100 overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead className="bg-[#fcfcfd] border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                                            <tr>
+                                                <th className="py-5 px-6">Employee</th>
+                                                <th className="py-5 px-4">Date</th>
+                                                <th className="py-5 px-4">Request Type</th>
+                                                <th className="py-5 px-4">Requested Change</th>
+                                                <th className="py-5 px-4">Reason</th>
+                                                <th className="py-5 px-4">Status</th>
+                                                <th className="py-5 px-6 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 text-sm font-medium">
+                                            {(correctionRequests || [])
+                                                .filter(r => selectedReqStatus === 'all' || r.status === selectedReqStatus)
+                                                .map(req => (
+                                                    <tr key={req.id} className="hover:bg-slate-50/70 transition-colors">
+                                                        <td className="py-4 px-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-9 h-9 rounded-full bg-indigo-100 text-indigo-700 font-extrabold flex items-center justify-center text-xs">
+                                                                    {req.user?.name?.charAt(0) || 'U'}
+                                                                </div>
+                                                                <div>
+                                                                    <div className="font-extrabold text-slate-900">{req.user?.name || 'Unknown'}</div>
+                                                                    <div className="text-xs text-gray-400">{req.user?.email}</div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-4 px-4 font-bold text-slate-800">
+                                                            {req.date ? new Date(req.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : req.date}
+                                                        </td>
+                                                        <td className="py-4 px-4">
+                                                            {req.request_type === 'punch_time' ? (
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg text-xs font-bold border border-blue-100">
+                                                                    <Clock className="w-3.5 h-3.5" /> Punch Correction
+                                                                </span>
+                                                            ) : (
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg text-xs font-bold border border-amber-100">
+                                                                    <Coffee className="w-3.5 h-3.5" /> {req.break_action === 'edit' ? 'Modify Break' : 'Add Break'}
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-4 px-4 font-semibold text-slate-700">
+                                                            {req.request_type === 'punch_time' ? (
+                                                                <div className="text-xs space-y-0.5">
+                                                                    <div>In: <strong className="text-slate-900">{req.requested_punch_in ? new Date(req.requested_punch_in).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—'}</strong></div>
+                                                                    <div>Out: <strong className="text-slate-900">{req.requested_punch_out ? new Date(req.requested_punch_out).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—'}</strong></div>
+                                                                </div>
+                                                            ) : (
+                                                                <div className="text-xs space-y-0.5">
+                                                                    <div>Start: <strong className="text-slate-900">{req.requested_break_start ? new Date(req.requested_break_start).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—'}</strong></div>
+                                                                    <div>End: <strong className="text-slate-900">{req.requested_break_end ? new Date(req.requested_break_end).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '—'}</strong></div>
+                                                                </div>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-4 px-4">
+                                                            {req.reason ? (
+                                                                <button
+                                                                    onClick={() => setViewingReasonReq(req)}
+                                                                    className="w-8 h-8 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100/80 flex items-center justify-center transition-all shadow-2xs group"
+                                                                    title="Click to view full reason"
+                                                                >
+                                                                    <Eye className="w-4 h-4 text-indigo-600 group-hover:scale-110 transition-transform" />
+                                                                </button>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-300 font-medium">—</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-4 px-4">
+                                                            {req.status === 'approved' && (
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">
+                                                                    ✓ Approved
+                                                                </span>
+                                                            )}
+                                                            {req.status === 'rejected' && (
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-full text-xs font-bold">
+                                                                    ✕ Rejected
+                                                                </span>
+                                                            )}
+                                                            {req.status === 'pending' && (
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-bold">
+                                                                    ⏳ Pending
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-4 px-6 text-right">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                {req.status === 'pending' && (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setApprovingReq(req);
+                                                                                setAdminNoteText('');
+                                                                            }}
+                                                                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-xs"
+                                                                        >
+                                                                            Approve
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                setRejectingReq(req);
+                                                                                setAdminNoteText('');
+                                                                            }}
+                                                                            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-xs"
+                                                                        >
+                                                                            Reject
+                                                                        </button>
+                                                                    </>
+                                                                )}
+                                                                {req.status !== 'pending' && (
+                                                                    <span className="text-xs text-gray-400 font-medium">
+                                                                        {req.admin_note ? `Note: ${req.admin_note}` : 'Actioned'}
+                                                                    </span>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => handleDeleteRequest(req.id)}
+                                                                    className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                                                    title="Delete Request"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            {(correctionRequests || []).length === 0 && (
+                                                <tr>
+                                                    <td colSpan={7} className="py-12 text-center text-gray-400 font-medium">
+                                                        No time correction requests found.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -1602,6 +1816,150 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                 </div>
             </Modal>
 
+            {/* REASON POPUP MODAL */}
+            <Modal show={!!viewingReasonReq} onClose={() => setViewingReasonReq(null)} maxWidth="md">
+                {viewingReasonReq && (
+                    <div className="p-6 space-y-5">
+                        <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-100/80 shadow-2xs">
+                                    <Eye className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-extrabold text-slate-900">Correction Request Reason</h3>
+                                    <p className="text-xs text-gray-400 font-medium">
+                                        {viewingReasonReq.user?.name} • {viewingReasonReq.date ? new Date(viewingReasonReq.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : viewingReasonReq.date}
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => setViewingReasonReq(null)}
+                                className="p-1.5 text-gray-400 hover:text-slate-600 hover:bg-gray-100 rounded-xl transition-all font-bold"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 space-y-2">
+                            <div className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Reason Provided by Employee</div>
+                            <p className="text-sm font-semibold text-slate-800 whitespace-pre-wrap leading-relaxed">
+                                {viewingReasonReq.reason || 'No reason provided.'}
+                            </p>
+                        </div>
+
+                        <div className="flex justify-end pt-2">
+                            <button
+                                type="button"
+                                onClick={() => setViewingReasonReq(null)}
+                                className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
+                            >
+                                Close
+                            </button>
+                        </div>
+                    </div>
+                )}
+            </Modal>
+
+            {/* APPROVE CONFIRMATION MODAL */}
+            <Modal show={!!approvingReq} onClose={() => setApprovingReq(null)} maxWidth="md">
+                <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                            <span className="text-emerald-600">✓</span> Approve Correction Request
+                        </h3>
+                        <button onClick={() => setApprovingReq(null)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+                    </div>
+
+                    <p className="text-xs text-gray-600 font-medium leading-relaxed">
+                        Approving this request will automatically update <strong>{approvingReq?.user?.name}</strong>'s attendance and break records for <strong>{approvingReq?.date}</strong> and recalculate total worked hours.
+                    </p>
+
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700">Admin Note (Optional)</label>
+                        <textarea
+                            value={adminNoteText}
+                            onChange={(e) => setAdminNoteText(e.target.value)}
+                            rows={2}
+                            placeholder="Add a comment or confirmation note..."
+                            className="w-full text-xs rounded-xl border-gray-200 focus:ring-emerald-500 focus:border-emerald-500"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                        <button
+                            type="button"
+                            onClick={() => setApprovingReq(null)}
+                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                router.post(route('admin.attendance.correction.approve', approvingReq.id), {
+                                    admin_note: adminNoteText,
+                                }, {
+                                    onSuccess: () => setApprovingReq(null),
+                                });
+                            }}
+                            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md transition-all"
+                        >
+                            Confirm Approval
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
+            {/* REJECT CONFIRMATION MODAL */}
+            <Modal show={!!rejectingReq} onClose={() => setRejectingReq(null)} maxWidth="md">
+                <div className="p-6 space-y-4">
+                    <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+                        <h3 className="text-lg font-extrabold text-slate-900 flex items-center gap-2">
+                            <span className="text-rose-600">✕</span> Reject Correction Request
+                        </h3>
+                        <button onClick={() => setRejectingReq(null)} className="text-gray-400 hover:text-gray-600 font-bold">✕</button>
+                    </div>
+
+                    <p className="text-xs text-gray-600 font-medium leading-relaxed">
+                        Rejecting this request will mark it as rejected. <strong>No changes</strong> will be made to <strong>{rejectingReq?.user?.name}</strong>'s attendance or break time.
+                    </p>
+
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700">Rejection Reason / Note</label>
+                        <textarea
+                            value={adminNoteText}
+                            onChange={(e) => setAdminNoteText(e.target.value)}
+                            rows={3}
+                            placeholder="Explain why this request is being rejected..."
+                            className="w-full text-xs rounded-xl border-gray-200 focus:ring-rose-500 focus:border-rose-500"
+                        />
+                    </div>
+
+                    <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                        <button
+                            type="button"
+                            onClick={() => setRejectingReq(null)}
+                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors"
+                        >
+                            Cancel
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => {
+                                router.post(route('admin.attendance.correction.reject', rejectingReq.id), {
+                                    admin_note: adminNoteText,
+                                }, {
+                                    onSuccess: () => setRejectingReq(null),
+                                });
+                            }}
+                            className="px-5 py-2 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-md transition-all"
+                        >
+                            Confirm Rejection
+                        </button>
+                    </div>
+                </div>
+            </Modal>
+
             {/* Clean PDF Print Container (Visible only during window.print()) */}
             <div className="print-only-report">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '12px', marginBottom: '16px' }}>
@@ -1716,6 +2074,34 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                     }
                 }
             ` }} />
+
+            {/* ✅ Delete Confirmation Modal */}
+            {deletingReqId && (
+                <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+                    <div className="bg-white p-6 rounded-2xl shadow-lg w-full max-w-sm">
+                        <h2 className="text-lg font-bold mb-4 text-gray-800">Confirm Cancellation</h2>
+                        <p className="mb-6 text-gray-600">
+                            Are you sure you want to delete this pending request?
+                        </p>
+                        <div className="flex justify-end space-x-3">
+                            <button
+                                type="button"
+                                onClick={() => setDeletingReqId(null)}
+                                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                            >
+                                No, Keep it
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDeleteRequest}
+                                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-md transition"
+                            >
+                                Yes, Delete Request
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </AdminLayout >
     );
 }

@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\LeaveController as AdminLeaveController;
 use App\Http\Controllers\GoogleDriveController;
 use App\Http\Controllers\GoogleDriveAuthController;
 use App\Http\Controllers\AttendanceController;
+use App\Http\Controllers\AttendanceCorrectionController;
 use App\Http\Controllers\AiAssistantController;
 use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\Admin\PricingController;
@@ -115,6 +116,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/attendance/punch-out', [App\Http\Controllers\AttendanceController::class, 'punchOut'])->name('attendance.punchOut');
     Route::post('/attendance/break/start', [App\Http\Controllers\AttendanceController::class, 'startBreak'])->name('attendance.break.start');
     Route::post('/attendance/break/end', [App\Http\Controllers\AttendanceController::class, 'endBreak'])->name('attendance.break.end');
+    Route::post('/attendance/correction-request', [AttendanceCorrectionController::class, 'store'])->name('attendance.correction.store');
+    Route::delete('/attendance/correction-request/{id}', [AttendanceCorrectionController::class, 'destroy'])->name('attendance.correction.delete');
 
     // -------------------------
     // ✅ AI ASSISTANT ROUTES
@@ -208,6 +211,9 @@ Route::middleware(['auth', 'is_admin'])
             Route::put('attendance/{attendance}', [AttendanceController::class, 'update'])->name('attendance.update');
             Route::post('attendance/{attendance}/break', [AttendanceController::class, 'storeBreak'])->name('attendance.break.store');
             Route::put('attendance/break/{attendanceBreak}', [AttendanceController::class, 'updateBreak'])->name('attendance.break.update');
+            Route::post('attendance/correction-requests/{id}/approve', [AttendanceCorrectionController::class, 'approve'])->name('attendance.correction.approve');
+            Route::post('attendance/correction-requests/{id}/reject', [AttendanceCorrectionController::class, 'reject'])->name('attendance.correction.reject');
+            Route::delete('attendance/correction-requests/{id}', [AttendanceCorrectionController::class, 'destroy'])->name('attendance.correction.destroy');
 
             // -------------------------
             // ✅ SETTINGS ROUTES (Super Admin & Admin)

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Message;
 use App\Models\Leave;
+use App\Models\AttendanceCorrectionRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -69,8 +70,43 @@ class NotificationController extends Controller
                     'sender_name' => $leave->user->name,
                 ];
             }
+
+            // Admins see attendance correction requests from tenant users
+            $correctionsQuery = AttendanceCorrectionRequest::with('user');
+            if (!$isSuperAdmin) {
+                $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+                $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+                $correctionsQuery->whereIn('user_id', $tenantUserIds);
+            }
+
+            $corrections = $correctionsQuery->orderBy('created_at', 'desc')->get();
+
+            foreach ($corrections as $corr) {
+                if (!$corr->user) continue;
+                $notifId = 'correction_' . $corr->id;
+                $isRead = in_array($notifId, $seenIds) || $corr->status !== 'pending';
+
+                $dateStr = \Carbon\Carbon::parse($corr->date)->format('j M Y');
+                $reqTypeLabel = $corr->request_type === 'punch_time' 
+                    ? 'Punch Time Correction' 
+                    : ($corr->break_action === 'edit' ? 'Modify Break Request' : 'Add Break Request');
+
+                $notifications[] = [
+                    'id' => $notifId,
+                    'type' => 'attendance_correction',
+                    'title' => 'Correction Request: ' . $corr->user->name,
+                    'message' => "{$reqTypeLabel} for {$dateStr} ({$corr->status})",
+                    'time' => $corr->created_at->diffForHumans(),
+                    'is_read' => $isRead,
+                    'link' => route('admin.attendance.index', ['display' => 'requests']),
+                    'icon' => 'attendance_correction',
+                    'created_at' => $corr->created_at->toIso8601String(),
+                    'sender_avatar' => $corr->user->image ? asset('storage/' . $corr->user->image) : null,
+                    'sender_name' => $corr->user->name,
+                ];
+            }
         } else {
-            // Non-admin users (editors, managers, employees) ONLY see their own data
+            // Non-admin users ONLY see their own data
             $leaves = Leave::where('user_id', $user->id)
                 ->orderBy('updated_at', 'desc')
                 ->get();
@@ -89,6 +125,35 @@ class NotificationController extends Controller
                     'link' => route('leave.index'),
                     'icon' => 'leave',
                     'created_at' => $leave->updated_at->toIso8601String(),
+                    'sender_avatar' => null,
+                    'sender_name' => 'System',
+                ];
+            }
+
+            // Non-admin users see updates on their correction requests
+            $userCorrections = AttendanceCorrectionRequest::where('user_id', $user->id)
+                ->orderBy('updated_at', 'desc')
+                ->get();
+
+            foreach ($userCorrections as $corr) {
+                $notifId = 'correction_' . $corr->id;
+                $isRead = in_array($notifId, $seenIds);
+
+                $dateStr = \Carbon\Carbon::parse($corr->date)->format('j M Y');
+                $reqTypeLabel = $corr->request_type === 'punch_time' ? 'Punch time correction' : 'Break time request';
+                $statusTitle = $corr->status === 'pending' ? 'submitted' : $corr->status;
+                $noteStr = $corr->admin_note ? " (Note: {$corr->admin_note})" : '';
+
+                $notifications[] = [
+                    'id' => $notifId,
+                    'type' => 'correction_update',
+                    'title' => 'Correction Request ' . ucfirst($corr->status),
+                    'message' => "Your {$reqTypeLabel} for {$dateStr} was {$statusTitle}{$noteStr}",
+                    'time' => $corr->updated_at->diffForHumans(),
+                    'is_read' => $isRead,
+                    'link' => route('attendance.index'),
+                    'icon' => 'correction_update',
+                    'created_at' => $corr->updated_at->toIso8601String(),
                     'sender_avatar' => null,
                     'sender_name' => 'System',
                 ];
@@ -173,6 +238,37 @@ class NotificationController extends Controller
                     'icon' => 'leave'
                 ];
             }
+
+            // Admins see pending correction requests from tenant users
+            $pendingCorrectionsQuery = AttendanceCorrectionRequest::with('user')->where('status', 'pending');
+            if (!$isSuperAdmin) {
+                $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+                $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+                $pendingCorrectionsQuery->whereIn('user_id', $tenantUserIds);
+            }
+
+            $pendingCorrections = $pendingCorrectionsQuery->orderBy('created_at', 'desc')->get();
+
+            foreach ($pendingCorrections as $corr) {
+                if (!$corr->user) continue;
+                $notifId = 'correction_' . $corr->id;
+                if (in_array($notifId, $seenIds)) continue;
+
+                $dateStr = \Carbon\Carbon::parse($corr->date)->format('j M Y');
+                $reqTypeLabel = $corr->request_type === 'punch_time' 
+                    ? 'Punch Time Correction' 
+                    : ($corr->break_action === 'edit' ? 'Modify Break Request' : 'Add Break Request');
+
+                $notifications[] = [
+                    'id' => $notifId,
+                    'type' => 'attendance_correction',
+                    'title' => 'Correction Request: ' . $corr->user->name,
+                    'message' => "{$reqTypeLabel} for {$dateStr}",
+                    'time' => $corr->created_at->diffForHumans(),
+                    'link' => route('admin.attendance.index', ['display' => 'requests']),
+                    'icon' => 'attendance_correction'
+                ];
+            }
         } else {
             // Users see approvals/rejections of their own leaves
             $updatedLeaves = Leave::where('user_id', $user->id)
@@ -196,6 +292,32 @@ class NotificationController extends Controller
                     'icon' => 'leave'
                 ];
             }
+
+            // Users see approvals/rejections of their correction requests from the last 7 days
+            $updatedCorrections = AttendanceCorrectionRequest::where('user_id', $user->id)
+                ->whereIn('status', ['approved', 'rejected'])
+                ->where('updated_at', '>', now()->subDays(7))
+                ->orderBy('updated_at', 'desc')
+                ->get();
+
+            foreach ($updatedCorrections as $corr) {
+                $notifId = 'correction_' . $corr->id;
+                if (in_array($notifId, $seenIds)) continue;
+
+                $dateStr = \Carbon\Carbon::parse($corr->date)->format('j M Y');
+                $reqTypeLabel = $corr->request_type === 'punch_time' ? 'Punch time correction' : 'Break time request';
+                $noteStr = $corr->admin_note ? " (Note: {$corr->admin_note})" : '';
+
+                $notifications[] = [
+                    'id' => $notifId,
+                    'type' => 'correction_update',
+                    'title' => 'Correction Request ' . ucfirst($corr->status),
+                    'message' => "Your {$reqTypeLabel} for {$dateStr} was {$corr->status}{$noteStr}",
+                    'time' => $corr->updated_at->diffForHumans(),
+                    'link' => route('attendance.index'),
+                    'icon' => 'correction_update'
+                ];
+            }
         }
 
         return response()->json([
@@ -216,10 +338,15 @@ class NotificationController extends Controller
             ->count();
 
         $pendingLeaves = 0;
+        $pendingCorrections = 0;
+
         if (in_array($user->role, ['admin', 'superadmin'])) {
             $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
             $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
             $pendingLeaves = Leave::where('status', 'pending')
+                ->whereIn('user_id', $tenantUserIds)
+                ->count();
+            $pendingCorrections = AttendanceCorrectionRequest::where('status', 'pending')
                 ->whereIn('user_id', $tenantUserIds)
                 ->count();
         }
@@ -227,6 +354,8 @@ class NotificationController extends Controller
         return response()->json([
             'unread_chats' => $unreadChats,
             'pending_leaves' => $pendingLeaves,
+            'pending_corrections' => $pendingCorrections,
+            'total_pending' => $pendingLeaves + $pendingCorrections,
         ]);
     }
 

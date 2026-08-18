@@ -50,7 +50,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
     return Array.isArray(allowedModules) && allowedModules.includes(module);
   };
 
-  const [sidebarCounts, setSidebarCounts] = useState({ unread_chats: 0, pending_leaves: 0 });
+  const [sidebarCounts, setSidebarCounts] = useState({ unread_chats: 0, pending_leaves: 0, pending_corrections: 0 });
 
   const fetchSidebarCounts = async () => {
     try {
@@ -97,7 +97,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
       {
         key: 'attendance',
         order: getModuleOrder('attendance', 5),
-        element: <NavItem key="attendance" href={route(isManagementAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isManagementAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="attendance" href={route(isManagementAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isManagementAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} badge={sidebarCounts.pending_corrections} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'leaves',

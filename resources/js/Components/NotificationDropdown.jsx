@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link } from '@inertiajs/react';
-import { Bell, MessageSquare, FileText, Circle } from 'lucide-react';
+import { Bell, MessageSquare, FileText, Circle, Clock } from 'lucide-react';
 import axios from 'axios';
 
 export default function NotificationDropdown({ variant = 'topbar' }) {
@@ -41,6 +41,8 @@ export default function NotificationDropdown({ variant = 'topbar' }) {
             case 'chat': return <MessageSquare size={18} className="text-primary" />;
             case 'leave':
             case 'leave_update': return <FileText size={18} className="text-mp-purple" />;
+            case 'attendance_correction':
+            case 'correction_update': return <Clock size={18} className="text-indigo-600" />;
             default: return <Bell size={18} className="text-mp-body" />;
         }
     };

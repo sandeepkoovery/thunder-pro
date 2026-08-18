@@ -22,6 +22,7 @@ export default function BottomNav({ sidebarCounts = {} }) {
       icon: Clock,
       label: "Attend.",
       routeName: "attendance",
+      badge: sidebarCounts.pending_corrections,
     },
     {
       href: route("projects.index"),
