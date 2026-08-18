@@ -271,10 +271,19 @@ class AttendanceCorrectionController extends Controller
             $totalBreak = $attendance->breaks()->sum('total_minutes');
             $updateData = ['total_break_minutes' => $totalBreak];
 
+            if ($attendance->status === 'on_break' && $bEnd) {
+                $updateData['status'] = $attendance->punch_out ? 'punched_out' : 'punched_in';
+                $updateData['break_end'] = $bEnd;
+            }
+
             if ($attendance->punch_in && $attendance->punch_out) {
                 $pIn = Carbon::parse($attendance->punch_in);
                 $pOut = Carbon::parse($attendance->punch_out);
                 $updateData['total_worked_minutes'] = max(0, $pIn->diffInMinutes($pOut) - $totalBreak);
+            } elseif ($attendance->punch_in && !$attendance->punch_out) {
+                $pIn = Carbon::parse($attendance->punch_in);
+                $now = Carbon::now();
+                $updateData['total_worked_minutes'] = max(0, $pIn->diffInMinutes($now) - $totalBreak);
             }
 
             $attendance->update($updateData);

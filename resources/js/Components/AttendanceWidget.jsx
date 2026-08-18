@@ -273,14 +273,22 @@ export default function AttendanceWidget({ isDarkHeader = false }) {
                 })()}
 
                 {status === 'on_break' && (
-                    <button
-                        onClick={() => handleAction('break-end')}
-                        disabled={processing}
-                        className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2 fill-current" />}
-                        Resume
-                    </button>
+                    <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                        <button
+                            onClick={() => handleAction('break-end')}
+                            disabled={processing}
+                            className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2 fill-current" />}
+                            Resume
+                        </button>
+                        <Link
+                            href={route('attendance.index')}
+                            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline decoration-indigo-200 transition-colors"
+                        >
+                            Forgot to resume? Request break correction
+                        </Link>
+                    </div>
                 )}
 
             </div>

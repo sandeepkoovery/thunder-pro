@@ -48,7 +48,7 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
         }
     };
 
-    const openCorrectionModal = (record = null) => {
+    const openCorrectionModal = (record = null, initialType = 'punch_time', initialBreakId = null) => {
         clearErrors();
         const targetDate = record ? record.date : new Date().toISOString().split('T')[0];
         const targetRecord = record || attendanceData.find(r => r.date === targetDate);
@@ -80,12 +80,49 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
             defaultBreakEnd = endStr;
         }
 
+        let selectedBreakAction = 'add';
+        let selectedBreakId = initialBreakId || '';
+
+        if (initialBreakId && targetRecord?.breaks) {
+            selectedBreakAction = 'edit';
+            const bObj = targetRecord.breaks.find(b => b.id == initialBreakId);
+            if (bObj) {
+                if (bObj.start_time) {
+                    const d = new Date(bObj.start_time);
+                    if (!isNaN(d)) defaultBreakStart = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                }
+                if (bObj.end_time) {
+                    const d = new Date(bObj.end_time);
+                    if (!isNaN(d)) defaultBreakEnd = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                } else {
+                    defaultBreakEnd = '';
+                }
+            }
+        } else if (initialType === 'break_time' && targetRecord?.breaks?.length > 0) {
+            const ongoingBreak = targetRecord.breaks.find(b => !b.end_time);
+            const targetB = ongoingBreak || targetRecord.breaks[targetRecord.breaks.length - 1];
+            if (targetB) {
+                selectedBreakAction = 'edit';
+                selectedBreakId = targetB.id;
+                if (targetB.start_time) {
+                    const d = new Date(targetB.start_time);
+                    if (!isNaN(d)) defaultBreakStart = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                }
+                if (targetB.end_time) {
+                    const d = new Date(targetB.end_time);
+                    if (!isNaN(d)) defaultBreakEnd = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                } else {
+                    defaultBreakEnd = '';
+                }
+            }
+        }
+
         setData({
-            request_type: 'punch_time',
-            break_action: 'add',
+            request_type: initialType,
+            break_action: selectedBreakAction,
             date: targetDate,
             attendance_id: targetRecord?.attendance_id || '',
-            attendance_break_id: '',
+            attendance_break_id: selectedBreakId,
             requested_punch_in: pIn,
             requested_punch_out: pOut,
             requested_break_start: defaultBreakStart,
@@ -910,17 +947,43 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                                                     <label className="text-xs font-bold text-slate-700">Select Break to Modify</label>
                                                     <select
                                                         value={data.attendance_break_id}
-                                                        onChange={(e) => setData('attendance_break_id', e.target.value)}
+                                                        onChange={(e) => {
+                                                            const selectedBreakId = e.target.value;
+                                                            const selectedB = selectedRecord?.breaks?.find(b => b.id == selectedBreakId);
+                                                            let bStart = data.requested_break_start;
+                                                            let bEnd = data.requested_break_end;
+                                                            if (selectedB) {
+                                                                if (selectedB.start_time) {
+                                                                    const d = new Date(selectedB.start_time);
+                                                                    if (!isNaN(d)) bStart = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                                                                }
+                                                                if (selectedB.end_time) {
+                                                                    const d = new Date(selectedB.end_time);
+                                                                    if (!isNaN(d)) bEnd = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+                                                                } else {
+                                                                    bEnd = '';
+                                                                }
+                                                            }
+                                                            setData(prev => ({
+                                                                ...prev,
+                                                                attendance_break_id: selectedBreakId,
+                                                                requested_break_start: bStart,
+                                                                requested_break_end: bEnd,
+                                                            }));
+                                                        }}
                                                         className="w-full rounded-xl border-gray-200 text-sm font-semibold focus:ring-indigo-500 focus:border-indigo-500"
                                                         required
                                                     >
                                                         <option value="">Select a break...</option>
                                                         {selectedRecord.breaks.map((b) => (
                                                             <option key={b.id} value={b.id}>
-                                                                Break #{b.id}: {formatTimeDisplay(b.start_time)} - {formatTimeDisplay(b.end_time)} ({b.total_minutes} mins)
+                                                                Break #{b.id}: {formatTimeDisplay(b.start_time)} - {b.end_time ? formatTimeDisplay(b.end_time) : 'Ongoing (Not Resumed)'} ({b.total_minutes || 0} mins)
                                                             </option>
                                                         ))}
                                                     </select>
+                                                    <p className="text-[11px] text-indigo-600 font-semibold pt-1">
+                                                        💡 Forgot to resume work on time? Select the break above and set Break End Time to your actual resume time (e.g. 1:15 PM).
+                                                    </p>
                                                 </div>
                                             )}
 
