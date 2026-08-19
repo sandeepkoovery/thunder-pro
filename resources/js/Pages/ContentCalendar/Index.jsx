@@ -385,48 +385,41 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
 
             <div className="w-full space-y-6 font-jakarta pb-16 bg-[#f4f6f9] min-h-screen p-4 sm:p-8">
                 
-                {/* 1. TOP FILTERS CARD */}
-                <div className="bg-white rounded-[24px] p-6 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] border border-gray-100/90 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-5">
-                    <div className="flex flex-wrap items-center gap-4 w-full flex-1">
+                {/* 1. TOP FILTERS CARD (EXACT STYLE AS EMPLOYEE LIST FILTER) */}
+                <div className="bg-white p-5 rounded-[20px] border border-gray-100 shadow-sm flex flex-col xl:flex-row xl:items-center xl:justify-between gap-4">
+                    <div className="flex flex-wrap items-center gap-3 w-full flex-1">
                         
                         {/* PROJECT Dropdown */}
                         <div className="min-w-[180px] flex-1 sm:flex-none">
-                            <label className="block text-xs font-black uppercase tracking-wider text-gray-400 mb-1.5">PROJECT</label>
-                            <div className="relative">
-                                <select
-                                    value={selectedProjectFilter}
-                                    onChange={(e) => setSelectedProjectFilter(e.target.value)}
-                                    className="w-full pl-4 pr-9 py-3 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-800 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 appearance-none cursor-pointer"
-                                >
-                                    <option value="">{isUser ? 'All Projects' : 'Select Project'}</option>
-                                    {projects.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                            </div>
+                            <select
+                                value={selectedProjectFilter}
+                                onChange={(e) => setSelectedProjectFilter(e.target.value)}
+                                className="w-full border border-gray-200 pl-4 pr-10 py-2.5 rounded-2xl bg-white text-[15px] font-medium focus:outline-none focus:border-blue-500 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_12px_center] bg-[size:18px] bg-no-repeat cursor-pointer"
+                            >
+                                <option value="">{isUser ? 'All Projects' : 'Select Project'}</option>
+                                {projects.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
                         </div>
 
                         {/* MONTH Picker */}
                         <div className="min-w-[190px] flex-1 sm:flex-none">
-                            <label className="block text-xs font-black uppercase tracking-wider text-gray-400 mb-1.5">
-                                {isUser ? 'MONTH' : 'MONTH (MONTHLY VIEW)'}
-                                {monthRangeText && <span className="text-[10px] text-orange-600 font-extrabold ml-1">({monthRangeText})</span>}
-                            </label>
                             <MonthPicker
                                 value={selectedMonthFilter}
                                 onChange={(val) => setSelectedMonthFilter(val?.target ? val.target.value : val)}
                                 placeholder="Select Month"
+                                inputClassName="!border-gray-200 !rounded-2xl !py-2.5 !text-[15px] !font-medium focus:!border-blue-500"
                             />
                         </div>
 
                         {/* DATE FILTER */}
                         <div className="min-w-[160px] flex-1 sm:flex-none">
-                            <label className="block text-xs font-black uppercase tracking-wider text-gray-400 mb-1.5">DATE FILTER</label>
                             <DatePicker
                                 value={selectedDateFilter}
                                 onChange={(e) => setSelectedDateFilter(e.target ? e.target.value : e)}
                                 placeholder="Filter by Date"
+                                inputClassName="!border-gray-200 !rounded-2xl !py-2.5 !text-[15px] !font-medium focus:!border-blue-500"
                             />
                         </div>
 
@@ -434,30 +427,25 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                         {!isUser && (
                             <>
                                 <div className="min-w-[160px] flex-1 sm:flex-none">
-                                    <label className="block text-xs font-black uppercase tracking-wider text-gray-400 mb-1.5">QUICK FILTERS</label>
-                                    <div className="relative">
-                                        <select
-                                            value={selectedUserFilter}
-                                            onChange={(e) => setSelectedUserFilter(e.target.value)}
-                                            className="w-full pl-4 pr-9 py-3 rounded-xl border border-gray-200 bg-white text-sm font-bold text-gray-800 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500 appearance-none cursor-pointer"
-                                        >
-                                            <option value="">By User</option>
-                                            {users.map(u => (
-                                                <option key={u.id} value={u.id}>{u.name}</option>
-                                            ))}
-                                        </select>
-                                        <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                                    </div>
+                                    <select
+                                        value={selectedUserFilter}
+                                        onChange={(e) => setSelectedUserFilter(e.target.value)}
+                                        className="w-full border border-gray-200 pl-4 pr-10 py-2.5 rounded-2xl bg-white text-[15px] font-medium focus:outline-none focus:border-blue-500 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_12px_center] bg-[size:18px] bg-no-repeat cursor-pointer"
+                                    >
+                                        <option value="">Select User</option>
+                                        {users.map(u => (
+                                            <option key={u.id} value={u.id}>{u.name}</option>
+                                        ))}
+                                    </select>
                                 </div>
 
                                 <div className="min-w-[170px] flex-1 sm:flex-none">
-                                    <label className="block text-xs font-black uppercase tracking-wider text-gray-400 mb-1.5">STATUS FILTER</label>
                                     <input
                                         type="text"
                                         placeholder="Filter Updation.."
                                         value={updationFilter}
                                         onChange={(e) => setUpdationFilter(e.target.value)}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 bg-white text-sm font-semibold text-gray-800 placeholder-gray-400 shadow-sm focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+                                        className="w-full border border-gray-200 px-4 py-2.5 rounded-2xl bg-white text-[15px] font-medium focus:outline-none focus:border-blue-500 placeholder-gray-400"
                                     />
                                 </div>
                             </>
@@ -470,9 +458,9 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                             <button
                                 type="button"
                                 onClick={handleGenerateMonth}
-                                className="px-6 py-3.5 rounded-xl bg-gradient-to-r from-[#ff5722] to-[#ea580c] hover:brightness-105 active:scale-95 text-white text-xs font-black uppercase tracking-widest transition-all shadow-md shadow-orange-500/30 flex items-center gap-2 cursor-pointer"
+                                className="px-6 py-2.5 rounded-2xl bg-[#1e88e5] text-white font-bold uppercase tracking-wider text-[11px] hover:bg-[#1565c0] transition-colors shadow-lg shadow-[#1e88e5]/25 flex items-center gap-2 cursor-pointer"
                             >
-                                <Zap size={16} fill="currentColor" />
+                                <Zap size={15} fill="currentColor" />
                                 GENERATE MONTH
                             </button>
                         </div>

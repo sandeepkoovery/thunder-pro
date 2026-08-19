@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { router } from '@inertiajs/react';
+import { router, Link } from '@inertiajs/react';
 import axios from 'axios';
 import { Play, Square, Coffee, Clock, Loader2 } from 'lucide-react';
 
