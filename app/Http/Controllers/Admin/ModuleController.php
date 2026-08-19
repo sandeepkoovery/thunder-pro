@@ -30,18 +30,39 @@ class ModuleController extends Controller
             ['key' => 'attendance', 'name' => 'Attendance', 'description' => 'Daily punch in/out, breaks, and attendance history'],
             ['key' => 'leaves', 'name' => 'Leaves', 'description' => 'Leave applications, approval workflow, and balance tracking'],
             ['key' => 'calendar', 'name' => 'Calendar', 'description' => 'Company events, holidays, and schedule calendar'],
-            ['key' => 'content_calendar', 'name' => 'Content Calendar', 'description' => 'Social media and marketing content scheduling'],
-            ['key' => 'daily_listings', 'name' => 'Daily Listings', 'description' => 'Daily worksheet, task logs, and user listing settings'],
-            ['key' => 'designers_worklist', 'name' => 'Designers Worklist', 'description' => 'Design tasks, asset uploads, and status workflows'],
+            ['key' => 'content_calendar', 'name' => 'Content Calendar', 'description' => 'Social media and marketing content scheduling (Add-on)'],
+            ['key' => 'daily_listings', 'name' => 'Daily Listings', 'description' => 'Daily worksheet, task logs, and user listing settings (Add-on)'],
+            ['key' => 'designers_worklist', 'name' => 'Designers Worklist', 'description' => 'Design tasks, asset uploads, and status workflows (Add-on)'],
             ['key' => 'drive', 'name' => 'Drive', 'description' => 'Google Drive file browser and storage management'],
             ['key' => 'chat', 'name' => 'Chat & Messaging', 'description' => 'Real-time team chat and direct messaging'],
-            ['key' => 'websites', 'name' => 'Websites & Domains', 'description' => 'Domain registration tracking and hosting management'],
+            ['key' => 'websites', 'name' => 'Websites & Domains', 'description' => 'Domain registration tracking and hosting management (Add-on)'],
             ['key' => 'reports', 'name' => 'Reports', 'description' => 'Attendance, working hours, and activity reporting'],
             ['key' => 'notifications', 'name' => 'Notifications', 'description' => 'System notifications and user alert logs'],
+            ['key' => 'ai_assistant', 'name' => 'AI Voice Assistant', 'description' => 'Voice & AI Assistant for database queries and tasks (Add-on)'],
             ['key' => 'modules', 'name' => 'Modules List', 'description' => 'Module access matrix and menu ordering control'],
             ['key' => 'pricing', 'name' => 'Pricing', 'description' => 'Subscription plans and billing settings'],
             ['key' => 'settings', 'name' => 'Settings', 'description' => 'Global application settings and configuration'],
         ];
+
+        // Merge any dynamic additional modules from settings
+        $existingKeys = array_column($modules, 'key');
+        $additionalModulesJson = Setting::where('key', 'additional_modules')->value('value');
+        if ($additionalModulesJson) {
+            $addOns = json_decode($additionalModulesJson, true);
+            if (is_array($addOns)) {
+                foreach ($addOns as $addOn) {
+                    $key = $addOn['key'] ?? null;
+                    if ($key && !in_array($key, $existingKeys)) {
+                        $modules[] = [
+                            'key' => $key,
+                            'name' => ($addOn['label'] ?? $addOn['name'] ?? ucfirst(str_replace('_', ' ', $key))) . ' (Add-on)',
+                            'description' => $addOn['description'] ?? 'Add-on module',
+                        ];
+                        $existingKeys[] = $key;
+                    }
+                }
+            }
+        }
 
         $defaultOrder = [
             'dashboard' => 1,
@@ -59,9 +80,10 @@ class ModuleController extends Controller
             'websites' => 13,
             'reports' => 14,
             'notifications' => 15,
-            'modules' => 16,
-            'pricing' => 17,
-            'settings' => 18,
+            'ai_assistant' => 16,
+            'modules' => 17,
+            'pricing' => 18,
+            'settings' => 19,
         ];
 
         $savedOrderJson = Setting::where('key', 'module_order')->value('value');
@@ -94,8 +116,8 @@ class ModuleController extends Controller
         $defaultPermissions = [
             'admin' => $allModuleKeys,
             'manager' => $allModuleKeys,
-            'editor' => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications'],
-            'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications'],
+            'editor' => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications', 'ai_assistant'],
+            'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications', 'ai_assistant'],
         ];
 
         foreach ($defaultPermissions as $rKey => $defVal) {
@@ -124,9 +146,21 @@ class ModuleController extends Controller
         $modules = [
             'dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 
             'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 
-            'drive', 'chat', 'websites', 'reports', 'notifications', 'modules', 
-            'pricing', 'settings'
+            'drive', 'chat', 'websites', 'reports', 'notifications', 'ai_assistant', 
+            'modules', 'pricing', 'settings'
         ];
+
+        $additionalModulesJson = Setting::where('key', 'additional_modules')->value('value');
+        if ($additionalModulesJson) {
+            $addOns = json_decode($additionalModulesJson, true);
+            if (is_array($addOns)) {
+                foreach ($addOns as $addOn) {
+                    if (!empty($addOn['key']) && !in_array($addOn['key'], $modules)) {
+                        $modules[] = $addOn['key'];
+                    }
+                }
+            }
+        }
 
         $permissions = $validated['permissions'];
 

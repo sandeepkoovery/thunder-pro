@@ -1,7 +1,26 @@
 import React, { useState } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, useForm, usePage } from '@inertiajs/react';
-import { Settings, Users, ClipboardList, Save, ChevronRight, CheckCircle, ArrowLeft, Check } from 'lucide-react';
+import { 
+    Settings, 
+    Users, 
+    ClipboardList, 
+    Save, 
+    ChevronRight, 
+    CheckCircle, 
+    ArrowLeft, 
+    Check,
+    LayoutDashboard,
+    FolderKanban,
+    Calendar,
+    Clock,
+    HardDrive,
+    MessageSquare,
+    Globe,
+    Bot,
+    Eye,
+    EyeOff
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Index({ settings = {}, users = [], worksheetSettings = {} }) {
@@ -24,7 +43,7 @@ export default function Index({ settings = {}, users = [], worksheetSettings = {
 
     // --- FORM 1: GENERAL SETTINGS ---
     const generalForm = useForm({
-        admin_email: settings.admin_email || '',
+        admin_email: settings.admin_email || auth?.user?.email || '',
         monthly_working_days: settings.monthly_working_days || '',
         month_start_day: settings.month_start_day ?? 25,
         month_end_day: settings.month_end_day ?? 24,
@@ -32,19 +51,19 @@ export default function Index({ settings = {}, users = [], worksheetSettings = {
         hidden_modules: JSON.parse(settings.hidden_modules || '[]'),
     });
 
-    const [showModuleVisibility, setShowModuleVisibility] = useState(false);
+    const [showModuleVisibility, setShowModuleVisibility] = useState(true);
 
     const menuItems = [
-        { id: 'dashboard', label: 'Dashboard' },
-        { id: 'projects', label: 'Projects' },
-        { id: 'users', label: 'Users' },
-        { id: 'leaves', label: 'Leaves' },
-        { id: 'attendance', label: 'Attendance' },
-        { id: 'calendar', label: 'Calendar' },
-        { id: 'drive', label: 'Drive' },
-        { id: 'chat', label: 'Chat' },
-        { id: 'websites', label: 'Websites' },
-        { id: 'ai_assistant', label: 'AI Voice Assistant' },
+        { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+        { id: 'projects', label: 'Projects', icon: FolderKanban },
+        { id: 'users', label: 'Users', icon: Users },
+        { id: 'leaves', label: 'Leaves', icon: Calendar },
+        { id: 'attendance', label: 'Attendance', icon: Clock },
+        { id: 'calendar', label: 'Calendar', icon: Calendar },
+        { id: 'drive', label: 'Drive', icon: HardDrive },
+        { id: 'chat', label: 'Chat', icon: MessageSquare },
+        { id: 'websites', label: 'Websites', icon: Globe },
+        { id: 'ai_assistant', label: 'AI Voice Assistant', icon: Bot },
     ];
 
     const toggleHiddenModule = (id) => {
@@ -166,60 +185,62 @@ export default function Index({ settings = {}, users = [], worksheetSettings = {
                         </div>
 
                         <form onSubmit={submitGeneral} className="space-y-8">
-                            {!isSuperAdmin && (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                    <div className="space-y-2">
-                                        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Admin Email Address</label>
-                                        <input
-                                            type="email"
-                                            value={generalForm.data.admin_email}
-                                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
-                                            onChange={(e) => generalForm.setData('admin_email', e.target.value)}
-                                            placeholder="admin@example.com"
-                                        />
-                                        {generalForm.errors.admin_email && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.admin_email}</p>}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Working Days</label>
-                                        <input
-                                            type="number"
-                                            value={generalForm.data.monthly_working_days}
-                                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
-                                            onChange={(e) => generalForm.setData('monthly_working_days', e.target.value)}
-                                            min="0"
-                                            max="31"
-                                        />
-                                        {generalForm.errors.monthly_working_days && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.monthly_working_days}</p>}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle Start Day</label>
-                                        <input
-                                            type="number"
-                                            value={generalForm.data.month_start_day}
-                                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
-                                            onChange={(e) => generalForm.setData('month_start_day', e.target.value)}
-                                            min="1"
-                                            max="31"
-                                        />
-                                        {generalForm.errors.month_start_day && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.month_start_day}</p>}
-                                    </div>
-
-                                    <div className="space-y-2">
-                                        <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle End Day</label>
-                                        <input
-                                            type="number"
-                                            value={generalForm.data.month_end_day}
-                                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
-                                            onChange={(e) => generalForm.setData('month_end_day', e.target.value)}
-                                            min="1"
-                                            max="31"
-                                        />
-                                        {generalForm.errors.month_end_day && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.month_end_day}</p>}
-                                    </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                <div className={`space-y-2 ${isSuperAdmin ? 'md:col-span-2' : ''}`}>
+                                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Admin Email Address</label>
+                                    <input
+                                        type="email"
+                                        value={generalForm.data.admin_email}
+                                        className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                        onChange={(e) => generalForm.setData('admin_email', e.target.value)}
+                                        placeholder="admin@example.com"
+                                    />
+                                    {generalForm.errors.admin_email && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.admin_email}</p>}
                                 </div>
-                            )}
+
+                                {!isSuperAdmin && (
+                                    <>
+                                        <div className="space-y-2">
+                                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Working Days</label>
+                                            <input
+                                                type="number"
+                                                value={generalForm.data.monthly_working_days}
+                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                                onChange={(e) => generalForm.setData('monthly_working_days', e.target.value)}
+                                                min="0"
+                                                max="31"
+                                            />
+                                            {generalForm.errors.monthly_working_days && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.monthly_working_days}</p>}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle Start Day</label>
+                                            <input
+                                                type="number"
+                                                value={generalForm.data.month_start_day}
+                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                                onChange={(e) => generalForm.setData('month_start_day', e.target.value)}
+                                                min="1"
+                                                max="31"
+                                            />
+                                            {generalForm.errors.month_start_day && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.month_start_day}</p>}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Monthly Cycle End Day</label>
+                                            <input
+                                                type="number"
+                                                value={generalForm.data.month_end_day}
+                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                                onChange={(e) => generalForm.setData('month_end_day', e.target.value)}
+                                                min="1"
+                                                max="31"
+                                            />
+                                            {generalForm.errors.month_end_day && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.month_end_day}</p>}
+                                        </div>
+                                    </>
+                                )}
+                            </div>
 
                             {isSuperAdmin && (
                                 <div className="bg-gray-50/50 rounded-[28px] p-8 border border-gray-100">
@@ -230,7 +251,7 @@ export default function Index({ settings = {}, users = [], worksheetSettings = {
                                     >
                                         <div>
                                             <h3 className="text-lg font-bold text-gray-900 group-hover:text-blue-600 transition-colors">Module Visibility</h3>
-                                            <p className="text-gray-500 font-medium text-sm">Select modules to hide globally (Super Admins bypass this)</p>
+                                            <p className="text-gray-500 font-medium text-sm">Control module access globally across the system (Super Admins bypass these restrictions)</p>
                                         </div>
                                         <div className={`p-2 bg-white rounded-full shadow-sm border border-gray-100 transition-transform duration-300 ${showModuleVisibility ? 'rotate-180' : ''}`}>
                                             <ChevronRight className="rotate-90 text-gray-400" />
@@ -238,18 +259,50 @@ export default function Index({ settings = {}, users = [], worksheetSettings = {
                                     </button>
 
                                     {showModuleVisibility && (
-                                        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 animate-in fade-in zoom-in-95 duration-200">
-                                            {menuItems.map((item) => (
-                                                <label key={item.id} className="flex items-center gap-3 p-4 bg-white border border-gray-100 rounded-2xl cursor-pointer hover:border-red-200 hover:shadow-md transition-all">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={generalForm.data.hidden_modules.includes(item.id)}
-                                                        onChange={() => toggleHiddenModule(item.id)}
-                                                        className="w-5 h-5 rounded-lg border-gray-200 text-red-600 focus:ring-red-500/20 cursor-pointer"
-                                                    />
-                                                    <span className="font-bold text-gray-700 text-sm">Hide {item.label}</span>
-                                                </label>
-                                            ))}
+                                        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 animate-in fade-in zoom-in-95 duration-200">
+                                            {menuItems.map((item) => {
+                                                const ItemIcon = item.icon;
+                                                const isHidden = generalForm.data.hidden_modules.includes(item.id);
+                                                const isVisible = !isHidden;
+
+                                                return (
+                                                    <div
+                                                        key={item.id}
+                                                        onClick={() => toggleHiddenModule(item.id)}
+                                                        className={`group relative p-4 rounded-2xl border transition-all duration-200 cursor-pointer flex items-center justify-between ${
+                                                            isVisible
+                                                                ? 'bg-white border-gray-100 hover:border-emerald-300 hover:shadow-md'
+                                                                : 'bg-gray-50/70 border-gray-200/80 opacity-80 hover:opacity-100 hover:border-gray-300'
+                                                        }`}
+                                                    >
+                                                        <div className="flex items-center gap-3.5">
+                                                            <div className={`p-2.5 rounded-xl transition-colors ${
+                                                                isVisible ? 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100' : 'bg-gray-100 text-gray-400'
+                                                            }`}>
+                                                                <ItemIcon size={20} />
+                                                            </div>
+                                                            <div>
+                                                                <h4 className="font-bold text-gray-900 text-sm tracking-tight">{item.label}</h4>
+                                                                <span className={`inline-flex items-center gap-1 text-[11px] font-bold mt-0.5 ${
+                                                                    isVisible ? 'text-emerald-600' : 'text-rose-500'
+                                                                }`}>
+                                                                    {isVisible ? <Eye size={12} /> : <EyeOff size={12} />}
+                                                                    {isVisible ? 'Visible' : 'Hidden'}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Toggle Switch */}
+                                                        <div className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 ${
+                                                            isVisible ? 'bg-emerald-500' : 'bg-gray-300'
+                                                        }`}>
+                                                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform duration-200 ${
+                                                                isVisible ? 'translate-x-5' : 'translate-x-0'
+                                                            }`} />
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
                                         </div>
                                     )}
                                 </div>

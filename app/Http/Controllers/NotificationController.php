@@ -201,18 +201,15 @@ class NotificationController extends Controller
 
         $isSuperAdmin = in_array($user->role, ['superadmin', 'super_admin']);
         $isAdmin = $user->role === 'admin';
-        $isAdminOrSuper = $isSuperAdmin || $isAdmin;
 
-        if ($isAdminOrSuper) {
-            // Admins see pending leaves from their tenant users
-            $pendingLeavesQuery = Leave::with('user')->where('status', 'pending');
-            if (!$isSuperAdmin) {
-                $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
-                $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
-                $pendingLeavesQuery->whereIn('user_id', $tenantUserIds);
-            }
+        if ($isAdmin) {
+            // Tenant Admins see pending leaves from their tenant users
+            $tenantAdminId = $user->id;
+            $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
 
-            $pendingLeaves = $pendingLeavesQuery
+            $pendingLeaves = Leave::with('user')
+                ->where('status', 'pending')
+                ->whereIn('user_id', $tenantUserIds)
                 ->orderBy('created_at', 'desc')
                 ->get();
 
@@ -239,15 +236,12 @@ class NotificationController extends Controller
                 ];
             }
 
-            // Admins see pending correction requests from tenant users
-            $pendingCorrectionsQuery = AttendanceCorrectionRequest::with('user')->where('status', 'pending');
-            if (!$isSuperAdmin) {
-                $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
-                $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
-                $pendingCorrectionsQuery->whereIn('user_id', $tenantUserIds);
-            }
-
-            $pendingCorrections = $pendingCorrectionsQuery->orderBy('created_at', 'desc')->get();
+            // Tenant Admins see pending correction requests from tenant users
+            $pendingCorrections = AttendanceCorrectionRequest::with('user')
+                ->where('status', 'pending')
+                ->whereIn('user_id', $tenantUserIds)
+                ->orderBy('created_at', 'desc')
+                ->get();
 
             foreach ($pendingCorrections as $corr) {
                 if (!$corr->user) continue;
@@ -340,8 +334,8 @@ class NotificationController extends Controller
         $pendingLeaves = 0;
         $pendingCorrections = 0;
 
-        if (in_array($user->role, ['admin', 'superadmin'])) {
-            $tenantAdminId = $user->role === 'admin' ? $user->id : ($user->admin_id ?? $user->id);
+        if ($user->role === 'admin') {
+            $tenantAdminId = $user->id;
             $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
             $pendingLeaves = Leave::where('status', 'pending')
                 ->whereIn('user_id', $tenantUserIds)

@@ -83,11 +83,21 @@ h5 { font-size: 16px !important; }
 h6 { font-size: 14px !important; }
 
 /* ── Global Textbox & Form Input Visibility Styles ── */
-input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]),
-textarea,
-select {
+input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0),
+textarea:not(.border-none):not(.border-0),
+select:not(.border-none):not(.border-0) {
   border: 1px solid #d1d5db;
   color: #1e293b;
+}
+
+/* Remove default background arrow image from selects when appearance-none is used */
+select.appearance-none,
+select[style*="appearance: none"],
+select[style*="appearance:none"] {
+  background-image: none !important;
+  -webkit-appearance: none !important;
+  -moz-appearance: none !important;
+  appearance: none !important;
 }
 
 input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"])::placeholder,

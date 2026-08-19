@@ -165,7 +165,6 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         return 'border-l-4 border-l-gray-200';
     };
 
-    // Sub-component for adding a new break
     const BreakAddForm = ({ attendanceRecord, onCancel, onSuccess }) => {
         const [localError, setLocalError] = useState(null);
         const { data, setData, post, processing, errors } = useForm({
@@ -177,13 +176,10 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             e.preventDefault();
             setLocalError(null);
 
-            // Combine attendance date with time
             const recordDate = attendanceRecord.date ? attendanceRecord.date.toString().substring(0, 10) : '';
             const fullStart = `${recordDate}T${data.start_time}`;
             const fullEnd = data.end_time ? `${recordDate}T${data.end_time}` : null;
 
-            
-            // Extract HH:MM from a raw ISO/UTC timestamp for timezone-safe comparison
             const toHHMM = (raw) => {
                 if (!raw) return null;
                 const d = new Date(raw.toString().replace(' ', 'T'));
@@ -194,13 +190,11 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             const punchInHHMM = toHHMM(attendanceRecord.punch_in_raw);
             const punchOutHHMM = attendanceRecord.punch_out_raw ? toHHMM(attendanceRecord.punch_out_raw) : null;
 
-            // Validation: Start time >= Punch In time (HH:MM string comparison)
             if (punchInHHMM && data.start_time < punchInHHMM) {
                 setLocalError(`Break cannot start before punch in time (${punchInHHMM})`);
                 return;
             }
 
-            // Validation: End time rules
             if (data.end_time) {
                 if (data.end_time <= data.start_time) {
                     setLocalError("Break end time must be after start time");
@@ -212,7 +206,6 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                 }
             }
 
-            // Use router directly to ensure correctly formatted date strings are sent
             router.post(route('admin.attendance.break.store', attendanceRecord.attendance_id), {
                 start_time: fullStart,
                 end_time: fullEnd,
@@ -223,62 +216,64 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         };
 
         return (
-            <form onSubmit={handleSubmit} className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/80 mb-5 shadow-2xs transition-all">
-                <div className="flex items-center gap-2 mb-3.5">
-                    <div className="w-7 h-7 bg-indigo-50 rounded-lg flex items-center justify-center text-[#7e89ca]">
-                        <Clock className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-slate-800 text-sm">Add New Break</span>
+            <form onSubmit={handleSubmit} className="p-5 bg-white rounded-2xl border border-gray-200 mb-5 shadow-xs transition-all space-y-4">
+                <div>
+                    <h3 className="text-base font-bold text-gray-900">Add New Break</h3>
+                    <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                        Date: {attendanceRecord.date ? attendanceRecord.date.toString().substring(0, 10) : ''}
+                    </p>
                 </div>
-                <div className="grid grid-cols-2 gap-4 mb-3">
-                    <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-0.5">Start Time *</label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700 block mb-1">Start Time *</label>
                         <input
                             type="time"
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] outline-none transition-all"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
                             value={data.start_time}
                             onChange={(e) => setData('start_time', e.target.value)}
                             required
                         />
                         {errors.start_time && <p className="text-red-500 text-xs mt-1">{errors.start_time}</p>}
                     </div>
-                    <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1.5 ml-0.5">End Time (Optional)</label>
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700 block mb-1">End Time (Optional)</label>
                         <input
                             type="time"
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-sm font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] outline-none transition-all"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
                             value={data.end_time}
                             onChange={(e) => setData('end_time', e.target.value)}
                         />
                         {errors.end_time && <p className="text-red-500 text-xs mt-1">{errors.end_time}</p>}
                     </div>
                 </div>
-                {localError && <p className="text-rose-500 text-xs font-semibold mb-3 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">{localError}</p>}
-                <div className="flex items-center justify-end gap-2 pt-1">
+
+                {localError && <p className="text-rose-600 text-xs font-semibold bg-rose-50 px-3 py-2 rounded-xl border border-rose-100">{localError}</p>}
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="px-4 py-2 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 rounded-xl shadow-2xs hover:bg-slate-50 transition-all cursor-pointer"
+                        className="px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
                     >
-                        Cancel
+                        CANCEL
                     </button>
                     <button
                         type="submit"
                         disabled={processing}
-                        className="px-5 py-2 text-xs font-bold text-white bg-[#1e88e5] hover:bg-[#1565c0] rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                        className="px-6 py-2.5 bg-[#1e293b] hover:bg-slate-800 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50 active:scale-95"
                     >
-                        Save Break
+                        UPDATE
                     </button>
                 </div>
             </form>
         );
     };
 
-    const [viewingBreaks, setViewingBreaks] = useState(null); // For break history modal
+    const [viewingBreaks, setViewingBreaks] = useState(null);
     const [editingBreakId, setEditingBreakId] = useState(null);
     const [showAddBreak, setShowAddBreak] = useState(false);
 
-    // Keep viewingBreaks in sync with updated props (important after saves/auto-refresh)
     useEffect(() => {
         if (viewingBreaks) {
             const updated = attendanceData.find(r =>
@@ -289,11 +284,8 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         }
     }, [attendanceData]);
 
-    // ... (rest of search/utility functions)
-    // Sub-component for editing a break
     const BreakEditForm = ({ breakRecord, attendanceRecord, onCancel, onSuccess }) => {
         const [localError, setLocalError] = useState(null);
-        // Helper to format date for time input (HH:mm)
         const formatTimeOnly = (dateStr) => {
             if (!dateStr) return '';
             const d = new Date(dateStr);
@@ -313,8 +305,6 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             const fullStart = `${recordDate}T${data.start_time}`;
             const fullEnd = data.end_time ? `${recordDate}T${data.end_time}` : null;
 
-            
-            // Extract HH:MM from a raw ISO/UTC timestamp for timezone-safe comparison
             const toHHMM = (raw) => {
                 if (!raw) return null;
                 const d = new Date(raw.toString().replace(' ', 'T'));
@@ -325,13 +315,11 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             const punchInHHMM = toHHMM(attendanceRecord.punch_in_raw);
             const punchOutHHMM = attendanceRecord.punch_out_raw ? toHHMM(attendanceRecord.punch_out_raw) : null;
 
-            // Validation: Start time >= Punch In time (HH:MM string comparison)
             if (punchInHHMM && data.start_time < punchInHHMM) {
                 setLocalError(`Break cannot start before punch in time (${punchInHHMM})`);
                 return;
             }
 
-            // Validation: End time rules
             if (data.end_time) {
                 if (data.end_time <= data.start_time) {
                     setLocalError("Break end time must be after start time");
@@ -343,7 +331,6 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                 }
             }
 
-            // Use router directly to ensure correctly formatted date strings are sent
             router.put(route('admin.attendance.break.update', breakRecord.id), {
                 start_time: fullStart,
                 end_time: fullEnd,
@@ -354,58 +341,62 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         };
 
         return (
-            <form onSubmit={handleSubmit} className="p-4 bg-indigo-50/40 rounded-2xl border border-indigo-100 my-2 transition-all">
-                <div className="flex items-center gap-2 mb-3">
-                    <span className="font-bold text-slate-800 text-xs uppercase tracking-wider">Edit Break Details</span>
+            <form onSubmit={handleSubmit} className="p-5 bg-white rounded-2xl border border-gray-200 my-3 shadow-xs transition-all space-y-4">
+                <div>
+                    <h3 className="text-base font-bold text-gray-900">Edit Break Details</h3>
+                    <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                        Date: {attendanceRecord.date ? attendanceRecord.date.toString().substring(0, 10) : ''}
+                    </p>
                 </div>
-                <div className="grid grid-cols-2 gap-3 mb-3">
-                    <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">Start Time *</label>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700 block mb-1">Start Time *</label>
                         <input
                             type="time"
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] outline-none transition-all"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
                             value={data.start_time}
                             onChange={(e) => setData('start_time', e.target.value)}
                             required
                         />
                         {errors.start_time && <p className="text-red-500 text-xs mt-1">{errors.start_time}</p>}
                     </div>
-                    <div>
-                        <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1 ml-0.5">End Time</label>
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700 block mb-1">End Time</label>
                         <input
                             type="time"
-                            className="w-full bg-white border border-slate-300 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus:ring-4 focus:ring-indigo-50 focus:border-[#7e89ca] outline-none transition-all"
+                            className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
                             value={data.end_time}
                             onChange={(e) => setData('end_time', e.target.value)}
                         />
                         {errors.end_time && <p className="text-red-500 text-xs mt-1">{errors.end_time}</p>}
                     </div>
                 </div>
-                {localError && <p className="text-rose-500 text-xs font-semibold mb-3 bg-rose-50 px-3 py-1.5 rounded-lg border border-rose-100">{localError}</p>}
-                <div className="flex items-center justify-end gap-2">
+
+                {localError && <p className="text-rose-600 text-xs font-semibold bg-rose-50 px-3 py-2 rounded-xl border border-rose-100">{localError}</p>}
+
+                <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
                     <button
                         type="button"
                         onClick={onCancel}
-                        className="px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:text-slate-800 bg-white border border-slate-300 rounded-xl shadow-2xs hover:bg-slate-50 transition-all cursor-pointer"
+                        className="px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
                     >
-                        Cancel
+                        CANCEL
                     </button>
                     <button
                         type="submit"
                         disabled={processing}
-                        className="px-4 py-1.5 text-xs font-bold text-white bg-[#1e88e5] hover:bg-[#1565c0] rounded-xl shadow-xs transition-all cursor-pointer disabled:opacity-50 active:scale-95"
+                        className="px-6 py-2.5 bg-[#1e293b] hover:bg-slate-800 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50 active:scale-95"
                     >
-                        Save
+                        UPDATE
                     </button>
                 </div>
             </form>
         );
     };
 
-    // Auto-refresh every 60 seconds
     useEffect(() => {
         const interval = setInterval(() => {
-            // Only reload if we are in daily view for today, or just general reload
             // router.reload preserves state like viewingBreaks modal open
             router.reload({
                 preserveScroll: true,
@@ -533,18 +524,15 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             return `${year}-${month}-${day}T${hours}:${minutes}`;
         };
 
-        let defaultPunchIn = '';
-        if (!record.attendance_id && filters.date) {
-            defaultPunchIn = `${filters.date}T09:00`;
-        } else if (!record.attendance_id && record.date) {
-            defaultPunchIn = `${record.date}T09:00`;
-        }
+        const targetDate = record.date || filters.date || new Date().toISOString().slice(0, 10);
+        const punchInVal = record.punch_in_raw ? formatDateForInput(record.punch_in_raw) : `${targetDate}T09:00`;
+        const punchOutVal = record.punch_out_raw ? formatDateForInput(record.punch_out_raw) : '';
 
         setData({
             user_id: record.id || (selectedUser ? selectedUser.id : ''),
-            date: record.date || filters.date,
-            punch_in: record.punch_in_raw ? formatDateForInput(record.punch_in_raw) : defaultPunchIn,
-            punch_out: record.punch_out_raw ? formatDateForInput(record.punch_out_raw) : '',
+            date: targetDate,
+            punch_in: punchInVal,
+            punch_out: punchOutVal,
         });
     };
 
@@ -559,8 +547,10 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
     };
 
     const getOutDate = (punchOutStr) => {
-        if (!punchOutStr) return '';
-        return String(punchOutStr).slice(0, 10);
+        if (punchOutStr && String(punchOutStr).length >= 10 && String(punchOutStr).slice(0, 10).match(/^\d{4}-\d{2}-\d{2}$/)) {
+            return String(punchOutStr).slice(0, 10);
+        }
+        return getInDate(data.punch_in) || data.date || filters.date || new Date().toISOString().slice(0, 10);
     };
 
     const getOutTime = (punchOutStr) => {
@@ -774,12 +764,12 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                             onClick={() => {
                                 setDisplayMode('requests');
                             }}
-                            className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 flex items-center gap-2 ${displayMode === 'requests'
-                                ? 'border-blue-600 text-blue-600 font-extrabold'
+                            className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 inline-flex items-center gap-2 ${displayMode === 'requests'
+                                ? 'border-blue-600 text-blue-600'
                                 : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
                                 }`}
                         >
-                            <span>Correction Requests</span>
+                            Correction Requests
                             {pendingRequestsCount > 0 && (
                                 <span className="px-2 py-0.5 text-xs bg-amber-500 text-white rounded-full font-black">
                                     {pendingRequestsCount}
@@ -1573,93 +1563,55 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
 
             <Modal show={!!editingAttendance} onClose={closeEditModal}>
                 <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <h2 className="text-lg font-bold text-gray-900 mb-2">
-                        {editingAttendance?.attendance_id ? 'Edit Attendance' : 'Add Attendance'}
-                        {viewType === 'daily' ? ` - ${editingAttendance?.name}` : ` - ${selectedUser?.name}`}
-                    </h2>
-
-                    {/* CHECK IN DATE & TIME */}
-                    <div className="space-y-1">
-                        <InputLabel htmlFor="punch_in_date" value="Check In Date & Time *" />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date</span>
-                                <DatePicker
-                                    value={getInDate(data.punch_in)}
-                                    onChange={(dateVal) => {
-                                        const val = dateVal?.target ? dateVal.target.value : dateVal;
-                                        if (!val) {
-                                            setData('punch_in', '');
-                                        } else {
-                                            const time = getInTime(data.punch_in) || '09:00';
-                                            setData('punch_in', `${val}T${time}`);
-                                        }
-                                    }}
-                                    required
-                                />
-                            </div>
-                            <div>
-                                <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Time</span>
-                                <input
-                                    type="time"
-                                    id="punch_in_time"
-                                    value={getInTime(data.punch_in)}
-                                    onChange={(e) => {
-                                        const timeVal = e.target.value;
-                                        const dateVal = getInDate(data.punch_in) || data.date || filters.date || new Date().toISOString().slice(0, 10);
-                                        setData('punch_in', `${dateVal}T${timeVal || '09:00'}`);
-                                    }}
-                                    required
-                                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
-                                />
-                            </div>
-                        </div>
-                        <InputError message={errors.punch_in} className="mt-1" />
+                    <div>
+                        <h2 className="text-lg font-bold text-gray-900">
+                            {editingAttendance?.attendance_id ? 'Edit Attendance' : 'Add Attendance'}
+                            {viewType === 'daily' ? ` - ${editingAttendance?.name}` : ` - ${selectedUser?.name}`}
+                        </h2>
+                        <p className="text-xs font-semibold text-slate-500 mt-0.5">
+                            Date: {editingAttendance?.date || data.date || filters.date}
+                        </p>
                     </div>
 
-                    {/* CHECK OUT DATE & TIME */}
-                    <div className="space-y-1">
-                        <InputLabel htmlFor="punch_out_date" value="Check Out Date & Time" />
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            <div>
-                                <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Date</span>
-                                <DatePicker
-                                    value={getOutDate(data.punch_out)}
-                                    onChange={(dateVal) => {
-                                        const val = dateVal?.target ? dateVal.target.value : dateVal;
-                                        if (!val) {
-                                            setData('punch_out', '');
-                                        } else {
-                                            const time = getOutTime(data.punch_out) || '18:00';
-                                            setData('punch_out', `${val}T${time}`);
-                                        }
-                                    }}
-                                />
-                            </div>
-                            <div>
-                                <span className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Time</span>
-                                <input
-                                    type="time"
-                                    id="punch_out_time"
-                                    value={getOutTime(data.punch_out)}
-                                    onChange={(e) => {
-                                        const timeVal = e.target.value;
-                                        const dateVal = getOutDate(data.punch_out) || getInDate(data.punch_in) || data.date || filters.date || new Date().toISOString().slice(0, 10);
-                                        if (!timeVal) {
-                                            if (!getOutDate(data.punch_out)) {
-                                                setData('punch_out', '');
-                                            } else {
-                                                setData('punch_out', `${dateVal}T00:00`);
-                                            }
-                                        } else {
-                                            setData('punch_out', `${dateVal}T${timeVal}`);
-                                        }
-                                    }}
-                                    className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
-                                />
-                            </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                        {/* CHECK IN TIME */}
+                        <div className="space-y-1">
+                            <InputLabel htmlFor="punch_in_time" value="Check In Time *" />
+                            <input
+                                type="time"
+                                id="punch_in_time"
+                                value={getInTime(data.punch_in)}
+                                onChange={(e) => {
+                                    const timeVal = e.target.value;
+                                    const dateVal = data.date || filters.date || new Date().toISOString().slice(0, 10);
+                                    setData('punch_in', `${dateVal}T${timeVal || '09:00'}`);
+                                }}
+                                required
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
+                            />
+                            <InputError message={errors.punch_in} className="mt-1" />
                         </div>
-                        <InputError message={errors.punch_out} className="mt-1" />
+
+                        {/* CHECK OUT TIME */}
+                        <div className="space-y-1">
+                            <InputLabel htmlFor="punch_out_time" value="Check Out Time" />
+                            <input
+                                type="time"
+                                id="punch_out_time"
+                                value={getOutTime(data.punch_out)}
+                                onChange={(e) => {
+                                    const timeVal = e.target.value;
+                                    const dateVal = data.date || filters.date || new Date().toISOString().slice(0, 10);
+                                    if (!timeVal) {
+                                        setData('punch_out', '');
+                                    } else {
+                                        setData('punch_out', `${dateVal}T${timeVal}`);
+                                    }
+                                }}
+                                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
+                            />
+                            <InputError message={errors.punch_out} className="mt-1" />
+                        </div>
                     </div>
 
                     <div className="flex items-center justify-end mt-6 pt-3 border-t border-gray-100">

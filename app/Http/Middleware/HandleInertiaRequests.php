@@ -59,12 +59,14 @@ class HandleInertiaRequests extends Middleware
             } elseif ($user->role === 'admin' || $user instanceof \App\Models\Admin) {
                 $admin = ($user instanceof \App\Models\Admin) ? $user : \App\Models\Admin::where('email', $user->email)->first();
                 $plan = $admin ? ($admin->plan ?? 'basic') : ($user->plan ?? 'basic');
-                $userAdditionalModules = $admin ? ($admin->additional_modules ?? ['ai_assistant', 'content_calendar', 'daily_listings', 'designers_worklist', 'domains']) : ['ai_assistant', 'content_calendar', 'daily_listings', 'designers_worklist', 'domains'];
+                $rawAdditional = $admin ? ($admin->additional_modules ?? []) : [];
+                $userAdditionalModules = array_map(function($m) { return $m === 'domains' ? 'websites' : $m; }, is_array($rawAdditional) ? $rawAdditional : []);
             } else {
                 $tenantAdminId = $user->admin_id ?? null;
                 $admin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : null;
                 $plan = $admin ? ($admin->plan ?? 'basic') : 'basic';
-                $userAdditionalModules = $admin ? ($admin->additional_modules ?? ['ai_assistant', 'content_calendar', 'daily_listings', 'designers_worklist', 'domains']) : ['ai_assistant', 'content_calendar', 'daily_listings', 'designers_worklist', 'domains'];
+                $rawAdditional = $admin ? ($admin->additional_modules ?? []) : [];
+                $userAdditionalModules = array_map(function($m) { return $m === 'domains' ? 'websites' : $m; }, is_array($rawAdditional) ? $rawAdditional : []);
             }
         }
 
@@ -195,7 +197,7 @@ class HandleInertiaRequests extends Middleware
             $tenantMaxModules = array_unique(array_merge(
                 $plan === 'premium' ? $premiumModules : $basicModules,
                 is_array($userAdditionalModules) ? $userAdditionalModules : [],
-                ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'designers_worklist']
+                ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'reports']
             ));
 
             $allowedModules = array_values(array_intersect($allowedModules, $tenantMaxModules));

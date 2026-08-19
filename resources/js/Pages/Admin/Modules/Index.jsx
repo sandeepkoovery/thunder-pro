@@ -16,7 +16,7 @@ export default function Index({ modules = [], roles = [], rolePermissions = {}, 
     const { auth, allowedModules } = usePage().props;
     const isSuperAdmin = auth?.user?.role === 'superadmin';
 
-    // Filter modules strictly by subscription (Super admin sees all)
+    // Filter modules strictly by subscription (Super admin sees all system modules, Tenant Admins see only modules in their plan)
     const validModules = isSuperAdmin ? modules : modules.filter((mod) => 
         Array.isArray(allowedModules) && allowedModules.includes(mod.key)
     );

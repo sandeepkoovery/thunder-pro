@@ -29,7 +29,7 @@ class SettingController extends Controller
         $settings['month_end_day'] = $admin ? ($admin->month_end_day ?? 24) : 24;
 
         $adminId = $admin ? $admin->id : 0;
-        $settings['admin_email'] = $settings["admin_email_{$adminId}"] ?? ($admin ? $admin->email : ($settings['admin_email'] ?? ''));
+        $settings['admin_email'] = $settings["admin_email_{$adminId}"] ?? ($admin ? $admin->email : ($settings['admin_email'] ?? ($user->email ?? '')));
         $settings['monthly_working_days'] = $settings["monthly_working_days_{$adminId}"] ?? ($settings['monthly_working_days'] ?? null);
 
         if (!isset($settings['designers_task_type_options'])) {

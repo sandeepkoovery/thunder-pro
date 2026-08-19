@@ -43,7 +43,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
     deptName.includes('design') ||
     deptName.includes('edit');
 
-  const superAdminAllowedModules = ['dashboard', 'admin_users', 'pricing', 'settings'];
+  const superAdminAllowedModules = ['dashboard', 'admin_users', 'modules', 'pricing', 'settings'];
   const isVisible = (module) => {
     if (isSuperAdmin) return superAdminAllowedModules.includes(module);
     if (hiddenMenuItems.includes(module)) return false;

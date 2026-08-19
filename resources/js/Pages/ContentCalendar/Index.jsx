@@ -83,6 +83,14 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
         return `${fmt(start)} - ${fmt(end)}`;
     }, [selectedMonthFilter, monthStartDay, monthEndDay]);
 
+    const updationSuggestions = useMemo(() => {
+        const defaults = ['POSTED', 'NO POST', 'DRAFT', 'PENDING', 'SCHEDULED'];
+        const existing = (calendarItems || [])
+            .map(i => (i.updation || '').trim())
+            .filter(v => v && v.toUpperCase() !== 'STATUS');
+        return Array.from(new Set([...defaults, ...existing]));
+    }, [calendarItems]);
+
     // Modals
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [editingItem, setEditingItem] = useState(null);
@@ -190,8 +198,24 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
 
     const handleInlineUpdate = (id, field, value) => {
         if (isUser) return;
+        const currentItem = (localItems || []).find(i => i.id === id) || (calendarItems || []).find(i => i.id === id);
+        const currentValue = currentItem ? (currentItem[field] ?? '') : '';
+        const newValue = value ?? '';
+
+        // Prevent network request and toast if value has not actually changed
+        if (String(currentValue).trim() === String(newValue).trim()) {
+            return;
+        }
+
+        setLocalItems(prev => prev.map(item => {
+            if (item.id !== id) return item;
+            return { ...item, [field]: value };
+        }));
+
         router.put(route('content-calendar.update', id), { [field]: value }, {
             preserveScroll: true,
+            preserveState: true,
+            only: ['calendarItems'],
             onSuccess: () => toast.success('Updated'),
             onError: () => toast.error('Update failed'),
         });
@@ -225,8 +249,6 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                 assigned_user_ids: [],
             }, {
                 preserveScroll: true,
-                preserveState: true,
-                only: ['calendarItems'],
                 onSuccess: () => toast.success('Row information cleared'),
                 onError: () => toast.error('Failed to clear row'),
             });
@@ -457,6 +479,13 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                     )}
                 </div>
 
+                {/* UPDATION AUTO-SUGGESTIONS DATALIST */}
+                <datalist id="updation-suggestions-list">
+                    {updationSuggestions.map((s, i) => (
+                        <option key={i} value={s} />
+                    ))}
+                </datalist>
+
                 {/* 2. MAIN CALENDAR TABLE */}
                 <div className="bg-white rounded-[24px] shadow-[0_2px_15px_-3px_rgba(0,0,0,0.05)] border border-gray-100/90 overflow-hidden">
                     <div className="overflow-x-auto no-scrollbar">
@@ -543,18 +572,19 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                                                     {isUser ? (
                                                         <span className="font-black text-sm text-gray-900 uppercase tracking-tight">{item.project?.name || 'Select Project'}</span>
                                                     ) : (
-                                                        <div className="relative inline-block">
+                                                        <div className="relative inline-flex items-center">
                                                             <select
                                                                 value={item.project_id || ''}
                                                                 onChange={(e) => handleInlineUpdate(item.id, 'project_id', e.target.value)}
-                                                                className="font-black text-sm text-gray-900 uppercase tracking-tight bg-transparent border-none focus:ring-0 cursor-pointer p-0 pr-5 appearance-none"
+                                                                className="font-black text-sm text-gray-900 uppercase tracking-tight bg-transparent border-none !border-0 focus:ring-0 cursor-pointer p-0 pr-4 appearance-none !appearance-none shadow-none"
+                                                                style={{ WebkitAppearance: 'none', MozAppearance: 'none', appearance: 'none', backgroundImage: 'none' }}
                                                             >
                                                                 <option value="">Select Project</option>
                                                                 {projects.map(p => (
                                                                     <option key={p.id} value={p.id}>{p.name.toUpperCase()}</option>
                                                                 ))}
                                                             </select>
-                                                            <ChevronDown size={14} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                                                            <ChevronDown size={13} className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
                                                         </div>
                                                     )}
                                                 </td>
@@ -562,14 +592,20 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                                                 {/* CREATIVE TYPE */}
                                                 <td className="py-5 px-5">
                                                     {isUser ? (
-                                                        <span className="font-black text-sm text-gray-900 uppercase tracking-tight">{item.creative_type || 'Enter Type...'}</span>
+                                                        <span className="font-bold text-sm text-gray-900 normal-case tracking-tight">{item.creative_type || 'Enter type...'}</span>
                                                     ) : (
-                                                        <input
-                                                            type="text"
+                                                        <textarea
+                                                            key={`type-${item.id}-${item.creative_type || ''}`}
+                                                            rows={2}
                                                             defaultValue={item.creative_type || ''}
                                                             onBlur={(e) => handleInlineUpdate(item.id, 'creative_type', e.target.value)}
-                                                            placeholder="Enter Type..."
-                                                            className="font-black text-sm text-gray-900 uppercase tracking-tight bg-transparent border-none focus:ring-1 focus:ring-orange-400 rounded p-0 w-44 placeholder-gray-300 placeholder:italic placeholder:font-normal"
+                                                            placeholder="Enter type..."
+                                                            className="w-full font-bold text-sm text-[#0f172a] normal-case tracking-tight bg-transparent border-none !border-0 p-0 focus:ring-0 placeholder-gray-300 placeholder:italic placeholder:font-normal min-w-[140px] min-h-[3rem]"
+                                                            style={{ minHeight: '3rem' }}
+                                                            onInput={(e) => {
+                                                                e.target.style.height = 'auto';
+                                                                e.target.style.height = Math.max(e.target.scrollHeight, 48) + 'px';
+                                                            }}
                                                         />
                                                     )}
                                                 </td>
@@ -582,15 +618,25 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                                                         title="Click to Assign Team Members"
                                                     >
                                                         {assignedList.length > 0 ? (
-                                                            assignedList.map((u) => (
-                                                                <div
-                                                                    key={u.id}
-                                                                    title={u.name}
-                                                                    className={`w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs ring-2 ring-white shadow-sm ${getUserColor(u.id)}`}
-                                                                >
-                                                                    {getInitials(u.name)}
-                                                                </div>
-                                                            ))
+                                                            <>
+                                                                {assignedList.slice(0, 3).map((u) => (
+                                                                    <div
+                                                                        key={u.id}
+                                                                        title={u.name}
+                                                                        className={`w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs ring-2 ring-white shadow-sm ${getUserColor(u.id)}`}
+                                                                    >
+                                                                        {getInitials(u.name)}
+                                                                    </div>
+                                                                ))}
+                                                                {assignedList.length > 3 && (
+                                                                    <div
+                                                                        title={assignedList.slice(3).map(u => u.name).join(', ')}
+                                                                        className="w-8 h-8 rounded-full flex items-center justify-center font-extrabold text-xs ring-2 ring-white shadow-sm bg-slate-200 text-slate-700"
+                                                                    >
+                                                                        +{assignedList.length - 3}
+                                                                    </div>
+                                                                )}
+                                                            </>
                                                         ) : (
                                                             <div className="w-8 h-8 rounded-full border-2 border-dashed border-gray-300 hover:border-orange-400 text-gray-300 hover:text-orange-500 flex items-center justify-center transition-colors">
                                                                 <Plus size={16} strokeWidth={2.5} />
@@ -653,80 +699,112 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                                                                 ? 'bg-[#e8f5e9] text-[#2e7d32] border-[#c8e6c9]'
                                                                 : (item.updation || '').toUpperCase() === 'NO POST'
                                                                 ? 'bg-slate-100 text-slate-700 border-slate-200'
+                                                                : (item.updation || '').toUpperCase() === 'DRAFT'
+                                                                ? 'bg-amber-50 text-amber-600 border-amber-200'
                                                                 : 'bg-[#f4f6f9] text-gray-400 border-gray-200'
                                                         }`}>
                                                             {item.updation || 'STATUS'}
                                                         </span>
                                                     ) : (
                                                         <div className="relative inline-block">
-                                                            <select
-                                                                value={item.updation || 'STATUS'}
-                                                                onChange={(e) => handleInlineUpdate(item.id, 'updation', e.target.value)}
-                                                                className={`pl-4 pr-7 py-1.5 rounded-xl text-xs font-black uppercase border cursor-pointer appearance-none text-center shadow-sm ${
+                                                            <input
+                                                                key={`updation-${item.id}-${item.updation || ''}`}
+                                                                type="text"
+                                                                list="updation-suggestions-list"
+                                                                defaultValue={item.updation === 'STATUS' ? '' : (item.updation || '')}
+                                                                placeholder="STATUS"
+                                                                onBlur={(e) => handleInlineUpdate(item.id, 'updation', e.target.value)}
+                                                                className={`px-3 py-1.5 rounded-xl text-xs font-black uppercase text-center cursor-text transition-all w-28 focus:ring-2 focus:ring-blue-400 focus:bg-white ${
                                                                     (item.updation || '').toUpperCase() === 'POSTED' || (item.updation || '').toUpperCase() === 'PUBLISHED'
-                                                                        ? 'bg-[#e8f5e9] text-[#2e7d32] border-[#c8e6c9]'
+                                                                        ? 'bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9]'
                                                                         : (item.updation || '').toUpperCase() === 'DRAFT'
-                                                                        ? 'bg-amber-50 text-amber-600 border-amber-200'
+                                                                        ? 'bg-amber-50 text-amber-600 border border-amber-200'
                                                                         : (item.updation || '').toUpperCase() === 'NO POST'
-                                                                        ? 'bg-slate-100 text-slate-700 border-slate-200'
-                                                                        : 'bg-[#f4f6f9] text-gray-400 border-gray-200'
+                                                                        ? 'bg-slate-100 text-slate-700 border border-slate-200'
+                                                                        : 'bg-[#f4f6f9] text-gray-400 border border-gray-200 placeholder-gray-400'
                                                                 }`}
-                                                            >
-                                                                <option value="STATUS">STATUS</option>
-                                                                <option value="POSTED">POSTED</option>
-                                                                <option value="NO POST">NO POST</option>
-                                                                <option value="DRAFT">DRAFT</option>
-                                                                <option value="PENDING">PENDING</option>
-                                                                <option value="SCHEDULED">SCHEDULED</option>
-                                                            </select>
-                                                            <ChevronDown size={12} className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-60" />
+                                                            />
                                                         </div>
                                                     )}
                                                 </td>
 
                                                 {/* DRIVE LINK */}
                                                 <td className="py-5 px-5">
-                                                    {item.drive_link ? (
-                                                        <a
-                                                            href={item.drive_link}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-bold max-w-[130px] truncate underline"
-                                                        >
-                                                            https://... <ExternalLink size={13} className="text-blue-500 flex-shrink-0" />
-                                                        </a>
-                                                    ) : isUser ? (
-                                                        <span className="text-blue-400/80 text-sm italic font-medium">Paste Link...</span>
+                                                    {isUser ? (
+                                                        item.drive_link ? (
+                                                            <a
+                                                                href={item.drive_link}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:text-blue-800 font-bold max-w-[130px] truncate underline"
+                                                            >
+                                                                https://d.. <ExternalLink size={13} className="text-blue-500 flex-shrink-0" />
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-blue-400/80 text-sm italic font-medium">Paste Link...</span>
+                                                        )
                                                     ) : (
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Paste Link..."
-                                                            onBlur={(e) => e.target.value && handleInlineUpdate(item.id, 'drive_link', e.target.value)}
-                                                            className="text-sm text-blue-600 placeholder-blue-300 bg-transparent border-none p-0 focus:ring-0 w-32 italic underline font-semibold"
-                                                        />
+                                                        <div className="flex items-center gap-1">
+                                                            <input
+                                                                key={`drive-${item.id}-${item.drive_link || ''}`}
+                                                                type="text"
+                                                                defaultValue={item.drive_link || ''}
+                                                                placeholder="Paste Link..."
+                                                                onBlur={(e) => handleInlineUpdate(item.id, 'drive_link', e.target.value)}
+                                                                className="text-sm text-blue-600 placeholder-blue-300 bg-transparent border-none !border-0 p-0 focus:ring-0 w-28 italic underline font-semibold shadow-none truncate"
+                                                            />
+                                                            {item.drive_link && (
+                                                                <a
+                                                                    href={item.drive_link}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="text-blue-500 hover:text-blue-700 flex-shrink-0 p-0.5 transition-colors"
+                                                                    title="Open Link"
+                                                                >
+                                                                    <ExternalLink size={13} />
+                                                                </a>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </td>
 
                                                 {/* THUMBNAIL */}
                                                 <td className="py-5 px-5">
-                                                    {item.thumbnail_link ? (
-                                                        <a
-                                                            href={item.thumbnail_link}
-                                                            target="_blank"
-                                                            rel="noreferrer"
-                                                            className="inline-flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-bold max-w-[130px] truncate underline"
-                                                        >
-                                                            https://d.. <ImageIcon size={13} className="text-purple-500 flex-shrink-0" />
-                                                        </a>
-                                                    ) : isUser ? (
-                                                        <span className="text-purple-400/80 text-sm italic font-medium">Paste Image UR..</span>
+                                                    {isUser ? (
+                                                        item.thumbnail_link ? (
+                                                            <a
+                                                                href={item.thumbnail_link}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-1 text-sm text-purple-600 hover:text-purple-800 font-bold max-w-[130px] truncate underline"
+                                                            >
+                                                                https://dr.. <ImageIcon size={13} className="text-purple-500 flex-shrink-0" />
+                                                            </a>
+                                                        ) : (
+                                                            <span className="text-purple-400/80 text-sm italic font-medium">Paste Image URL...</span>
+                                                        )
                                                     ) : (
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Paste Image UR.."
-                                                            onBlur={(e) => e.target.value && handleInlineUpdate(item.id, 'thumbnail_link', e.target.value)}
-                                                            className="text-sm text-purple-600 placeholder-purple-300 bg-transparent border-none p-0 focus:ring-0 w-36 italic underline font-bold"
-                                                        />
+                                                        <div className="flex items-center gap-1">
+                                                            <input
+                                                                key={`thumb-${item.id}-${item.thumbnail_link || ''}`}
+                                                                type="text"
+                                                                defaultValue={item.thumbnail_link || ''}
+                                                                placeholder="Paste Image URL..."
+                                                                onBlur={(e) => handleInlineUpdate(item.id, 'thumbnail_link', e.target.value)}
+                                                                className="text-sm text-purple-600 placeholder-purple-300 bg-transparent border-none !border-0 p-0 focus:ring-0 w-32 italic underline font-bold shadow-none truncate"
+                                                            />
+                                                            {item.thumbnail_link && (
+                                                                <a
+                                                                    href={item.thumbnail_link}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                    className="text-purple-500 hover:text-purple-700 flex-shrink-0 p-0.5 transition-colors"
+                                                                    title="View Image"
+                                                                >
+                                                                    <ImageIcon size={13} />
+                                                                </a>
+                                                            )}
+                                                        </div>
                                                     )}
                                                 </td>
 
@@ -736,11 +814,17 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                                                         <span className="text-sm italic font-medium text-gray-800">{item.creative_caption || 'Enter caption...'}</span>
                                                     ) : (
                                                         <textarea
-                                                            rows={1}
+                                                            key={`caption-${item.id}-${item.creative_caption || ''}`}
+                                                            rows={2}
                                                             defaultValue={item.creative_caption || ''}
                                                             onBlur={(e) => handleInlineUpdate(item.id, 'creative_caption', e.target.value)}
                                                             placeholder="Enter caption..."
-                                                            className="w-full text-sm italic font-medium text-gray-800 placeholder-gray-400 bg-transparent border-none p-0 focus:ring-1 focus:ring-orange-300 rounded resize-none"
+                                                            className="w-full text-sm italic font-medium text-gray-800 bg-transparent border-none !border-0 p-0 focus:ring-0 placeholder-gray-400 placeholder:italic min-w-[150px] min-h-[3rem]"
+                                                            style={{ minHeight: '3rem' }}
+                                                            onInput={(e) => {
+                                                                e.target.style.height = 'auto';
+                                                                e.target.style.height = Math.max(e.target.scrollHeight, 48) + 'px';
+                                                            }}
                                                         />
                                                     )}
                                                 </td>

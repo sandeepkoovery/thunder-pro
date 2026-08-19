@@ -459,11 +459,11 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                         onClick={() => setActiveTab('requests')}
                         className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 flex items-center gap-2 ${
                             activeTab === 'requests'
-                                ? 'border-blue-600 text-blue-600 font-extrabold'
+                                ? 'border-blue-600 text-blue-600'
                                 : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
                         }`}
                     >
-                        <span>My Correction Requests</span>
+                        My Correction Requests
                         {pendingRequestsCount > 0 && (
                             <span className="px-2 py-0.5 text-xs bg-amber-500 text-white rounded-full font-black">
                                 {pendingRequestsCount}
@@ -877,13 +877,13 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                                     {data.request_type === 'punch_time' && (
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="space-y-1">
-                                                <label className="text-xs font-bold text-slate-700">Requested Punch In</label>
+                                                <label className="text-xs font-bold text-slate-700 block mb-1">Requested Punch In *</label>
                                                 <input
                                                     type="time"
                                                     value={data.requested_punch_in}
                                                     onChange={(e) => setData('requested_punch_in', e.target.value)}
-                                                    className={`w-full rounded-xl text-sm font-semibold focus:ring-indigo-500 focus:border-indigo-500 ${
-                                                        inlineErrors.requested_punch_in ? 'border-rose-500 bg-rose-50/40 text-rose-900' : 'border-gray-200'
+                                                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer ${
+                                                        inlineErrors.requested_punch_in ? 'border-rose-500 bg-rose-50/40 text-rose-900' : 'border-gray-300 bg-white'
                                                     }`}
                                                     required={!(attendanceData.find(r => r.date === data.date)?.punch_in_raw)}
                                                 />
@@ -894,13 +894,13 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                                                 )}
                                             </div>
                                             <div className="space-y-1">
-                                                <label className="text-xs font-bold text-slate-700">Requested Punch Out</label>
+                                                <label className="text-xs font-bold text-slate-700 block mb-1">Requested Punch Out</label>
                                                 <input
                                                     type="time"
                                                     value={data.requested_punch_out}
                                                     onChange={(e) => setData('requested_punch_out', e.target.value)}
-                                                    className={`w-full rounded-xl text-sm font-semibold focus:ring-indigo-500 focus:border-indigo-500 ${
-                                                        inlineErrors.requested_punch_out ? 'border-rose-500 bg-rose-50/40 text-rose-900' : 'border-gray-200'
+                                                    className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer ${
+                                                        inlineErrors.requested_punch_out ? 'border-rose-500 bg-rose-50/40 text-rose-900' : 'border-gray-300 bg-white'
                                                     }`}
                                                 />
                                                 {inlineErrors.requested_punch_out && (
@@ -944,7 +944,7 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
 
                                             {data.break_action === 'edit' && selectedRecord?.breaks && (
                                                 <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-slate-700">Select Break to Modify</label>
+                                                    <label className="text-xs font-bold text-slate-700 block mb-1">Select Break to Modify</label>
                                                     <select
                                                         value={data.attendance_break_id}
                                                         onChange={(e) => {
@@ -971,7 +971,7 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                                                                 requested_break_end: bEnd,
                                                             }));
                                                         }}
-                                                        className="w-full rounded-xl border-gray-200 text-sm font-semibold focus:ring-indigo-500 focus:border-indigo-500"
+                                                        className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 bg-white text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer"
                                                         required
                                                     >
                                                         <option value="">Select a break...</option>
@@ -989,13 +989,13 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
 
                                             <div className="grid grid-cols-2 gap-4">
                                                 <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-slate-700">Break Start Time</label>
+                                                    <label className="text-xs font-bold text-slate-700 block mb-1">Break Start Time *</label>
                                                     <input
                                                         type="time"
                                                         value={data.requested_break_start}
                                                         onChange={(e) => setData('requested_break_start', e.target.value)}
-                                                        className={`w-full rounded-xl text-sm font-semibold focus:ring-indigo-500 focus:border-indigo-500 ${
-                                                            inlineErrors.requested_break_start ? 'border-rose-500 bg-rose-50/40 text-rose-900' : 'border-gray-200'
+                                                        className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer ${
+                                                            inlineErrors.requested_break_start ? 'border-rose-500 bg-rose-50/40 text-rose-900' : 'border-gray-300 bg-white'
                                                         }`}
                                                         required
                                                     />
@@ -1006,13 +1006,13 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                                                     )}
                                                 </div>
                                                 <div className="space-y-1">
-                                                    <label className="text-xs font-bold text-slate-700">Break End Time</label>
+                                                    <label className="text-xs font-bold text-slate-700 block mb-1">Break End Time *</label>
                                                     <input
                                                         type="time"
                                                         value={data.requested_break_end}
                                                         onChange={(e) => setData('requested_break_end', e.target.value)}
-                                                        className={`w-full rounded-xl text-sm font-semibold focus:ring-indigo-500 focus:border-indigo-500 ${
-                                                            inlineErrors.requested_break_end ? 'border-rose-500 bg-rose-50/40 text-rose-900' : 'border-gray-200'
+                                                        className={`w-full px-3.5 py-2.5 rounded-xl text-sm font-semibold text-gray-800 hover:border-gray-400 focus:border-[#635bfc] focus:ring-4 focus:ring-[#635bfc]/15 outline-none transition-all cursor-pointer ${
+                                                            inlineErrors.requested_break_end ? 'border-rose-500 bg-rose-50/40 text-rose-900' : 'border-gray-300 bg-white'
                                                         }`}
                                                         required
                                                     />
@@ -1044,16 +1044,16 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                                         <button
                                             type="button"
                                             onClick={() => setShowModal(false)}
-                                            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold rounded-xl transition-colors"
+                                            className="px-5 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all cursor-pointer"
                                         >
-                                            Cancel
+                                            CANCEL
                                         </button>
                                         <button
                                             type="submit"
                                             disabled={processing || hasAnyInlineError}
-                                            className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                            className="px-6 py-2.5 bg-[#1e293b] hover:bg-slate-800 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                                         >
-                                            {processing ? 'Submitting...' : 'Submit Request'}
+                                            {processing ? 'SUBMITTING...' : 'SUBMIT'}
                                         </button>
                                     </div>
                                 </>
