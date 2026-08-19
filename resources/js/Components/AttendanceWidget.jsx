@@ -62,25 +62,25 @@ export default function AttendanceWidget({ isDarkHeader = false }) {
         const punchIn = parseSafariDate(attendance.punch_in).getTime();
         const totalWorkedMs = (attendance.total_worked_minutes || 0) * 60 * 1000;
 
-        if (attendance.status === 'punched_in') {
+        if (status === 'on_break' || attendance.status === 'on_break') {
+            // Worked time is fixed until break ends
+            // But we need to account for the session BEFORE the break started.
+            // If we are on break, punch_in is still the start of the CURRENT session.
+            // So worked = (BreakStart - PunchIn) + PreviousSessions
+            const breakStart = attendance.break_start ? parseSafariDate(attendance.break_start).getTime() : now;
+            const currentSessionBeforeBreak = Math.max(0, breakStart - punchIn);
+
+            setTimer(Math.floor((totalWorkedMs + currentSessionBeforeBreak) / 1000));
+
+            const currentBreakDuration = now - breakStart;
+            setBreakTimer(Math.floor(Math.max(0, currentBreakDuration) / 1000));
+        } else if (attendance.status === 'punched_in') {
             // Current Session + Previous Sessions
             // Note: total_worked_minutes only stores COMPLETED sessions.
             // So we add (Now - PunchIn) to total_worked_minutes.
             const currentSession = now - punchIn;
             setTimer(Math.floor((totalWorkedMs + currentSession) / 1000));
             setSessionTimer(Math.floor(currentSession / 1000));
-        } else if (attendance.status === 'on_break') {
-            // Worked time is fixed until break ends
-            // But we need to account for the session BEFORE the break started.
-            // If we are on break, punch_in is still the start of the CURRENT session.
-            // So worked = (BreakStart - PunchIn) + PreviousSessions
-            const breakStart = new Date(attendance.break_start).getTime();
-            const currentSessionBeforeBreak = breakStart - punchIn;
-
-            setTimer(Math.floor((totalWorkedMs + currentSessionBeforeBreak) / 1000));
-
-            const currentBreakDuration = now - breakStart;
-            setBreakTimer(Math.floor(currentBreakDuration / 1000));
         } else if (attendance.status === 'punched_out') {
             // Just show total worked minutes
             setTimer(Math.floor(totalWorkedMs / 1000));
@@ -277,16 +277,21 @@ export default function AttendanceWidget({ isDarkHeader = false }) {
                         <button
                             onClick={() => handleAction('break-end')}
                             disabled={processing}
-                            className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 bg-blue-500 text-white text-sm font-bold rounded-xl hover:bg-blue-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer shadow-sm"
                         >
                             {processing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2 fill-current" />}
                             Resume
                         </button>
                         <Link
-                            href={route('attendance.index')}
-                            className="text-xs font-bold text-indigo-600 hover:text-indigo-800 underline decoration-indigo-200 transition-colors"
+                            href={route('attendance.index', { display: 'requests' })}
+                            className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 sm:px-4 sm:py-2 text-sm font-bold rounded-xl transition-all cursor-pointer shadow-sm ${
+                                isDarkHeader 
+                                    ? 'bg-white/10 hover:bg-white/20 text-white border border-white/20' 
+                                    : 'bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200'
+                            }`}
                         >
-                            Forgot to resume? Request break correction
+                            <Clock className="w-4 h-4 mr-2" />
+                            Request Break Correction
                         </Link>
                     </div>
                 )}

@@ -22,10 +22,13 @@ class AttendanceController extends Controller
             ->get();
 
         $latestAttendance = $attendances->last();
-        if ($latestAttendance && $latestAttendance->status === 'on_break') {
+        if ($latestAttendance && $latestAttendance->status !== 'punched_out') {
             $activeBreak = $latestAttendance->breaks->whereNull('end_time')->last();
-            if ($activeBreak && !$latestAttendance->break_start) {
-                $latestAttendance->break_start = $activeBreak->start_time;
+            if ($activeBreak) {
+                $latestAttendance->status = 'on_break';
+                if (!$latestAttendance->break_start) {
+                    $latestAttendance->break_start = $activeBreak->start_time;
+                }
             }
         }
         $totalMinutesToday = $attendances->sum('total_worked_minutes');
@@ -213,7 +216,7 @@ class AttendanceController extends Controller
     {
         $attendance = Attendance::where('user_id', Auth::id())
             ->where('date', Carbon::today())
-            ->where('status', 'on_break')
+            ->where('status', '!=', 'punched_out')
             ->latest()
             ->first();
 
@@ -398,15 +401,17 @@ class AttendanceController extends Controller
 
                         // Calculate Current Status
                         $currentStatus = '-';
+                        $hasActiveBreak = $breaks && collect($breaks)->whereNull('end_time')->isNotEmpty();
                         if ($attendance->date instanceof \Carbon\Carbon ? $attendance->date->isToday() : $attendance->date === Carbon::today()->toDateString()) {
-                            if ($dbStatus === 'punched_in')
-                                $currentStatus = 'Working';
-                            elseif ($dbStatus === 'on_break')
+                            if ($dbStatus !== 'punched_out' && ($hasActiveBreak || $dbStatus === 'on_break')) {
                                 $currentStatus = 'Break';
-                            elseif ($dbStatus === 'punched_out')
+                            } elseif ($dbStatus === 'punched_in') {
+                                $currentStatus = 'Working';
+                            } elseif ($dbStatus === 'punched_out') {
                                 $currentStatus = 'Punched Out';
+                            }
                         } else {
-                            $currentStatus = $attendance->punch_out ? 'Punched Out' : '-';
+                            $currentStatus = $attendance->punch_out ? 'Punched Out' : ($hasActiveBreak ? 'Break' : '-');
                         }
 
                         // Calculate real-time break minutes including ongoing breaks
@@ -618,15 +623,17 @@ class AttendanceController extends Controller
 
             // Calculate Current Status
             $currentStatus = '-';
+            $hasActiveBreak = $breaks && collect($breaks)->whereNull('end_time')->isNotEmpty();
             if ($attendance && $date === Carbon::today()->toDateString()) {
-                if ($dbStatus === 'punched_in')
-                    $currentStatus = 'Working';
-                elseif ($dbStatus === 'on_break')
+                if ($dbStatus !== 'punched_out' && ($hasActiveBreak || $dbStatus === 'on_break')) {
                     $currentStatus = 'Break';
-                elseif ($dbStatus === 'punched_out')
+                } elseif ($dbStatus === 'punched_in') {
+                    $currentStatus = 'Working';
+                } elseif ($dbStatus === 'punched_out') {
                     $currentStatus = 'Punched Out';
+                }
             } elseif ($attendance) {
-                $currentStatus = $attendance->punch_out ? 'Punched Out' : '-';
+                $currentStatus = $attendance->punch_out ? 'Punched Out' : ($hasActiveBreak ? 'Break' : '-');
             }
 
             // Real-time break calculation
@@ -820,6 +827,12 @@ class AttendanceController extends Controller
         $totalBreak = $attendance->breaks()->sum('total_minutes');
 
         $updateData = ['total_break_minutes' => $totalBreak];
+
+        // If break is ongoing (no end_time) and attendance is active, set status to on_break
+        if (!$endTime && $attendance->status !== 'punched_out') {
+            $updateData['status'] = 'on_break';
+            $updateData['break_start'] = $startTime;
+        }
 
         // Recalculate working minutes if already punched out
         if ($attendance->status === 'punched_out' && $attendance->punch_out && $attendance->punch_in) {
