@@ -49,11 +49,16 @@ class DatabaseBackupService
             }
             $tempFilePath = $tempDir . DIRECTORY_SEPARATOR . $fileName;
 
-            // 3. Generate MySQL Dump
-            $this->generateMysqlDump($tempFilePath);
+            // 3. Generate MySQL Dump (with automatic PHP fallback)
+            try {
+                $this->generateMysqlDump($tempFilePath);
+            } catch (\Throwable $dumpEx) {
+                Log::warning("mysqldump failed: " . $dumpEx->getMessage() . ". Falling back to PHP PDO database dumper.");
+                $this->generatePhpPdoDump($tempFilePath);
+            }
 
             if (!file_exists($tempFilePath) || filesize($tempFilePath) === 0) {
-                throw new \Exception('Generated mysqldump file is missing or empty.');
+                throw new \Exception('Generated database backup file is missing or empty.');
             }
 
             $fileSize = filesize($tempFilePath);
@@ -125,6 +130,9 @@ class DatabaseBackupService
         }
 
         $host = $dbConfig['host'] ?? '127.0.0.1';
+        if ($host === 'localhost') {
+            $host = '127.0.0.1';
+        }
         $port = $dbConfig['port'] ?? '3306';
         $username = $dbConfig['username'] ?? 'root';
         $password = $dbConfig['password'] ?? '';
@@ -139,7 +147,7 @@ class DatabaseBackupService
         $passArg = !empty($password) ? ('--password=' . escapeshellarg($password)) : '';
 
         $command = sprintf(
-            '%s --host=%s --port=%s --user=%s %s %s',
+            '%s --host=%s --port=%s --protocol=tcp --user=%s %s %s',
             $mysqldumpBin,
             escapeshellarg($host),
             escapeshellarg($port),
@@ -170,6 +178,81 @@ class DatabaseBackupService
             // Filter stderr to prevent password leakage in error logs if any
             $cleanStderr = preg_replace('/--password=\S+/', '--password=***', $stderr);
             throw new \Exception("mysqldump failed (Exit Code {$returnVal}): " . trim($cleanStderr));
+        }
+    }
+
+    /**
+     * Fallback database dump generator using PHP PDO.
+     */
+    protected function generatePhpPdoDump(string $tempFilePath): void
+    {
+        $handle = fopen($tempFilePath, 'w');
+        if (!$handle) {
+            throw new \Exception('Could not create temporary dump file for PDO backup.');
+        }
+
+        try {
+            $pdo = \Illuminate\Support\Facades\DB::connection()->getPdo();
+            $dbName = \Illuminate\Support\Facades\DB::connection()->getDatabaseName();
+
+            fwrite($handle, "-- WorkNest Database Backup (PHP Fallback)\n");
+            fwrite($handle, "-- Generated: " . date('Y-m-d H:i:s') . "\n");
+            fwrite($handle, "-- Database: {$dbName}\n\n");
+            fwrite($handle, "SET FOREIGN_KEY_CHECKS=0;\n");
+            fwrite($handle, "SET SQL_MODE = \"NO_AUTO_VALUE_ON_ZERO\";\n");
+            fwrite($handle, "SET time_zone = \"+00:00\";\n\n");
+
+            $tables = \Illuminate\Support\Facades\DB::select('SHOW TABLES');
+            $tableKey = 'Tables_in_' . $dbName;
+
+            foreach ($tables as $tableObj) {
+                $tableName = $tableObj->$tableKey ?? reset($tableObj);
+                if (!$tableName) continue;
+
+                fwrite($handle, "-- --------------------------------------------------------\n");
+                fwrite($handle, "-- Table structure for table `{$tableName}`\n");
+                fwrite($handle, "-- --------------------------------------------------------\n\n");
+                fwrite($handle, "DROP TABLE IF EXISTS `{$tableName}`;\n");
+
+                $createTableStmt = \Illuminate\Support\Facades\DB::select("SHOW CREATE TABLE `{$tableName}`");
+                if (!empty($createTableStmt)) {
+                    $createRow = (array)$createTableStmt[0];
+                    $createSql = $createRow['Create Table'] ?? array_values($createRow)[1] ?? null;
+                    if ($createSql) {
+                        fwrite($handle, $createSql . ";\n\n");
+                    }
+                }
+
+                // Dump table data
+                $rows = \Illuminate\Support\Facades\DB::table($tableName)->get();
+                if ($rows->count() > 0) {
+                    fwrite($handle, "-- Dumping data for table `{$tableName}`\n\n");
+                    foreach ($rows->chunk(100) as $chunk) {
+                        foreach ($chunk as $row) {
+                            $rowArray = (array)$row;
+                            $columns = array_map(fn($col) => "`" . str_replace("`", "``", $col) . "`", array_keys($rowArray));
+                            $values = array_map(function ($val) use ($pdo) {
+                                if (is_null($val)) return 'NULL';
+                                return $pdo->quote($val);
+                            }, array_values($rowArray));
+
+                            $insertSql = sprintf(
+                                "INSERT INTO `%s` (%s) VALUES (%s);\n",
+                                $tableName,
+                                implode(', ', $columns),
+                                implode(', ', $values)
+                            );
+                            fwrite($handle, $insertSql);
+                        }
+                    }
+                    fwrite($handle, "\n");
+                }
+            }
+
+            fwrite($handle, "SET FOREIGN_KEY_CHECKS=1;\n");
+
+        } finally {
+            fclose($handle);
         }
     }
 
