@@ -80,10 +80,10 @@ class ModuleController extends Controller
             'websites' => 13,
             'reports' => 14,
             'notifications' => 15,
-            'ai_assistant' => 16,
-            'modules' => 17,
-            'pricing' => 18,
-            'settings' => 19,
+            'modules' => 16,
+            'pricing' => 17,
+            'settings' => 18,
+            'ai_assistant' => 19,
         ];
 
         $savedOrderJson = Setting::where('key', 'module_order')->value('value');
@@ -146,8 +146,8 @@ class ModuleController extends Controller
         $modules = [
             'dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 
             'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 
-            'drive', 'chat', 'websites', 'reports', 'notifications', 'ai_assistant', 
-            'modules', 'pricing', 'settings'
+            'drive', 'chat', 'websites', 'reports', 'notifications', 'modules', 
+            'pricing', 'settings', 'ai_assistant'
         ];
 
         $additionalModulesJson = Setting::where('key', 'additional_modules')->value('value');
@@ -189,9 +189,40 @@ class ModuleController extends Controller
                 }
             }
 
-            // Check for duplicate order values
-            $orderValues = array_values($cleanedOrder);
-            $duplicateValues = array_unique(array_diff_assoc($orderValues, array_unique($orderValues)));
+            // Determine visible/allowed modules for duplicate checking based on current user role
+            $user = auth()->user();
+            $isSuperAdmin = $user && $user->role === 'superadmin';
+
+            $orderCheckModules = $modules;
+            if (!$isSuperAdmin) {
+                $admin = $user->tenant_id ? \App\Models\User::find($user->tenant_id) : $user;
+                $plan = $admin ? ($admin->subscription_plan ?? 'basic') : 'basic';
+                $basicModules = ['dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 'calendar', 'drive', 'chat', 'reports', 'notifications', 'modules', 'pricing', 'settings'];
+                $premiumModules = ['dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'websites', 'reports', 'notifications', 'ai_assistant', 'modules', 'pricing', 'settings'];
+
+                $userAdditionalModules = [];
+                if ($admin && !empty($admin->additional_modules)) {
+                    $userAdditionalModules = is_array($admin->additional_modules) ? $admin->additional_modules : (json_decode($admin->additional_modules, true) ?: []);
+                }
+
+                $tenantMaxModules = array_unique(array_merge(
+                    $plan === 'premium' ? $premiumModules : $basicModules,
+                    $userAdditionalModules,
+                    ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'reports']
+                ));
+
+                $orderCheckModules = array_values(array_intersect($modules, $tenantMaxModules));
+            }
+
+            // Check for duplicate order values among visible/allowed modules for this user
+            $checkOrderValues = [];
+            foreach ($orderCheckModules as $mKey) {
+                if (isset($cleanedOrder[$mKey])) {
+                    $checkOrderValues[] = $cleanedOrder[$mKey];
+                }
+            }
+
+            $duplicateValues = array_unique(array_diff_assoc($checkOrderValues, array_unique($checkOrderValues)));
             if (!empty($duplicateValues)) {
                 $dupNum = implode(', ', $duplicateValues);
                 return back()->withErrors(['module_order' => "Order numbers must be unique. Duplicate order number ($dupNum) detected."]);

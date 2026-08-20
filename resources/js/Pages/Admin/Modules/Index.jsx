@@ -29,7 +29,7 @@ export default function Index({ modules = [], roles = [], rolePermissions = {}, 
     const checkDuplicates = (orderData) => {
         const counts = {};
         const dups = [];
-        modules.forEach((mod) => {
+        validModules.forEach((mod) => {
             const val = orderData[mod.key] ?? mod.order ?? 1;
             if (val !== '' && val !== null && val !== undefined) {
                 const numVal = Number(val);
