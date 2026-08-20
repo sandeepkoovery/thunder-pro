@@ -24,11 +24,18 @@ class GoogleDriveAuthController extends Controller
         $admin = $this->getAdminContext();
         $connection = $admin ? $admin->googleDriveConnection : null;
 
-        $clientId = $connection?->client_id ?: config('services.google.client_id');
-        $clientSecret = $connection?->client_secret ?: config('services.google.client_secret');
+        $clientId = $connection?->client_id 
+            ?: Setting::where('key', 'google_drive_client_id')->value('value') 
+            ?: Setting::where('key', 'google_client_id')->value('value') 
+            ?: config('services.google.client_id');
+
+        $clientSecret = $connection?->client_secret 
+            ?: Setting::where('key', 'google_drive_client_secret')->value('value') 
+            ?: Setting::where('key', 'google_client_secret')->value('value') 
+            ?: config('services.google.client_secret');
 
         if (!$clientId || !$clientSecret) {
-            return redirect()->route('drive.index')->with('error', 'Google Client ID & Client Secret are required to initiate Google OAuth login.');
+            return redirect()->route('drive.index', ['open_settings' => '1'])->with('error', 'Google Client ID & Client Secret are required to initiate Google OAuth login. Please configure them below or in .env.');
         }
 
         $client = new Client();
@@ -59,8 +66,15 @@ class GoogleDriveAuthController extends Controller
             }
 
             $connection = $admin->googleDriveConnection;
-            $clientId = $connection?->client_id ?: config('services.google.client_id');
-            $clientSecret = $connection?->client_secret ?: config('services.google.client_secret');
+            $clientId = $connection?->client_id 
+                ?: Setting::where('key', 'google_drive_client_id')->value('value') 
+                ?: Setting::where('key', 'google_client_id')->value('value') 
+                ?: config('services.google.client_id');
+
+            $clientSecret = $connection?->client_secret 
+                ?: Setting::where('key', 'google_drive_client_secret')->value('value') 
+                ?: Setting::where('key', 'google_client_secret')->value('value') 
+                ?: config('services.google.client_secret');
 
             $client = new Client();
             $client->setClientId($clientId);
@@ -153,7 +167,7 @@ class GoogleDriveAuthController extends Controller
             $request->validate([
                 'client_id' => 'nullable|string',
                 'client_secret' => 'nullable|string',
-                'refresh_token' => 'required|string',
+                'refresh_token' => 'nullable|string',
                 'root_folder_id' => 'nullable|string'
             ]);
 
@@ -163,23 +177,38 @@ class GoogleDriveAuthController extends Controller
                 return response()->json(['success' => false, 'error' => 'Admin context not found.'], 404);
             }
 
-            $dataToSave = [
-                'refresh_token' => trim($request->input('refresh_token')),
-                'root_folder_id' => trim($request->input('root_folder_id')) ?: null,
-            ];
+            $dataToSave = [];
+
+            if ($request->has('refresh_token') && !empty($request->input('refresh_token'))) {
+                $dataToSave['refresh_token'] = trim($request->input('refresh_token'));
+            }
+
+            if ($request->has('root_folder_id')) {
+                $dataToSave['root_folder_id'] = trim($request->input('root_folder_id')) ?: null;
+            }
 
             if ($request->has('client_id')) {
-                $dataToSave['client_id'] = trim($request->input('client_id')) ?: null;
+                $clientIdVal = trim($request->input('client_id')) ?: null;
+                $dataToSave['client_id'] = $clientIdVal;
+                if ($clientIdVal) {
+                    \App\Models\Setting::updateOrCreate(['key' => 'google_drive_client_id'], ['value' => $clientIdVal]);
+                }
             }
 
             if ($request->has('client_secret')) {
-                $dataToSave['client_secret'] = trim($request->input('client_secret')) ?: null;
+                $clientSecretVal = trim($request->input('client_secret')) ?: null;
+                $dataToSave['client_secret'] = $clientSecretVal;
+                if ($clientSecretVal) {
+                    \App\Models\Setting::updateOrCreate(['key' => 'google_drive_client_secret'], ['value' => $clientSecretVal]);
+                }
             }
 
-            $connection = GoogleDriveConnection::updateOrCreate(
-                ['admin_id' => $admin->id],
-                $dataToSave
-            );
+            if (!empty($dataToSave)) {
+                $connection = GoogleDriveConnection::updateOrCreate(
+                    ['admin_id' => $admin->id],
+                    $dataToSave
+                );
+            }
 
             // Re-initialize service & clear stale cache
             $service = new GoogleDriveService($admin->id);
@@ -187,7 +216,7 @@ class GoogleDriveAuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Google Drive database parameters saved successfully.',
+                'message' => 'Google Drive OAuth parameters saved successfully.',
                 'connected' => $service->isConnected(),
                 'root_folder_id' => $service->getFolderId(),
             ]);

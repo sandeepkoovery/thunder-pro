@@ -53,8 +53,14 @@ class GoogleDriveService
             $this->connection = $this->admin ? $this->admin->googleDriveConnection : null;
 
             $refreshToken = $this->connection?->refresh_token ?: config('services.google.refresh_token');
-            $clientId = $this->connection?->client_id ?: config('services.google.client_id');
-            $clientSecret = $this->connection?->client_secret ?: config('services.google.client_secret');
+            $clientId = $this->connection?->client_id 
+                ?: Setting::where('key', 'google_drive_client_id')->value('value') 
+                ?: Setting::where('key', 'google_client_id')->value('value') 
+                ?: config('services.google.client_id');
+            $clientSecret = $this->connection?->client_secret 
+                ?: Setting::where('key', 'google_drive_client_secret')->value('value') 
+                ?: Setting::where('key', 'google_client_secret')->value('value') 
+                ?: config('services.google.client_secret');
             $this->folderId = $this->connection?->root_folder_id ?: config('services.google.folder_id');
 
             if (!$refreshToken) {

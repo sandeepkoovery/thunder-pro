@@ -42,6 +42,35 @@ export default function DatabaseBackupSettings({
     const [testResult, setTestResult] = useState(gdriveStatus);
     const [isBackingUp, setIsBackingUp] = useState(isProcessing);
 
+    const [showParamsModal, setShowParamsModal] = useState(false);
+    const [paramsClientId, setParamsClientId] = useState('');
+    const [paramsClientSecret, setParamsClientSecret] = useState('');
+    const [paramsRefreshToken, setParamsRefreshToken] = useState('');
+    const [savingParams, setSavingParams] = useState(false);
+
+    const handleSaveParams = async (e) => {
+        e.preventDefault();
+        setSavingParams(true);
+        try {
+            const res = await axios.post(route('google-drive.save-manual'), {
+                client_id: paramsClientId,
+                client_secret: paramsClientSecret,
+                refresh_token: paramsRefreshToken,
+            });
+            if (res.data.success) {
+                toast.success('Google OAuth Client credentials saved to database!');
+                setShowParamsModal(false);
+                handleTestConnection();
+            } else {
+                toast.error(res.data.error || 'Failed to save parameters.');
+            }
+        } catch (err) {
+            toast.error(err.response?.data?.error || 'Error saving parameters.');
+        } finally {
+            setSavingParams(false);
+        }
+    };
+
     // Save Settings
     const submitSettings = (e) => {
         e.preventDefault();
@@ -225,17 +254,28 @@ export default function DatabaseBackupSettings({
                                 </div>
                             ) : (
 
-                                <div className="p-4 bg-amber-50/60 border border-amber-100 rounded-2xl flex items-center justify-between">
+                                <div className="p-4 bg-amber-50/60 border border-amber-100 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                     <div>
                                         <p className="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Account Action Required</p>
                                         <p className="text-xs text-amber-900 font-medium mt-0.5">{testResult.message || 'No Google Drive account linked.'}</p>
                                     </div>
-                                    <a
-                                        href={route('google-drive.connect')}
-                                        className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs"
-                                    >
-                                        Connect Drive
-                                    </a>
+                                    <div className="flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowParamsModal(true)}
+                                            className="px-3.5 py-2 bg-white hover:bg-amber-100 text-amber-900 text-xs font-bold rounded-xl border border-amber-200 transition-colors shadow-xs cursor-pointer flex items-center gap-1.5"
+                                        >
+                                            <Lock size={14} className="text-amber-700" />
+                                            <span>Configure Client ID & Secret</span>
+                                        </button>
+                                        <a
+                                            href={route('google-drive.connect')}
+                                            className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors shadow-xs flex items-center gap-1.5"
+                                        >
+                                            <Cloud size={14} />
+                                            <span>Connect Drive</span>
+                                        </a>
+                                    </div>
                                 </div>
                             )}
 
@@ -539,6 +579,101 @@ export default function DatabaseBackupSettings({
                     </div>
                 )}
             </div>
+
+            {/* Google OAuth Client Credentials Modal */}
+            {showParamsModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+                    <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-gray-100 space-y-5 animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2.5 bg-amber-50 text-amber-700 rounded-2xl">
+                                    <Lock size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="font-extrabold text-base text-gray-900">Google OAuth Credentials</h3>
+                                    <p className="text-xs text-gray-500 font-medium">Configure Client ID & Secret for Google Drive</p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setShowParamsModal(false)}
+                                className="text-gray-400 hover:text-gray-600 text-lg font-bold p-1 cursor-pointer"
+                            >
+                                ✕
+                            </button>
+                        </div>
+
+                        <div className="bg-blue-50/80 p-3.5 rounded-2xl border border-blue-100 text-xs text-blue-900 font-medium space-y-1">
+                            <p className="font-bold text-blue-950">How to get Client ID & Secret:</p>
+                            <ol className="list-decimal pl-4 space-y-0.5 text-[11px] text-blue-900/90">
+                                <li>Create a project in <a href="https://console.cloud.google.com/" target="_blank" rel="noreferrer" className="underline font-bold">Google Cloud Console</a>.</li>
+                                <li>Enable <strong>Google Drive API</strong> in API Library.</li>
+                                <li>Create an <strong>OAuth 2.0 Client ID</strong> (Web Application).</li>
+                                <li>Set Authorized Redirect URI to: <code className="bg-blue-100 px-1 py-0.5 rounded font-mono text-[10px]">{typeof window !== 'undefined' ? `${window.location.origin}/google-drive/callback` : '/google-drive/callback'}</code></li>
+                            </ol>
+                        </div>
+
+                        <form onSubmit={handleSaveParams} className="space-y-4">
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                                    Google Client ID
+                                </label>
+                                <input
+                                    type="text"
+                                    value={paramsClientId}
+                                    onChange={(e) => setParamsClientId(e.target.value)}
+                                    placeholder="e.g. 123456789-abc.apps.googleusercontent.com"
+                                    className="w-full text-xs font-mono p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                                    Google Client Secret
+                                </label>
+                                <input
+                                    type="password"
+                                    value={paramsClientSecret}
+                                    onChange={(e) => setParamsClientSecret(e.target.value)}
+                                    placeholder="e.g. GOCSPX-xxxxxxxxxxxxxxxxx"
+                                    className="w-full text-xs font-mono p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                                    Refresh Token (Optional)
+                                </label>
+                                <input
+                                    type="text"
+                                    value={paramsRefreshToken}
+                                    onChange={(e) => setParamsRefreshToken(e.target.value)}
+                                    placeholder="Leave empty if using OAuth login flow"
+                                    className="w-full text-xs font-mono p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-amber-500/20 focus:border-amber-500 outline-none transition-all"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-2 border-t border-gray-100">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowParamsModal(false)}
+                                    className="px-4 py-2.5 text-xs text-gray-600 font-bold hover:bg-gray-100 rounded-xl transition-colors cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={savingParams}
+                                    className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold uppercase tracking-wider rounded-xl transition-colors shadow-sm disabled:opacity-50 cursor-pointer flex items-center gap-1.5"
+                                >
+                                    {savingParams ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+                                    <span>Save Credentials</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
