@@ -137,7 +137,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
       {
         key: 'websites',
         order: getModuleOrder('websites', 13),
-        element: <NavItem key="websites" href={route("admin.websites.index")} icon={Globe} label="Websites & Domains" routeName="admin.websites" visible={isVisible("websites") || isVisible("domains")} badge={expiringWebsitesCount} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="websites" href={route("admin.websites.index")} icon={Globe} label="Websites & Domains" routeName="admin.websites" visible={isVisible("websites")} badge={expiringWebsitesCount} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'reports',

@@ -125,7 +125,7 @@ class HandleInertiaRequests extends Middleware
             ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'included' => true],
             ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'included' => true],
             ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'included' => true],
-            ['key' => 'domains', 'label' => 'Domains & Hosting', 'price' => 499, 'included' => true],
+            ['key' => 'websites', 'label' => 'Websites & Domains', 'price' => 499, 'included' => true],
             ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true],
         ];
 
