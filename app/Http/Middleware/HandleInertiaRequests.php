@@ -168,10 +168,10 @@ class HandleInertiaRequests extends Middleware
                     'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications'],
                 ];
                 $allowedModules = $defaultRolePermissions[$userRoleKey] ?? ($plan === 'premium' ? $premiumModules : $basicModules);
-            }
 
-            if (!empty($userAdditionalModules) && is_array($userAdditionalModules)) {
-                $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
+                if (!empty($userAdditionalModules) && is_array($userAdditionalModules)) {
+                    $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
+                }
             }
 
             // Only allow designers_worklist for regular 'user' role if they are a designer by designation/department or have assigned worklist tasks

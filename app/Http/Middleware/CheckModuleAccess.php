@@ -94,37 +94,49 @@ class CheckModuleAccess
                 return Setting::pluck('value', 'key')->all();
             });
 
-            $featuresJson = $settingsMap[$plan . '_plan_features'] ?? null;
-            if ($featuresJson) {
-                $features = json_decode($featuresJson, true);
-                $allowed = [];
-                foreach ($features as $feat) {
-                    if (($feat['included'] ?? true) === true) {
-                        $allowed[] = $feat['key'];
-                    }
+            $userRoleKey = $user->role ?? 'user';
+            $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;
+            $rolePermissions = $rolePermissionsJson ? json_decode($rolePermissionsJson, true) : null;
+
+            if (is_array($rolePermissions) && isset($rolePermissions[$userRoleKey]) && is_array($rolePermissions[$userRoleKey])) {
+                $allowed = $rolePermissions[$userRoleKey];
+                if ($userRoleKey === 'admin') {
+                    $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'reports'];
+                    $allowed = array_unique(array_merge($allowed, $coreAlwaysAllowed));
                 }
             } else {
-                $allowed = json_decode($settingsMap[$plan . '_plan_modules'] ?? '[]', true);
-            }
+                $featuresJson = $settingsMap[$plan . '_plan_features'] ?? null;
+                if ($featuresJson) {
+                    $features = json_decode($featuresJson, true);
+                    $allowed = [];
+                    foreach ($features as $feat) {
+                        if (($feat['included'] ?? true) === true) {
+                            $allowed[] = $feat['key'];
+                        }
+                    }
+                } else {
+                    $allowed = json_decode($settingsMap[$plan . '_plan_modules'] ?? '[]', true);
+                }
 
-            if (empty($allowed)) {
-                $allowed = $plan === 'premium' 
-                    ? ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'reports', 'drive', 'departments'] 
-                    : ['projects', 'users', 'leaves', 'attendance', 'chat', 'departments'];
-            }
+                if (empty($allowed)) {
+                    $allowed = $plan === 'premium' 
+                        ? ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'reports', 'drive', 'departments'] 
+                        : ['projects', 'users', 'leaves', 'attendance', 'chat', 'departments'];
+                }
 
-            if ($plan === 'premium' && !in_array('drive', $allowed)) {
-                $allowed[] = 'drive';
-            }
+                if ($plan === 'premium' && !in_array('drive', $allowed)) {
+                    $allowed[] = 'drive';
+                }
 
-            // Core admin modules always allowed for tenant admins
-            $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'reports'];
-            $allowed = array_unique(array_merge($allowed, $coreAlwaysAllowed));
+                // Core admin modules always allowed for tenant admins
+                $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'reports'];
+                $allowed = array_unique(array_merge($allowed, $coreAlwaysAllowed));
 
-            if (!empty($additional) && is_array($additional)) {
-                // Map legacy 'domains' key to 'websites'
-                $additionalMapped = array_map(function($m) { return $m === 'domains' ? 'websites' : $m; }, $additional);
-                $allowed = array_unique(array_merge($allowed, $additionalMapped));
+                if (!empty($additional) && is_array($additional)) {
+                    // Map legacy 'domains' key to 'websites'
+                    $additionalMapped = array_map(function($m) { return $m === 'domains' ? 'websites' : $m; }, $additional);
+                    $allowed = array_unique(array_merge($allowed, $additionalMapped));
+                }
             }
 
             if (!in_array($module, $allowed)) {
