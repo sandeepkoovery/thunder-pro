@@ -52,15 +52,17 @@ class GoogleDriveService
         try {
             $this->connection = $this->admin ? $this->admin->googleDriveConnection : null;
 
-            if (!$this->connection || !$this->connection->refresh_token) {
-                \Log::info('Google Drive: No connected account in database for Admin ID: ' . ($this->admin->id ?? 'unknown'));
+            $refreshToken = $this->connection?->refresh_token ?: config('services.google.refresh_token');
+            $clientId = $this->connection?->client_id ?: config('services.google.client_id');
+            $clientSecret = $this->connection?->client_secret ?: config('services.google.client_secret');
+            $this->folderId = $this->connection?->root_folder_id ?: config('services.google.folder_id');
+
+            if (!$refreshToken) {
+                \Log::info('Google Drive: No connected account in database or environment for Admin ID: ' . ($this->admin->id ?? 'unknown'));
                 $this->client = null;
                 $this->service = null;
                 return;
             }
-
-            $clientId = $this->connection->client_id ?: config('services.google.client_id');
-            $clientSecret = $this->connection->client_secret ?: config('services.google.client_secret');
 
             $this->client = new Client();
             $this->client->setClientId($clientId);
@@ -71,8 +73,6 @@ class GoogleDriveService
             $this->client->setAccessType('offline');
             $this->client->setPrompt('consent');
 
-            $refreshToken = $this->connection->refresh_token;
-            $this->folderId = $this->connection->root_folder_id;
 
             // Set cached access token if valid
             $cacheKey = 'google_drive_access_token_' . ($this->admin->id ?? 'global');

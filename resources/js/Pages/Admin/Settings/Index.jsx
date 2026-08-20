@@ -19,11 +19,21 @@ import {
     Globe,
     Bot,
     Eye,
-    EyeOff
+    EyeOff,
+    Database
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import DatabaseBackupSettings from './DatabaseBackupSettings';
 
-export default function Index({ settings = {}, users = [], worksheetSettings = {} }) {
+export default function Index({
+    settings = {},
+    users = [],
+    worksheetSettings = {},
+    backupSettings = {},
+    gdriveStatus = {},
+    backups = { data: [] },
+    isProcessing = false
+}) {
     const { auth, allowedModules = [] } = usePage().props;
     const isSuperAdmin = auth?.user?.role === 'superadmin';
     const [activeTab, setActiveTab] = useState('general');
@@ -34,9 +44,11 @@ export default function Index({ settings = {}, users = [], worksheetSettings = {
 
     const tabs = [
         { id: 'general', label: 'GENERAL SETTINGS', icon: Settings, show: true },
+        { id: 'backup', label: 'DATABASE BACKUP', icon: Database, show: isSuperAdmin },
         { id: 'worksheet', label: 'WORKSHEET CONFIGURATION', icon: Users, show: hasWorksheetAccess },
         { id: 'designers', label: 'DESIGNERS WORKLIST', icon: ClipboardList, show: hasDesignersAccess },
     ].filter(tab => tab.show);
+
 
     // Selected user for Worksheet Configuration detail view
     const [selectedUser, setSelectedUser] = useState(null);
@@ -321,6 +333,17 @@ export default function Index({ settings = {}, users = [], worksheetSettings = {
                         </form>
                     </div>
                 )}
+
+                {/* TAB: DATABASE BACKUP (Super Admin Only) */}
+                {activeTab === 'backup' && isSuperAdmin && (
+                    <DatabaseBackupSettings
+                        backupSettings={backupSettings}
+                        gdriveStatus={gdriveStatus}
+                        backups={backups}
+                        isProcessing={isProcessing}
+                    />
+                )}
+
 
                 {/* TAB 2: WORKSHEET CONFIGURATION */}
                 {activeTab === 'worksheet' && (

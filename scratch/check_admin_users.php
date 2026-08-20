@@ -5,7 +5,6 @@ $app = require_once __DIR__ . '/../bootstrap/app.php';
 $kernel = $app->make(\Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-use App\Models\DatabaseBackup;
+use App\Models\Admin;
 
-$latest = DatabaseBackup::latest()->first();
-print_r($latest ? $latest->toArray() : 'No backups found');
+print_r(Admin::all(['id', 'name', 'email', 'role'])->toArray());

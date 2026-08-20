@@ -53,12 +53,53 @@ class SettingController extends Controller
         }
         $worksheetSettings = $worksheetSettingsQuery->whereNotNull('user_id')->get()->keyBy('user_id');
 
-        return Inertia::render('Admin/Settings/Index', [
+        $backupProps = [];
+        if ($user->role === 'superadmin') {
+            $gdriveService = app(\App\Services\GoogleDriveBackupService::class);
+            $gdriveTest = $gdriveService->testConnection();
+
+            $backupProps = [
+                'backupSettings' => [
+                    'backup_auto_enabled' => ($settings['backup_auto_enabled'] ?? '0') === '1',
+                    'backup_daily_time' => $settings['backup_daily_time'] ?? '23:59',
+                    'backup_google_drive_folder' => $settings['backup_google_drive_folder'] ?? 'WorkNest Backups',
+                    'timezone' => config('app.timezone', 'Asia/Kolkata'),
+                ],
+                'gdriveStatus' => [
+                    'connected' => $gdriveTest['success'],
+                    'email' => $gdriveTest['email'] ?? null,
+                    'message' => $gdriveTest['message'],
+                ],
+                'backups' => \App\Models\DatabaseBackup::latest()->paginate(15)->through(function ($backup) {
+                    return [
+                        'id' => $backup->id,
+                        'file_name' => $backup->file_name,
+                        'google_drive_file_id' => $backup->google_drive_file_id,
+                        'google_drive_folder_id' => $backup->google_drive_folder_id,
+                        'file_size' => $backup->file_size,
+                        'formatted_file_size' => $backup->formatted_file_size,
+                        'status' => $backup->status,
+                        'trigger_type' => $backup->trigger_type ?: 'manual',
+                        'backup_started_at' => $backup->backup_started_at ? $backup->backup_started_at->toDateTimeString() : null,
+                        'backup_completed_at' => $backup->backup_completed_at ? $backup->backup_completed_at->toDateTimeString() : null,
+                        'google_drive_link' => $backup->google_drive_link,
+                        'error_message' => $backup->error_message,
+                        'created_at' => $backup->created_at->toDateTimeString(),
+                    ];
+                }),
+                'isProcessing' => \App\Models\DatabaseBackup::where('status', 'processing')
+                    ->where('created_at', '>=', now()->subMinutes(15))
+                    ->exists(),
+            ];
+        }
+
+        return Inertia::render('Admin/Settings/Index', array_merge([
             'settings' => $settings,
             'users' => $users,
             'worksheetSettings' => $worksheetSettings,
-        ]);
+        ], $backupProps));
     }
+
 
     public function update(Request $request)
     {

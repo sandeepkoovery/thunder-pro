@@ -89,9 +89,10 @@ class GoogleDriveAuthController extends Controller
             // Initialize drive service to ensure default root folder is generated
             $driveService = new GoogleDriveService($admin->id);
 
-            $targetRoute = $admin->role === 'super_admin' ? 'admin.drive.index' : 'drive.index';
+            $targetRoute = in_array($admin->role, ['superadmin', 'super_admin', 'admin']) ? 'admin.settings.index' : 'drive.index';
 
             return redirect()->route($targetRoute)->with('success', 'Google Drive account connected successfully!');
+
 
         } catch (\Exception $e) {
             \Log::error('Google Drive Callback Exception: ' . $e->getMessage());
