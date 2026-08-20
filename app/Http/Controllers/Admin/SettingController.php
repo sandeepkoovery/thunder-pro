@@ -55,42 +55,71 @@ class SettingController extends Controller
 
         $backupProps = [];
         if ($user->role === 'superadmin') {
-            $gdriveService = app(\App\Services\GoogleDriveBackupService::class);
-            $gdriveTest = $gdriveService->testConnection();
+            try {
+                $gdriveService = app(\App\Services\GoogleDriveBackupService::class);
+                $gdriveTest = $gdriveService->testConnection();
 
-            $backupProps = [
-                'backupSettings' => [
-                    'backup_auto_enabled' => ($settings['backup_auto_enabled'] ?? '0') === '1',
-                    'backup_daily_time' => $settings['backup_daily_time'] ?? '23:59',
-                    'backup_google_drive_folder' => $settings['backup_google_drive_folder'] ?? 'WorkNest Backups',
-                    'timezone' => config('app.timezone', 'Asia/Kolkata'),
-                ],
-                'gdriveStatus' => [
-                    'connected' => $gdriveTest['success'],
-                    'email' => $gdriveTest['email'] ?? null,
-                    'message' => $gdriveTest['message'],
-                ],
-                'backups' => \App\Models\DatabaseBackup::latest()->paginate(15)->through(function ($backup) {
-                    return [
-                        'id' => $backup->id,
-                        'file_name' => $backup->file_name,
-                        'google_drive_file_id' => $backup->google_drive_file_id,
-                        'google_drive_folder_id' => $backup->google_drive_folder_id,
-                        'file_size' => $backup->file_size,
-                        'formatted_file_size' => $backup->formatted_file_size,
-                        'status' => $backup->status,
-                        'trigger_type' => $backup->trigger_type ?: 'manual',
-                        'backup_started_at' => $backup->backup_started_at ? $backup->backup_started_at->toDateTimeString() : null,
-                        'backup_completed_at' => $backup->backup_completed_at ? $backup->backup_completed_at->toDateTimeString() : null,
-                        'google_drive_link' => $backup->google_drive_link,
-                        'error_message' => $backup->error_message,
-                        'created_at' => $backup->created_at->toDateTimeString(),
-                    ];
-                }),
-                'isProcessing' => \App\Models\DatabaseBackup::where('status', 'processing')
-                    ->where('created_at', '>=', now()->subMinutes(15))
-                    ->exists(),
-            ];
+                $backupsData = new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15);
+                if (\Illuminate\Support\Facades\Schema::hasTable('database_backups')) {
+                    $backupsData = \App\Models\DatabaseBackup::latest()->paginate(15)->through(function ($backup) {
+                        return [
+                            'id' => $backup->id,
+                            'file_name' => $backup->file_name,
+                            'google_drive_file_id' => $backup->google_drive_file_id,
+                            'google_drive_folder_id' => $backup->google_drive_folder_id,
+                            'file_size' => $backup->file_size,
+                            'formatted_file_size' => $backup->formatted_file_size,
+                            'status' => $backup->status,
+                            'trigger_type' => $backup->trigger_type ?: 'manual',
+                            'backup_started_at' => $backup->backup_started_at ? $backup->backup_started_at->toDateTimeString() : null,
+                            'backup_completed_at' => $backup->backup_completed_at ? $backup->backup_completed_at->toDateTimeString() : null,
+                            'google_drive_link' => $backup->google_drive_link,
+                            'error_message' => $backup->error_message,
+                            'created_at' => $backup->created_at->toDateTimeString(),
+                        ];
+                    });
+                }
+
+                $isProcessing = false;
+                if (\Illuminate\Support\Facades\Schema::hasTable('database_backups')) {
+                    $isProcessing = \App\Models\DatabaseBackup::where('status', 'processing')
+                        ->where('created_at', '>=', now()->subMinutes(15))
+                        ->exists();
+                }
+
+                $backupProps = [
+                    'backupSettings' => [
+                        'backup_auto_enabled' => ($settings['backup_auto_enabled'] ?? '0') === '1',
+                        'backup_daily_time' => $settings['backup_daily_time'] ?? '23:59',
+                        'backup_google_drive_folder' => $settings['backup_google_drive_folder'] ?? 'WorkNest Backups',
+                        'timezone' => config('app.timezone', 'Asia/Kolkata'),
+                    ],
+                    'gdriveStatus' => [
+                        'connected' => $gdriveTest['success'] ?? false,
+                        'email' => $gdriveTest['email'] ?? null,
+                        'message' => $gdriveTest['message'] ?? 'Not connected',
+                    ],
+                    'backups' => $backupsData,
+                    'isProcessing' => $isProcessing,
+                ];
+            } catch (\Throwable $e) {
+                \Log::error('Settings Database Backup Init Exception: ' . $e->getMessage());
+                $backupProps = [
+                    'backupSettings' => [
+                        'backup_auto_enabled' => false,
+                        'backup_daily_time' => '23:59',
+                        'backup_google_drive_folder' => 'WorkNest Backups',
+                        'timezone' => config('app.timezone', 'Asia/Kolkata'),
+                    ],
+                    'gdriveStatus' => [
+                        'connected' => false,
+                        'email' => null,
+                        'message' => 'Google Drive status check error: ' . $e->getMessage(),
+                    ],
+                    'backups' => new \Illuminate\Pagination\LengthAwarePaginator([], 0, 15),
+                    'isProcessing' => false,
+                ];
+            }
         }
 
         return Inertia::render('Admin/Settings/Index', array_merge([

@@ -33,15 +33,22 @@ class GoogleDriveBackupService
      */
     public function testConnection(): array
     {
-        if (!$this->isConnected()) {
-            return [
-                'success' => false,
-                'message' => 'Google Drive account is not connected. Please authorize a Google Drive account.'
-            ];
-        }
-
         try {
+            if (!$this->driveService || !$this->isConnected()) {
+                return [
+                    'success' => false,
+                    'message' => 'Google Drive account is not connected. Please authorize a Google Drive account.'
+                ];
+            }
+
             $client = $this->driveService->getClient();
+            if (!$client) {
+                return [
+                    'success' => false,
+                    'message' => 'Google Drive client failed to initialize.'
+                ];
+            }
+
             $service = new \Google\Service\Drive($client);
             
             // Perform a lightweight API call to test connection
@@ -53,7 +60,7 @@ class GoogleDriveBackupService
                 'message' => "Google Drive connection test successful! Connected as: {$email}",
                 'email' => $email
             ];
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             \Log::error('Google Drive Test Connection Error: ' . $e->getMessage());
             return [
                 'success' => false,
