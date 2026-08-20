@@ -56,3 +56,8 @@ Artisan::command('websites:check-expiry', function () {
 })->purpose('Check for expiring domains and hosting accounts and send email alerts');
 
 Schedule::command('websites:check-expiry')->daily();
+
+Schedule::command('backup:database')
+    ->everyMinute()
+    ->withoutOverlapping();
+

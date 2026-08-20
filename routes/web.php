@@ -247,7 +247,19 @@ Route::middleware(['auth', 'is_admin'])
             Route::match(['post', 'patch'], 'admin-users/{id}/approval', [\App\Http\Controllers\Admin\AdminUsersController::class, 'updateApproval'])->name('admin-users.approval');
             Route::match(['post', 'patch'], 'admin-users/{id}/toggle', [\App\Http\Controllers\Admin\AdminUsersController::class, 'toggleStatus'])->name('admin-users.toggle');
             Route::delete('admin-users/{id}', [\App\Http\Controllers\Admin\AdminUsersController::class, 'destroy'])->name('admin-users.destroy');
+
+            // -------------------------
+            // ✅ SUPER ADMIN: DATABASE BACKUPS
+            // -------------------------
+            Route::middleware(['is_super_admin'])->prefix('backups')->name('backups.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'index'])->name('index');
+                Route::post('/settings', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'updateSettings'])->name('settings.update');
+                Route::post('/run', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'runBackup'])->name('run');
+                Route::post('/test-gdrive', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'testConnection'])->name('test-gdrive');
+                Route::delete('/{id}', [\App\Http\Controllers\Admin\DatabaseBackupController::class, 'destroy'])->name('destroy');
+            });
         });
+
 
         Route::resource('projects', AdminProjectController::class);
         Route::post('projects/{project}/tasks/reorder', [AdminProjectController::class, 'reorder'])
