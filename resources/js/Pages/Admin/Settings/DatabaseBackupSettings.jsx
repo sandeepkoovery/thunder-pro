@@ -37,8 +37,17 @@ export default function DatabaseBackupSettings({
         backup_auto_enabled: backupSettings.backup_auto_enabled ?? false,
         backup_daily_time: backupSettings.backup_daily_time || '23:59',
         backup_google_drive_folder: backupSettings.backup_google_drive_folder || 'WorkNest Backups',
-        backup_notification_email: backupSettings.backup_notification_email || auth?.user?.email || '',
+        backup_notification_email: backupSettings.backup_notification_email ?? auth?.user?.email ?? '',
     });
+
+    useEffect(() => {
+        settingsForm.setData({
+            backup_auto_enabled: backupSettings.backup_auto_enabled ?? false,
+            backup_daily_time: backupSettings.backup_daily_time || '23:59',
+            backup_google_drive_folder: backupSettings.backup_google_drive_folder || 'WorkNest Backups',
+            backup_notification_email: backupSettings.backup_notification_email ?? auth?.user?.email ?? '',
+        });
+    }, [backupSettings.backup_auto_enabled, backupSettings.backup_daily_time, backupSettings.backup_google_drive_folder, backupSettings.backup_notification_email]);
 
     const [testingConnection, setTestingConnection] = useState(false);
     const [testResult, setTestResult] = useState(gdriveStatus);

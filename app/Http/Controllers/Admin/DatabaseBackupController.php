@@ -27,11 +27,13 @@ class DatabaseBackupController extends Controller
      */
     public function index(Request $request)
     {
+        $emailValue = Setting::where('key', 'backup_notification_email')->value('value');
+
         $settings = [
             'backup_auto_enabled' => Setting::where('key', 'backup_auto_enabled')->value('value') === '1',
             'backup_daily_time' => Setting::where('key', 'backup_daily_time')->value('value') ?: '23:59',
             'backup_google_drive_folder' => Setting::where('key', 'backup_google_drive_folder')->value('value') ?: 'WorkNest Backups',
-            'backup_notification_email' => Setting::where('key', 'backup_notification_email')->value('value') ?: ($request->user()->email ?? ''),
+            'backup_notification_email' => $emailValue !== null ? $emailValue : ($request->user()->email ?? ''),
             'timezone' => config('app.timezone', 'Asia/Kolkata'),
         ];
 
@@ -114,6 +116,9 @@ class DatabaseBackupController extends Controller
             ['key' => 'backup_notification_email'],
             ['value' => trim($validated['backup_notification_email'] ?? '')]
         );
+
+        // Reset last auto run record so updated schedule or tests can trigger today
+        Setting::where('key', 'backup_last_auto_run')->delete();
 
         Cache::forget('global_settings_map');
 
