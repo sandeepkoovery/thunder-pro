@@ -75,7 +75,6 @@ export default function DatabaseBackupSettings({
     const submitSettings = (e) => {
         e.preventDefault();
         settingsForm.post(route('admin.backups.settings.update'), {
-            onSuccess: () => toast.success('Database backup settings updated successfully!'),
             onError: () => toast.error('Failed to update backup settings.'),
         });
     };
