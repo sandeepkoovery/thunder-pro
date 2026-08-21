@@ -12,8 +12,8 @@
         <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
         <!-- PWA Meta Tags -->
         <meta name="theme-color" content="#ffffff">
-        <link rel="manifest" href="{{ url('/manifest.webmanifest?v=10') }}">
-        <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png?v=10') }}">
+        <link rel="manifest" href="{{ url('/manifest.webmanifest?v=12') }}">
+        <link rel="apple-touch-icon" href="{{ asset('icons/icon-192x192.png?v=12') }}">
         <meta name="mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-capable" content="yes">
         <meta name="apple-mobile-web-app-status-bar-style" content="default">

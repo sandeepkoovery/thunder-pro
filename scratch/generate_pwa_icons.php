@@ -72,13 +72,13 @@ function generatePwaIcon($sourcePath, $targetPath, $canvasSize, $logoWidthTarget
 
 $sourceLogo = 'public/images/worknest_logo.png';
 
-// Generate 512x512 standard & maskable icons (Target logo width = 310px out of 512px)
-generatePwaIcon($sourceLogo, 'public/icons/icon-512x512.png', 512, 310);
-generatePwaIcon($sourceLogo, 'public/icons/icon-maskable-512x512.png', 512, 310);
+// Generate 512x512 standard & maskable icons (Target logo width = 380px out of 512px for prominent display)
+generatePwaIcon($sourceLogo, 'public/icons/icon-512x512.png', 512, 380);
+generatePwaIcon($sourceLogo, 'public/icons/icon-maskable-512x512.png', 512, 380);
 
-// Generate 192x192 standard & maskable icons (Target logo width = 116px out of 192px)
-generatePwaIcon($sourceLogo, 'public/icons/icon-192x192.png', 192, 116);
-generatePwaIcon($sourceLogo, 'public/icons/icon-maskable-192x192.png', 192, 116);
+// Generate 192x192 standard & maskable icons (Target logo width = 142px out of 192px for prominent display)
+generatePwaIcon($sourceLogo, 'public/icons/icon-192x192.png', 192, 142);
+generatePwaIcon($sourceLogo, 'public/icons/icon-maskable-192x192.png', 192, 142);
 
 // Copy to public/build/icons as well if it exists
 if (!is_dir('public/build/icons')) {
