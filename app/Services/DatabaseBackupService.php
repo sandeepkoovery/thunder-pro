@@ -88,6 +88,9 @@ class DatabaseBackupService
                 'trigger' => $triggerType
             ]);
 
+            // 7. Send notification email
+            $this->sendBackupNotification($backup, 'completed');
+
             return $backup;
 
         } catch (\Throwable $e) {
@@ -103,17 +106,62 @@ class DatabaseBackupService
                     'error_message' => $errorMessage,
                     'backup_completed_at' => now(),
                 ]);
+
+                // Send failure notification email
+                $this->sendBackupNotification($backup, 'failed', $errorMessage);
             }
 
             throw $e;
 
         } finally {
-            // 7. Always clean up local temporary backup file
+            // 8. Always clean up local temporary backup file
             if ($tempFilePath && file_exists($tempFilePath)) {
                 @unlink($tempFilePath);
             }
 
             $lock->release();
+        }
+    }
+
+    /**
+     * Send backup status email notification.
+     */
+    protected function sendBackupNotification(DatabaseBackup $backup, string $status, ?string $errorMessage = null): void
+    {
+        try {
+            $notificationEmail = \App\Models\Setting::where('key', 'backup_notification_email')->value('value');
+
+            // Fallback to Super Admin email if not specified
+            if (empty($notificationEmail)) {
+                $superAdmin = \App\Models\User::where('role', 'superadmin')->first();
+                $notificationEmail = $superAdmin->email ?? null;
+            }
+
+            if (empty($notificationEmail)) {
+                return;
+            }
+
+            $gdriveBaseFolder = \App\Models\Setting::where('key', 'backup_google_drive_folder')->value('value') ?: 'WorkNest Backups';
+            $now = now();
+            $folderPath = "{$gdriveBaseFolder}/{$now->format('Y')}/{$now->format('m')}/{$now->format('d')}";
+
+            $details = [
+                'status' => $status,
+                'trigger_type' => $backup->trigger_type ?: 'manual',
+                'file_name' => $backup->file_name,
+                'file_size' => $backup->file_size,
+                'formatted_file_size' => $backup->formatted_file_size,
+                'gdrive_folder' => $folderPath,
+                'timestamp' => now()->format('Y-m-d H:i:s'),
+                'error_message' => $errorMessage ?: $backup->error_message,
+            ];
+
+            \Illuminate\Support\Facades\Mail::to($notificationEmail)
+                ->send(new \App\Mail\BackupNotificationMail($details));
+
+            Log::info("Backup status notification email sent to {$notificationEmail}");
+        } catch (\Throwable $mailEx) {
+            Log::error("Failed to send backup notification email: " . $mailEx->getMessage());
         }
     }
 

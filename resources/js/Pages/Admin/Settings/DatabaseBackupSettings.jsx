@@ -18,7 +18,8 @@ import {
     Shield,
     FileSpreadsheet,
     Server,
-    FolderKanban
+    FolderKanban,
+    Mail
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import axios from 'axios';
@@ -36,6 +37,7 @@ export default function DatabaseBackupSettings({
         backup_auto_enabled: backupSettings.backup_auto_enabled ?? false,
         backup_daily_time: backupSettings.backup_daily_time || '23:59',
         backup_google_drive_folder: backupSettings.backup_google_drive_folder || 'WorkNest Backups',
+        backup_notification_email: backupSettings.backup_notification_email || auth?.user?.email || '',
     });
 
     const [testingConnection, setTestingConnection] = useState(false);
@@ -373,15 +375,39 @@ export default function DatabaseBackupSettings({
                             </div>
                         </div>
 
+                        {/* Notification Email Address Input */}
+                        <div>
+                            <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-2">
+                                Backup Notification Email Address
+                            </label>
+                            <div className="relative">
+                                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-gray-400">
+                                    <Mail size={18} />
+                                </div>
+                                <input
+                                    type="email"
+                                    value={settingsForm.data.backup_notification_email}
+                                    onChange={(e) => settingsForm.setData('backup_notification_email', e.target.value)}
+                                    className="w-full pl-11 pr-4 py-3.5 bg-gray-50/50 border border-gray-200 rounded-2xl text-sm font-bold text-gray-800 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+                                    placeholder="e.g. admin@yourdomain.com"
+                                />
+                            </div>
+                            <p className="text-[11px] text-gray-400 font-medium mt-1.5">
+                                Status reports (file name, size, and success/failure state) will be sent to this email after every backup.
+                            </p>
+                        </div>
+
                         {/* Live Summary Box */}
                         <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2">
                             <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">Active Backup Configuration</p>
-                            <div className="flex items-center gap-4 text-xs font-bold text-indigo-950">
+                            <div className="flex flex-wrap items-center gap-4 text-xs font-bold text-indigo-950">
                                 <span>Status: <strong className={settingsForm.data.backup_auto_enabled ? 'text-emerald-600' : 'text-rose-500'}>
                                     {settingsForm.data.backup_auto_enabled ? 'ENABLED' : 'DISABLED'}
                                 </strong></span>
                                 <span>•</span>
                                 <span>Daily Time: <strong className="text-indigo-900">{formatTimeDisplay(settingsForm.data.backup_daily_time)} ({backupSettings.timezone || 'Asia/Kolkata'})</strong></span>
+                                <span>•</span>
+                                <span>Alert Mail: <strong className="text-indigo-900">{settingsForm.data.backup_notification_email || 'Not configured'}</strong></span>
                             </div>
                         </div>
 
