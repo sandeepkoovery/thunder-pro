@@ -92,6 +92,7 @@ class SettingController extends Controller
                         'backup_auto_enabled' => ($settings['backup_auto_enabled'] ?? '0') === '1',
                         'backup_daily_time' => $settings['backup_daily_time'] ?? '23:59',
                         'backup_google_drive_folder' => $settings['backup_google_drive_folder'] ?? 'WorkNest Backups',
+                        'backup_notification_email' => $settings['backup_notification_email'] ?? ($user->email ?? ''),
                         'timezone' => config('app.timezone', 'Asia/Kolkata'),
                     ],
                     'gdriveStatus' => [
@@ -109,6 +110,7 @@ class SettingController extends Controller
                         'backup_auto_enabled' => false,
                         'backup_daily_time' => '23:59',
                         'backup_google_drive_folder' => 'WorkNest Backups',
+                        'backup_notification_email' => $settings['backup_notification_email'] ?? ($user->email ?? ''),
                         'timezone' => config('app.timezone', 'Asia/Kolkata'),
                     ],
                     'gdriveStatus' => [
