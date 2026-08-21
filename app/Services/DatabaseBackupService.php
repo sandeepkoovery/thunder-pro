@@ -153,6 +153,7 @@ class DatabaseBackupService
                 'file_size' => $backup->file_size,
                 'formatted_file_size' => $backup->formatted_file_size,
                 'gdrive_folder' => $folderPath,
+                'gdrive_link' => $backup->google_drive_link,
                 'timestamp' => now()->format('Y-m-d H:i:s'),
                 'error_message' => $errorMessage ?: $backup->error_message,
             ];

@@ -81,6 +81,12 @@
                     </tr>
                 </table>
 
+                @if($isSuccess && !empty($backupDetails['gdrive_link']))
+                <div style="text-align: center; margin: 24px 0;">
+                    <a href="{{ $backupDetails['gdrive_link'] }}" target="_blank" style="background-color: #4f46e5; color: #ffffff; padding: 12px 24px; border-radius: 10px; text-decoration: none; font-weight: 800; font-size: 13px; display: inline-block; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">View File on Google Drive &rarr;</a>
+                </div>
+                @endif
+
                 <!-- Error Box if Failed -->
                 @if(!$isSuccess && !empty($backupDetails['error_message']))
                 <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 12px; padding: 16px; margin-bottom: 24px;">

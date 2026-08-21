@@ -153,6 +153,12 @@ class GoogleDriveService
             Cache::forget("google_drive_files_{$adminKey}_{$targetFolderId}");
         }
         Cache::forget("google_drive_access_token_{$adminKey}");
+
+        // Also forget generic cache keys
+        Cache::forget("google_drive_files_global_root");
+        if ($this->admin) {
+            Cache::forget("google_drive_files_{$this->admin->id}_root");
+        }
     }
 
     public function listFiles($folderId = null)

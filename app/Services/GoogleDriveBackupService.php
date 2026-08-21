@@ -155,6 +155,10 @@ class GoogleDriveBackupService
             throw new \Exception('Google Drive upload returned invalid response without file ID.');
         }
 
+        // Clear file list cache so Google Drive storage manager in web app updates immediately
+        $this->driveService->clearCache($targetFolderId);
+        $this->driveService->clearCache($folderHierarchy['month_folder_id']);
+
         return [
             'file_id' => $uploadedFile->getId(),
             'folder_id' => $targetFolderId,
