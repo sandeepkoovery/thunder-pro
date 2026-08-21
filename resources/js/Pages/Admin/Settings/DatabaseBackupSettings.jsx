@@ -163,18 +163,18 @@ export default function DatabaseBackupSettings({
     return (
         <div className="space-y-8 font-sans animate-in fade-in duration-200">
             {/* Super Admin Notice Banner */}
-            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-[28px] p-6 shadow-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="bg-gradient-to-r from-indigo-50 via-blue-50 to-slate-50 border border-indigo-100 rounded-[28px] p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-500/20 text-indigo-400 rounded-2xl border border-indigo-500/30 shrink-0">
+                    <div className="p-3.5 bg-indigo-600 text-white rounded-2xl shadow-md shadow-indigo-200 shrink-0">
                         <Shield size={28} />
                     </div>
                     <div>
                         <div className="flex items-center gap-2">
-                            <span className="text-xs font-black uppercase tracking-widest text-indigo-400">Super Admin Zone</span>
-                            <span className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 rounded-md border border-emerald-500/30">Encrypted</span>
+                            <span className="text-xs font-black uppercase tracking-widest text-indigo-700">Super Admin Zone</span>
+                            <span className="px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-emerald-100 text-emerald-800 rounded-md border border-emerald-200">Encrypted</span>
                         </div>
-                        <h2 className="text-lg font-bold mt-0.5">Automated MySQL Database Backup System</h2>
-                        <p className="text-xs text-slate-400 font-medium">Create full database dumps, upload to Google Drive with automated YYYY/MM/DD folder organization, and monitor backup health.</p>
+                        <h2 className="text-xl font-black text-gray-900 mt-1">Automated MySQL Database Backup System</h2>
+                        <p className="text-xs text-gray-600 font-semibold mt-0.5">Create full database dumps, upload to Google Drive with automated YYYY/MM/DD folder organization, and monitor backup health.</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
@@ -182,7 +182,7 @@ export default function DatabaseBackupSettings({
                         type="button"
                         onClick={handleRunBackupNow}
                         disabled={isBackingUp}
-                        className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                        className="w-full sm:w-auto px-7 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2.5 active:scale-95 disabled:opacity-50 cursor-pointer"
                     >
                         {isBackingUp ? (
                             <>
