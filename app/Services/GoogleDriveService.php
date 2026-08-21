@@ -39,12 +39,25 @@ class GoogleDriveService
                 return $user;
             }
 
-            return Admin::where('email', $user->email)->first()
-                ?? Admin::find($user->admin_id ?? 0)
-                ?? Admin::first();
+            $admin = Admin::where('email', $user->email)->first()
+                ?? Admin::find($user->admin_id ?? 0);
+
+            if ($admin) {
+                return $admin;
+            }
         }
 
-        return null;
+        // Fallback for background tasks, CLI commands, and cron jobs:
+        // Find the admin who owns the GoogleDriveConnection, or fallback to superadmin / first admin
+        $connection = GoogleDriveConnection::whereNotNull('refresh_token')->latest()->first();
+        if ($connection && $connection->admin_id) {
+            $admin = Admin::find($connection->admin_id);
+            if ($admin) {
+                return $admin;
+            }
+        }
+
+        return Admin::where('role', 'superadmin')->first() ?? Admin::first();
     }
 
     protected function initService()

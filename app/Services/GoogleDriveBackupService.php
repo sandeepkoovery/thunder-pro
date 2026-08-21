@@ -13,9 +13,14 @@ class GoogleDriveBackupService
 
     public function __construct()
     {
-        // Resolve superadmin context if available
-        $superAdmin = Admin::where('role', 'superadmin')->first();
-        $adminId = $superAdmin ? $superAdmin->id : null;
+        // Resolve connected admin context if available for background jobs
+        $connection = \App\Models\GoogleDriveConnection::whereNotNull('refresh_token')->latest()->first();
+        $adminId = $connection ? $connection->admin_id : null;
+
+        if (!$adminId) {
+            $superAdmin = Admin::where('role', 'superadmin')->first() ?? Admin::first();
+            $adminId = $superAdmin ? $superAdmin->id : null;
+        }
 
         $this->driveService = new GoogleDriveService($adminId);
     }

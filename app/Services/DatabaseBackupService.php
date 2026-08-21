@@ -133,7 +133,8 @@ class DatabaseBackupService
 
             // Fallback to Super Admin email if not specified
             if (empty($notificationEmail)) {
-                $superAdmin = \App\Models\User::where('role', 'superadmin')->first();
+                $superAdmin = \App\Models\Admin::where('role', 'superadmin')->first()
+                    ?? \App\Models\User::where('role', 'superadmin')->first();
                 $notificationEmail = $superAdmin->email ?? null;
             }
 
