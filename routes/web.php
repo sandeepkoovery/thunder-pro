@@ -41,6 +41,25 @@ Route::get('/pricing', [PricingController::class, 'showPricing'])->name('pricing
 Route::post('/payment/create-order', [PaymentController::class, 'createOrder'])->name('payment.create-order');
 Route::post('/payment/verify', [PaymentController::class, 'verifyPayment'])->name('payment.verify');
 
+// Web Cron Trigger for Hostinger / Shared Hosting
+Route::get('/cron/run-schedule', function (\Illuminate\Http\Request $request) {
+    $token = $request->query('token');
+    $configuredToken = \App\Models\Setting::where('key', 'cron_secret_token')->value('value');
+    
+    if ($configuredToken && $token !== $configuredToken) {
+        return response()->json(['error' => 'Unauthorized cron token'], 401);
+    }
+
+    \Illuminate\Support\Facades\Artisan::call('schedule:run');
+    $output = \Illuminate\Support\Facades\Artisan::output();
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Laravel Scheduler executed successfully via Web Cron.',
+        'output' => trim($output),
+    ]);
+})->name('cron.schedule');
+
 
 // Dashboard (redirects based on role)
 Route::middleware(['auth'])->get('/dashboard', function () {

@@ -164,9 +164,9 @@ export default function DatabaseBackupSettings({
     return (
         <div className="space-y-8 font-sans animate-in fade-in duration-200">
             {/* Super Admin Notice Banner */}
-            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-[28px] p-6 shadow-lg border border-slate-800 flex items-center justify-between">
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-[28px] p-6 shadow-lg border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
-                    <div className="p-3 bg-indigo-500/20 text-indigo-400 rounded-2xl border border-indigo-500/30">
+                    <div className="p-3 bg-indigo-500/20 text-indigo-400 rounded-2xl border border-indigo-500/30 shrink-0">
                         <Shield size={28} />
                     </div>
                     <div>
@@ -178,12 +178,12 @@ export default function DatabaseBackupSettings({
                         <p className="text-xs text-slate-400 font-medium">Create full database dumps, upload to Google Drive with automated YYYY/MM/DD folder organization, and monitor backup health.</p>
                     </div>
                 </div>
-                <div className="hidden lg:flex items-center gap-3">
+                <div className="flex items-center gap-3 shrink-0">
                     <button
                         type="button"
                         onClick={handleRunBackupNow}
                         disabled={isBackingUp}
-                        className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+                        className="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
                     >
                         {isBackingUp ? (
                             <>
@@ -386,30 +386,6 @@ export default function DatabaseBackupSettings({
                             </div>
                         </div>
 
-                        {/* Live Hostinger/cPanel Cron Setup Helper */}
-                        <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2">
-                            <div className="flex items-center gap-2">
-                                <Server size={16} className="text-amber-700 shrink-0" />
-                                <h4 className="text-xs font-black uppercase tracking-wider text-amber-900">Required Live Cron Job Setup (cPanel / Hostinger)</h4>
-                            </div>
-                            <p className="text-xs text-amber-900/90 font-medium">
-                                For daily backups to run automatically in background on live, add this command to your <strong>Hostinger / cPanel Cron Jobs</strong> (Frequency: <code className="bg-amber-100 px-1 py-0.5 rounded font-mono text-[11px]">* * * * *</code> Every Minute):
-                            </p>
-                            <div className="p-2.5 bg-slate-900 text-amber-300 font-mono text-[11px] rounded-xl overflow-x-auto flex items-center justify-between gap-2 border border-slate-800">
-                                <code className="whitespace-nowrap">cd {typeof window !== 'undefined' ? (window.location.pathname ? '/home/public_html' : '/path/to/project') : '/path/to/project'} && php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</code>
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText('php artisan schedule:run');
-                                        toast.success('Cron command copied!');
-                                    }}
-                                    className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-amber-500/30 transition-colors shrink-0 cursor-pointer"
-                                >
-                                    Copy
-                                </button>
-                            </div>
-                        </div>
-
                         {/* Submit Button */}
                         <div className="pt-4 border-t border-gray-100 flex justify-end">
                             <button
@@ -422,48 +398,6 @@ export default function DatabaseBackupSettings({
                             </button>
                         </div>
                     </form>
-                </div>
-            </div>
-
-            {/* CARD 3: MANUAL BACKUP TRIGGER BAR */}
-            <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row items-center justify-between gap-6">
-                <div className="flex items-center gap-4">
-                    <div className="p-4 bg-emerald-50 text-emerald-600 rounded-2xl">
-                        <Database size={28} />
-                    </div>
-                    <div>
-                        <h3 className="text-lg font-bold text-gray-900">Manual Database Backup</h3>
-                        <p className="text-xs text-gray-500 font-medium">Trigger a complete MySQL dump immediately. Concurrent process prevention is automatically active.</p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="text-right hidden sm:block">
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider">Current System Status</p>
-                        <p className="text-xs font-black text-emerald-600 uppercase tracking-wider flex items-center gap-1 justify-end">
-                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                            {isBackingUp ? 'Backup in Progress...' : 'Ready for Backup'}
-                        </p>
-                    </div>
-
-                    <button
-                        type="button"
-                        onClick={handleRunBackupNow}
-                        disabled={isBackingUp}
-                        className="w-full md:w-auto px-8 py-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-xl shadow-emerald-500/20 transition-all flex items-center justify-center gap-2.5 active:scale-95 disabled:opacity-50 cursor-pointer"
-                    >
-                        {isBackingUp ? (
-                            <>
-                                <RefreshCw size={18} className="animate-spin" />
-                                GENERATING DUMP...
-                            </>
-                        ) : (
-                            <>
-                                <Play size={18} fill="currentColor" />
-                                BACKUP NOW
-                            </>
-                        )}
-                    </button>
                 </div>
             </div>
 
