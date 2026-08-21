@@ -41,29 +41,29 @@ class BackupDatabase extends Command
 
             $configuredTime = Setting::where('key', 'backup_daily_time')->value('value') ?: '23:59';
             try {
-                $normalizedConfiguredTime = Carbon::parse($configuredTime, $timezone)->format('H:i');
+                $configuredHourMinute = Carbon::parse($configuredTime, $timezone)->format('H:i');
             } catch (\Exception $e) {
-                $normalizedConfiguredTime = '23:59';
+                $configuredHourMinute = '23:59';
             }
 
-            $currentTime = $now->format('H:i');
+            $currentHourMinute = $now->format('H:i');
+            $todayDate = $now->format('Y-m-d');
 
-            if ($currentTime !== $normalizedConfiguredTime) {
-                // Not backup time yet
+            if ($currentHourMinute < $configuredHourMinute) {
+                // Not backup time yet today
                 return Command::SUCCESS;
             }
 
-            // Check if automatic backup was already run for this exact minute today
+            // Check if automatic backup was already run for today's date
             $lastAutoRun = Setting::where('key', 'backup_last_auto_run')->value('value');
-            $currentMinuteKey = $now->format('Y-m-d_H:i');
 
-            if ($lastAutoRun === $currentMinuteKey) {
-                $this->info("Automatic backup already ran for {$currentMinuteKey}. Skipping.");
+            if ($lastAutoRun === $todayDate) {
+                $this->info("Automatic backup already ran for date {$todayDate}. Skipping.");
                 return Command::SUCCESS;
             }
 
-            // Save last auto run timestamp
-            Setting::updateOrCreate(['key' => 'backup_last_auto_run'], ['value' => $currentMinuteKey]);
+            // Save last auto run date
+            Setting::updateOrCreate(['key' => 'backup_last_auto_run'], ['value' => $todayDate]);
         }
 
         $this->info('Starting database backup process...');

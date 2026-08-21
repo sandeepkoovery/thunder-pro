@@ -375,14 +375,38 @@ export default function DatabaseBackupSettings({
                         </div>
 
                         {/* Live Summary Box */}
-                        <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl">
+                        <div className="p-4 bg-indigo-50/50 border border-indigo-100 rounded-2xl space-y-2">
                             <p className="text-[11px] font-bold uppercase tracking-wider text-indigo-700">Active Backup Configuration</p>
-                            <div className="flex items-center gap-4 mt-2 text-xs font-bold text-indigo-950">
+                            <div className="flex items-center gap-4 text-xs font-bold text-indigo-950">
                                 <span>Status: <strong className={settingsForm.data.backup_auto_enabled ? 'text-emerald-600' : 'text-rose-500'}>
                                     {settingsForm.data.backup_auto_enabled ? 'ENABLED' : 'DISABLED'}
                                 </strong></span>
                                 <span>•</span>
                                 <span>Daily Time: <strong className="text-indigo-900">{formatTimeDisplay(settingsForm.data.backup_daily_time)} ({backupSettings.timezone || 'Asia/Kolkata'})</strong></span>
+                            </div>
+                        </div>
+
+                        {/* Live Hostinger/cPanel Cron Setup Helper */}
+                        <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-2xl space-y-2">
+                            <div className="flex items-center gap-2">
+                                <Server size={16} className="text-amber-700 shrink-0" />
+                                <h4 className="text-xs font-black uppercase tracking-wider text-amber-900">Required Live Cron Job Setup (cPanel / Hostinger)</h4>
+                            </div>
+                            <p className="text-xs text-amber-900/90 font-medium">
+                                For daily backups to run automatically in background on live, add this command to your <strong>Hostinger / cPanel Cron Jobs</strong> (Frequency: <code className="bg-amber-100 px-1 py-0.5 rounded font-mono text-[11px]">* * * * *</code> Every Minute):
+                            </p>
+                            <div className="p-2.5 bg-slate-900 text-amber-300 font-mono text-[11px] rounded-xl overflow-x-auto flex items-center justify-between gap-2 border border-slate-800">
+                                <code className="whitespace-nowrap">cd {typeof window !== 'undefined' ? (window.location.pathname ? '/home/public_html' : '/path/to/project') : '/path/to/project'} && php artisan schedule:run &gt;&gt; /dev/null 2&gt;&amp;1</code>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText('php artisan schedule:run');
+                                        toast.success('Cron command copied!');
+                                    }}
+                                    className="px-2.5 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[10px] font-bold uppercase tracking-wider rounded-lg border border-amber-500/30 transition-colors shrink-0 cursor-pointer"
+                                >
+                                    Copy
+                                </button>
                             </div>
                         </div>
 
