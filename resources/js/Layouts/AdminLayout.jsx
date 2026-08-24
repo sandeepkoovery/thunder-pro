@@ -34,6 +34,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
   const deptName = user?.department?.name?.toLowerCase() || '';
 
   const isManagementAdmin = ['admin', 'superadmin', 'manager', 'editor'].includes(userRole);
+  const isAttendanceAdmin = ['admin', 'superadmin', 'manager'].includes(userRole);
   const isDesignerDepartment = 
     isManagementAdmin ||
     userRole === 'designer' ||
@@ -97,7 +98,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
       {
         key: 'attendance',
         order: getModuleOrder('attendance', 5),
-        element: <NavItem key="attendance" href={route(isManagementAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isManagementAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} badge={sidebarCounts.pending_corrections} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="attendance" href={route(isAttendanceAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isAttendanceAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} badge={sidebarCounts.pending_corrections} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'leaves',

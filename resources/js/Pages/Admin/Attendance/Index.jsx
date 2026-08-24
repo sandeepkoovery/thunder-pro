@@ -85,6 +85,17 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
     const missingPunchoutsCount = missingPunchoutRecords.length;
     const missingPunchoutPct = Math.round((missingPunchoutsCount / totalDays) * 100) || 0;
 
+    const isRecordNoBreak = (r) => {
+        if (!r) return false;
+        const isWorked = r.status && ['Present', 'Late', 'Early Leave', 'Late & Early Leave'].includes(r.status);
+        if (!isWorked) return false;
+        return (r.total_break_minutes === 0 || r.break_time === '0h 0m' || r.break_time === '-');
+    };
+
+    const noBreakRecords = attendanceData ? attendanceData.filter(r => isRecordNoBreak(r)) : [];
+    const noBreakDaysCount = noBreakRecords.length;
+    const noBreakPct = Math.round((noBreakDaysCount / totalDays) * 100) || 0;
+
     // Calculate Avg Check In & Check Out
     let checkInMinutesSum = 0;
     let checkInCount = 0;
@@ -666,6 +677,9 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                         <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold bg-rose-50 text-slate-700 border border-rose-100/60 shadow-2xs">
                                             <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Missing Punchout <span className="text-gray-500 font-medium">{missingPunchoutPct}%</span>
                                         </span>
+                                        <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold bg-teal-50 text-slate-700 border border-teal-100/60 shadow-2xs">
+                                            <span className="w-2.5 h-2.5 rounded-full bg-teal-500"></span> No Break Days <span className="text-gray-500 font-medium">{noBreakPct}%</span>
+                                        </span>
                                         <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold bg-red-50 text-slate-700 border border-red-100/60 shadow-2xs">
                                             <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> Absent <span className="text-gray-500 font-medium">{absentPct}%</span>
                                         </span>
@@ -676,7 +690,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                 <div className="lg:col-span-7 flex items-center justify-end border-t lg:border-t-0 lg:border-l border-gray-100 pt-6 lg:pt-0 lg:pl-6">
                                     
                                     {/* Summary Metrics */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 w-full text-left">
+                                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-2 w-full text-left">
                                         <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
                                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Attendance</span>
                                             <span className="text-base font-black text-slate-800 mt-0.5 block">{totalAttendanceDays} days</span>
@@ -696,6 +710,10 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                         <div className="bg-amber-50/80 p-3 rounded-2xl border border-amber-100">
                                             <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Missing Punchout</span>
                                             <span className="text-base font-black text-amber-900 mt-0.5 block">{missingPunchoutsCount} days</span>
+                                        </div>
+                                        <div className="bg-teal-50/80 p-3 rounded-2xl border border-teal-100">
+                                            <span className="text-[10px] font-bold text-teal-700 uppercase tracking-wider block">No Break Days</span>
+                                            <span className="text-base font-black text-teal-900 mt-0.5 block">{noBreakDaysCount} days</span>
                                         </div>
                                     </div>
 
@@ -723,6 +741,10 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                     <div className="bg-amber-50 text-amber-900 px-4 py-2.5 rounded-xl font-bold border border-amber-200/80 shadow-2xs flex items-center gap-2 text-xs sm:text-sm">
                                         <Clock className="w-4 h-4 text-amber-600" />
                                         <span>Missing Punchouts: <strong className="text-amber-950 font-black text-sm sm:text-base">{missingPunchoutsCount}</strong></span>
+                                    </div>
+                                    <div className="bg-teal-50 text-teal-900 px-4 py-2.5 rounded-xl font-bold border border-teal-200/80 shadow-2xs flex items-center gap-2 text-xs sm:text-sm">
+                                        <Coffee className="w-4 h-4 text-teal-600" />
+                                        <span>No Break Days: <strong className="text-teal-950 font-black text-sm sm:text-base">{noBreakDaysCount}</strong></span>
                                     </div>
                                     <div className="bg-gradient-to-r from-indigo-50 to-purple-50 text-indigo-700 px-6 py-3 rounded-xl font-bold border border-indigo-100 shadow-sm">
                                         Monthly Total: {formatDuration(totalMonthlyMinutes)}
@@ -1521,6 +1543,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                                     <th className="p-4 text-center">Late Days</th>
                                                     <th className="p-4 text-center">Early Leave</th>
                                                     <th className="p-4 text-center">Missing Punchouts</th>
+                                                    <th className="p-4 text-center">No Break Days</th>
                                                     <th className="p-4 text-center">Work Hours</th>
                                                     <th className="p-4 text-center">Break Hours</th>
                                                 </tr>
@@ -1580,6 +1603,11 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                                                         {row.missing_punchouts || 0} days
                                                                     </span>
                                                                 </td>
+                                                                <td className="p-4 text-center">
+                                                                    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-extrabold ${row.no_break_days > 0 ? 'bg-teal-100 text-teal-800 border border-teal-200' : 'bg-gray-50 text-gray-500 border border-gray-100'}`}>
+                                                                        {row.no_break_days || 0} days
+                                                                    </span>
+                                                                </td>
                                                                 <td className="p-4 text-center font-black text-slate-900">{row.work_hours}</td>
                                                                 <td className="p-4 text-center font-bold text-slate-600">{row.break_hours}</td>
                                                             </tr>
@@ -1587,7 +1615,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                                     })
                                                 ) : (
                                                     <tr>
-                                                        <td colSpan="10" className="p-8 text-center text-slate-400 font-medium">
+                                                        <td colSpan="11" className="p-8 text-center text-slate-400 font-medium">
                                                             No preview data available for this month.
                                                         </td>
                                                     </tr>

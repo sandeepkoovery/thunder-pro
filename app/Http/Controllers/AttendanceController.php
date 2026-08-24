@@ -279,6 +279,11 @@ class AttendanceController extends Controller
 
     public function index(Request $request)
     {
+        $user = Auth::user();
+        if ($user && !in_array(strtolower($user->role ?? ''), ['admin', 'superadmin', 'manager'])) {
+            return redirect()->route('attendance.index');
+        }
+
         $adminId = $this->getTenantAdminId();
 
         $usersQuery = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true);
@@ -1030,6 +1035,14 @@ class AttendanceController extends Controller
                 $checkOut = $attendance->punch_out ? Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->format('h:i A') : '-';
                 $hours = floor($attendance->total_worked_minutes / 60) . 'h ' . ($attendance->total_worked_minutes % 60) . 'm';
                 $breakTime = floor(($attendance->total_break_minutes ?? 0) / 60) . 'h ' . (($attendance->total_break_minutes ?? 0) % 60) . 'm';
+
+                $isMissingPunchout = false;
+                if ($attendance->punch_out) {
+                    $pOutTime = Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->format('H:i:s');
+                    if ($pOutTime === '23:59:59' || $pOutTime === '23:59:00' || ($attendance->status === 'punched_out' && ($attendance->total_worked_minutes === 0 || $attendance->total_worked_minutes === null))) {
+                        $isMissingPunchout = true;
+                    }
+                }
             } else {
                 // Check if it's a Saturday or Sunday
                 if ($date->isSaturday() || $date->isSunday()) {
@@ -1048,6 +1061,7 @@ class AttendanceController extends Controller
                         $status = 'Absent';
                     }
                 }
+                $isMissingPunchout = false;
             }
 
             $attendanceData[] = [
@@ -1064,6 +1078,7 @@ class AttendanceController extends Controller
                 'total_worked_minutes' => $attendance ? $attendance->total_worked_minutes : 0,
                 'total_break_minutes' => $attendance ? ($attendance->total_break_minutes ?? 0) : 0,
                 'breaks' => $attendance ? $attendance->breaks : [],
+                'is_missing_punchout' => $isMissingPunchout,
             ];
         }
 
@@ -1189,6 +1204,7 @@ class AttendanceController extends Controller
             'Late Punchin Days',
             'Early Leave Days',
             'Missing Punchout Days',
+            'No Break Days',
             'Total Work Hours',
             'Total Break Hours'
         ];
@@ -1227,6 +1243,7 @@ class AttendanceController extends Controller
                 $lateDays = 0;
                 $earlyLeaveDays = 0;
                 $missingPunchoutDays = 0;
+                $noBreakDays = 0;
                 $totalWorkedMinutes = 0;
                 $totalBreakMinutes = 0;
 
@@ -1241,7 +1258,11 @@ class AttendanceController extends Controller
                         // Count towards totals regardless of weekend if they worked
                         $totalPresent++;
                         $totalWorkedMinutes += $attendance->total_worked_minutes;
-                        $totalBreakMinutes += $attendance->total_break_minutes;
+                        $breakMins = ($attendance->total_break_minutes ?? 0);
+                        $totalBreakMinutes += $breakMins;
+                        if ($breakMins == 0) {
+                            $noBreakDays++;
+                        }
 
                         // Check if late
                         $punchIn = Carbon::parse($attendance->punch_in);
@@ -1293,6 +1314,7 @@ class AttendanceController extends Controller
                     $lateDays,
                     $earlyLeaveDays,
                     $missingPunchoutDays,
+                    $noBreakDays,
                     floor($totalWorkedMinutes / 60) . 'h ' . ($totalWorkedMinutes % 60) . 'm',
                     floor($totalBreakMinutes / 60) . 'h ' . ($totalBreakMinutes % 60) . 'm'
                 ]);
@@ -1350,6 +1372,7 @@ class AttendanceController extends Controller
             $lateDays = 0;
             $earlyLeaveDays = 0;
             $missingPunchoutDays = 0;
+            $noBreakDays = 0;
             $totalWorkedMinutes = 0;
             $totalBreakMinutes = 0;
 
@@ -1361,7 +1384,11 @@ class AttendanceController extends Controller
                 if ($attendance) {
                     $totalPresent++;
                     $totalWorkedMinutes += $attendance->total_worked_minutes;
-                    $totalBreakMinutes += ($attendance->total_break_minutes ?? 0);
+                    $breakMins = ($attendance->total_break_minutes ?? 0);
+                    $totalBreakMinutes += $breakMins;
+                    if ($breakMins == 0) {
+                        $noBreakDays++;
+                    }
 
                     $punchIn = Carbon::parse($attendance->punch_in);
                     $nineThirtyAM = Carbon::parse($dateStr . ' 09:30:59');
@@ -1410,6 +1437,7 @@ class AttendanceController extends Controller
                 'late_days' => $lateDays,
                 'early_leave_days' => $earlyLeaveDays,
                 'missing_punchouts' => $missingPunchoutDays,
+                'no_break_days' => $noBreakDays,
                 'work_hours' => floor($totalWorkedMinutes / 60) . 'h ' . ($totalWorkedMinutes % 60) . 'm',
                 'break_hours' => floor($totalBreakMinutes / 60) . 'h ' . ($totalBreakMinutes % 60) . 'm',
                 'total_worked_minutes' => $totalWorkedMinutes,

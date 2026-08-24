@@ -223,6 +223,19 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
     const latePct = Math.round((lateRecords.length / totalDays) * 100) || 0;
     const absentPct = Math.round((absentRecords.length / totalDays) * 100) || 0;
 
+    const isRecordMissingPunchout = (r) => {
+        if (!r) return false;
+        if (r.is_missing_punchout) return true;
+        if (r.check_out === '11:59 PM') return true;
+        if (r.punch_out_raw && (r.punch_out_raw.includes('23:59:59') || r.punch_out_raw.includes('23:59:00'))) return true;
+        if (r.check_out && r.check_out !== '-' && (r.hours === '0h 0m' || r.hours === '--')) return true;
+        return false;
+    };
+
+    const missingPunchoutRecords = attendanceData ? attendanceData.filter(r => isRecordMissingPunchout(r)) : [];
+    const missingPunchoutsCount = missingPunchoutRecords.length;
+    const missingPunchoutPct = Math.round((missingPunchoutsCount / totalDays) * 100) || 0;
+
     // Calculate Avg Check In & Check Out
     let checkInMinutesSum = 0;
     let checkInCount = 0;
@@ -411,6 +424,9 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                                 <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold bg-amber-50 text-slate-700 border border-amber-100/60 shadow-2xs">
                                     <span className="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Late <span className="text-gray-500 font-medium">{latePct}%</span>
                                 </span>
+                                <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold bg-rose-50 text-slate-700 border border-rose-100/60 shadow-2xs">
+                                    <span className="w-2.5 h-2.5 rounded-full bg-rose-500"></span> Missing Punchout <span className="text-gray-500 font-medium">{missingPunchoutPct}%</span>
+                                </span>
                                 <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl text-xs font-extrabold bg-red-50 text-slate-700 border border-red-100/60 shadow-2xs">
                                     <span className="w-2.5 h-2.5 rounded-full bg-red-500"></span> Absent <span className="text-gray-500 font-medium">{absentPct}%</span>
                                 </span>
@@ -419,22 +435,26 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
 
                         {/* Right Column: Summary Metrics Grid */}
                         <div className="lg:col-span-7 flex items-center justify-end border-t lg:border-t-0 lg:border-l border-gray-100 pt-6 lg:pt-0 lg:pl-6">
-                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 w-full text-left">
-                                <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
-                                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Total Attendance</span>
-                                    <span className="text-lg font-black text-slate-800 mt-0.5 block">{totalAttendanceDays} days</span>
+                            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 w-full text-left">
+                                <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total Attendance</span>
+                                    <span className="text-base font-black text-slate-800 mt-0.5 block">{totalAttendanceDays} days</span>
                                 </div>
-                                <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
-                                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Total hours</span>
-                                    <span className="text-lg font-black text-slate-800 mt-0.5 block">{formatWorkedTime(totalMonthlyMinutes)}</span>
+                                <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total hours</span>
+                                    <span className="text-base font-black text-slate-800 mt-0.5 block">{formatWorkedTime(totalMonthlyMinutes)}</span>
                                 </div>
-                                <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
-                                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Avg check in</span>
-                                    <span className="text-base font-black text-slate-800 mt-0.5 block">{avgCheckInStr}</span>
+                                <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Avg check in</span>
+                                    <span className="text-sm font-black text-slate-800 mt-0.5 block">{avgCheckInStr}</span>
                                 </div>
-                                <div className="bg-gray-50/80 p-3.5 rounded-2xl border border-gray-100">
-                                    <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Avg check out</span>
-                                    <span className="text-base font-black text-slate-800 mt-0.5 block">{avgCheckOutStr}</span>
+                                <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
+                                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Avg check out</span>
+                                    <span className="text-sm font-black text-slate-800 mt-0.5 block">{avgCheckOutStr}</span>
+                                </div>
+                                <div className="bg-amber-50/80 p-3 rounded-2xl border border-amber-100">
+                                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider block">Missing Punchout</span>
+                                    <span className="text-base font-black text-amber-900 mt-0.5 block">{missingPunchoutsCount} days</span>
                                 </div>
                             </div>
                         </div>
@@ -497,7 +517,14 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                                         </div>
                                         <div>
                                             <span className="text-xs text-slate-700 font-bold block mb-1">Check Out</span>
-                                            <span className="text-lg font-black text-slate-950 block">{record.check_out || '—'}</span>
+                                            <div className="flex items-center gap-1.5 flex-wrap">
+                                                <span className={`text-lg font-black block ${isRecordMissingPunchout(record) ? 'text-amber-600' : 'text-slate-950'}`}>{record.check_out || '—'}</span>
+                                                {isRecordMissingPunchout(record) && (
+                                                    <span className="px-1.5 py-0.5 text-[9px] font-extrabold bg-amber-100 text-amber-800 rounded-md uppercase tracking-wider border border-amber-200" title="System auto-closed session (missing manual punch-out)">
+                                                        Auto Closed
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                         <div>
                                             <span className="text-xs text-slate-700 font-bold block mb-1">Total</span>
