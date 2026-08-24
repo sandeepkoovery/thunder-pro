@@ -442,6 +442,14 @@ class AttendanceController extends Controller
                         $checkOut = $attendance->punch_out ? Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->format('h:i A') : '-';
                         $hours = floor($attendance->total_worked_minutes / 60) . 'h ' . ($attendance->total_worked_minutes % 60) . 'm';
                         $breakTime = floor($totalBreakMinutes / 60) . 'h ' . ($totalBreakMinutes % 60) . 'm';
+
+                        $isMissingPunchout = false;
+                        if ($attendance->punch_out) {
+                            $pOutTime = Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->format('H:i:s');
+                            if ($pOutTime === '23:59:59' || $pOutTime === '23:59:00' || ($attendance->status === 'punched_out' && ($attendance->total_worked_minutes === 0 || $attendance->total_worked_minutes === null))) {
+                                $isMissingPunchout = true;
+                            }
+                        }
                     } else {
                         // Check if it's a Saturday or Sunday
                         if ($date->isSaturday() || $date->isSunday()) {
@@ -460,6 +468,7 @@ class AttendanceController extends Controller
                                 $status = 'Absent';
                             }
                         }
+                        $isMissingPunchout = false;
                     }
 
                     $attendanceData[] = [
@@ -483,6 +492,7 @@ class AttendanceController extends Controller
                         'breaks' => $breaks ?? [],
                         'total_worked_minutes' => $attendance ? $attendance->total_worked_minutes : 0,
                         'total_break_minutes' => isset($totalBreakMinutes) ? $totalBreakMinutes : 0,
+                        'is_missing_punchout' => $isMissingPunchout,
                     ];
                 }
 
@@ -545,6 +555,14 @@ class AttendanceController extends Controller
                     $hours = floor($att->total_worked_minutes / 60) . 'h ' . ($att->total_worked_minutes % 60) . 'm';
                     $breakTime = floor(($att->total_break_minutes ?? 0) / 60) . 'h ' . (($att->total_break_minutes ?? 0) % 60) . 'm';
 
+                    $isMissingPunchout = false;
+                    if ($att->punch_out) {
+                        $pOutTime = Carbon::parse($att->punch_out)->timezone('Asia/Kolkata')->format('H:i:s');
+                        if ($pOutTime === '23:59:59' || $pOutTime === '23:59:00' || ($att->status === 'punched_out' && ($att->total_worked_minutes === 0 || $att->total_worked_minutes === null))) {
+                            $isMissingPunchout = true;
+                        }
+                    }
+
                     return [
                         'id' => $att->id,
                         'name' => $att->user ? $att->user->name : 'Unknown',
@@ -566,6 +584,7 @@ class AttendanceController extends Controller
                         'breaks' => $att->breaks ?? [],
                         'total_worked_minutes' => $att->total_worked_minutes,
                         'total_break_minutes' => $att->total_break_minutes ?? 0,
+                        'is_missing_punchout' => $isMissingPunchout,
                     ];
                 })->values()->toArray();
 
@@ -673,6 +692,14 @@ class AttendanceController extends Controller
                 $hours = floor($attendance->total_worked_minutes / 60) . 'h ' . ($attendance->total_worked_minutes % 60) . 'm';
             }
 
+            $isMissingPunchout = false;
+            if ($attendance && $attendance->punch_out) {
+                $pOutTime = Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->format('H:i:s');
+                if ($pOutTime === '23:59:59' || $pOutTime === '23:59:00' || ($attendance->status === 'punched_out' && ($attendance->total_worked_minutes === 0 || $attendance->total_worked_minutes === null))) {
+                    $isMissingPunchout = true;
+                }
+            }
+
             return [
                 'id' => $user->id,
                 'name' => $user->name,
@@ -695,6 +722,7 @@ class AttendanceController extends Controller
                 'breaks' => $breaks,
                 'total_worked_minutes' => $attendance ? $attendance->total_worked_minutes : 0,
                 'total_break_minutes' => $totalBreakMinutes,
+                'is_missing_punchout' => $isMissingPunchout,
             ];
         })->values();
 
@@ -1160,6 +1188,7 @@ class AttendanceController extends Controller
             'Total Leaves',
             'Late Punchin Days',
             'Early Leave Days',
+            'Missing Punchout Days',
             'Total Work Hours',
             'Total Break Hours'
         ];
@@ -1197,6 +1226,7 @@ class AttendanceController extends Controller
                 $leaveDays = 0;
                 $lateDays = 0;
                 $earlyLeaveDays = 0;
+                $missingPunchoutDays = 0;
                 $totalWorkedMinutes = 0;
                 $totalBreakMinutes = 0;
 
@@ -1220,11 +1250,15 @@ class AttendanceController extends Controller
                             $lateDays++;
                         }
 
-                        // Check if early leave
+                        // Check if early leave or missing punchout
                         if ($attendance->punch_out) {
                             $punchOutLocal = Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata');
+                            $timeStr = $punchOutLocal->format('H:i:s');
+                            if ($timeStr === '23:59:59' || $timeStr === '23:59:00' || ($attendance->status === 'punched_out' && ($attendance->total_worked_minutes === 0 || $attendance->total_worked_minutes === null))) {
+                                $missingPunchoutDays++;
+                            }
                             $sixPM = Carbon::parse($dateStr . ' 18:00:00', 'Asia/Kolkata');
-                            if ($punchOutLocal->lt($sixPM)) {
+                            if ($punchOutLocal->lt($sixPM) && $timeStr !== '23:59:59' && $timeStr !== '23:59:00') {
                                 $earlyLeaveDays++;
                             }
                         }
@@ -1258,6 +1292,7 @@ class AttendanceController extends Controller
                     $leaveDays,
                     $lateDays,
                     $earlyLeaveDays,
+                    $missingPunchoutDays,
                     floor($totalWorkedMinutes / 60) . 'h ' . ($totalWorkedMinutes % 60) . 'm',
                     floor($totalBreakMinutes / 60) . 'h ' . ($totalBreakMinutes % 60) . 'm'
                 ]);
@@ -1314,6 +1349,7 @@ class AttendanceController extends Controller
             $leaveDays = 0;
             $lateDays = 0;
             $earlyLeaveDays = 0;
+            $missingPunchoutDays = 0;
             $totalWorkedMinutes = 0;
             $totalBreakMinutes = 0;
 
@@ -1335,8 +1371,12 @@ class AttendanceController extends Controller
 
                     if ($attendance->punch_out) {
                         $punchOutLocal = Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata');
+                        $timeStr = $punchOutLocal->format('H:i:s');
+                        if ($timeStr === '23:59:59' || $timeStr === '23:59:00' || ($attendance->status === 'punched_out' && ($attendance->total_worked_minutes === 0 || $attendance->total_worked_minutes === null))) {
+                            $missingPunchoutDays++;
+                        }
                         $sixPM = Carbon::parse($dateStr . ' 18:00:00', 'Asia/Kolkata');
-                        if ($punchOutLocal->lt($sixPM)) {
+                        if ($punchOutLocal->lt($sixPM) && $timeStr !== '23:59:59' && $timeStr !== '23:59:00') {
                             $earlyLeaveDays++;
                         }
                     }
@@ -1369,6 +1409,7 @@ class AttendanceController extends Controller
                 'leave_days' => $leaveDays,
                 'late_days' => $lateDays,
                 'early_leave_days' => $earlyLeaveDays,
+                'missing_punchouts' => $missingPunchoutDays,
                 'work_hours' => floor($totalWorkedMinutes / 60) . 'h ' . ($totalWorkedMinutes % 60) . 'm',
                 'break_hours' => floor($totalBreakMinutes / 60) . 'h ' . ($totalBreakMinutes % 60) . 'm',
                 'total_worked_minutes' => $totalWorkedMinutes,
