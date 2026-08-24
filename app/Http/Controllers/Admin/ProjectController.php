@@ -46,8 +46,8 @@ class ProjectController extends Controller
             'Critical' => (clone $query)->where('status', 'critical')->count(),
         ];
 
-        // Fetch projects with their relation aggregates
-        $perPage = (int) $request->input('perPage', 10);
+        // Fetch projects with their relation aggregates (12 per page for 4-column grid alignment)
+        $perPage = (int) $request->input('perPage', 12);
 
         $projects = $query->with(['tasks', 'tasks.assignees']) // Eager load to process progress and unique user avatars
             ->withCount('tasks')
