@@ -257,19 +257,16 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
 
                         {/* Designer Filter (Admin Side) */}
                         {!isUser && (
-                            <div className="relative">
-                                <select
-                                    value={selectedDesignerFilter}
-                                    onChange={(e) => setSelectedDesignerFilter(e.target.value)}
-                                    className="pl-4 pr-9 py-2.5 rounded-2xl border border-gray-200 bg-white text-sm font-bold text-gray-800 focus:ring-2 focus:ring-blue-500 appearance-none cursor-pointer"
-                                >
-                                    <option value="">DESIGNER: All Designers</option>
-                                    {users.map(u => (
-                                        <option key={u.id} value={u.id}>{u.name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-                            </div>
+                            <select
+                                value={selectedDesignerFilter}
+                                onChange={(e) => setSelectedDesignerFilter(e.target.value)}
+                                className="w-full sm:w-56 border border-gray-200 pl-4 pr-10 py-2.5 rounded-2xl bg-white text-[15px] font-medium text-slate-800 focus:outline-none focus:border-blue-500 appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_12px_center] bg-[size:18px] bg-no-repeat cursor-pointer"
+                            >
+                                <option value="">DESIGNER: All Designers</option>
+                                {users.map(u => (
+                                    <option key={u.id} value={u.id}>{u.name}</option>
+                                ))}
+                            </select>
                         )}
 
                         {/* Clear Filters Button */}
@@ -297,7 +294,7 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                     form.setData('task_date', new Date().toISOString().split('T')[0]);
                                     setIsCreateModalOpen(true);
                                 }}
-                                className="px-5 py-2.5 rounded-2xl bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-black uppercase tracking-wider transition-all shadow-md flex items-center gap-2 cursor-pointer"
+                                className="px-6 py-3 bg-[#1e88e5] hover:bg-[#1565c0] text-white rounded-full font-semibold uppercase tracking-wider text-xs shadow-lg shadow-[#1e88e5]/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                             >
                                 <Plus size={16} /> ADD TASK
                             </button>
@@ -394,7 +391,7 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                                     <select
                                                         value={item.status || 'Not Done'}
                                                         onChange={(e) => handleInlineStatusChange(item.id, e.target.value)}
-                                                        className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border cursor-pointer text-center outline-none transition-all ${getStatusBadgeStyle(item.status)}`}
+                                                        className={`pl-4 pr-8 py-1.5 rounded-full text-xs font-extrabold uppercase border cursor-pointer text-center outline-none transition-all focus:ring-2 focus:ring-blue-500/30 ${getStatusBadgeStyle(item.status)}`}
                                                     >
                                                         <option value="Not Done" className="bg-white text-slate-800 font-bold">NOT DONE</option>
                                                         <option value="In Progress" className="bg-white text-slate-800 font-bold">IN PROGRESS</option>

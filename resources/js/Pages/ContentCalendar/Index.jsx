@@ -458,7 +458,7 @@ export default function Index({ calendarItems = [], users = [], projects = [], m
                             <button
                                 type="button"
                                 onClick={handleGenerateMonth}
-                                className="px-6 py-2.5 rounded-2xl bg-[#1e88e5] text-white font-bold uppercase tracking-wider text-[11px] hover:bg-[#1565c0] transition-colors shadow-lg shadow-[#1e88e5]/25 flex items-center gap-2 cursor-pointer"
+                                className="px-6 py-3 bg-[#1e88e5] hover:bg-[#1565c0] text-white rounded-full font-semibold uppercase tracking-wider text-xs shadow-lg shadow-[#1e88e5]/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                             >
                                 <Zap size={15} fill="currentColor" />
                                 GENERATE MONTH

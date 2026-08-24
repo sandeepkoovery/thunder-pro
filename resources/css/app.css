@@ -82,34 +82,62 @@ h4 { font-size: 18px !important; }
 h5 { font-size: 16px !important; }
 h6 { font-size: 14px !important; }
 
-/* ── Global Textbox & Form Input Visibility Styles ── */
-input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0),
-textarea:not(.border-none):not(.border-0),
-select:not(.border-none):not(.border-0) {
-  border: 1px solid #d1d5db;
-  color: #1e293b;
-}
+/* ── Global Textbox & Form Input Visibility Styles (Matches Employees List & Screenshot) ── */
+@layer base {
+  input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0) {
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    background-color: #ffffff;
+    color: #1e293b;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
 
-/* Remove default background arrow image from selects when appearance-none is used */
-select.appearance-none,
-select[style*="appearance: none"],
-select[style*="appearance:none"] {
-  background-image: none !important;
-  -webkit-appearance: none !important;
-  -moz-appearance: none !important;
-  appearance: none !important;
-}
+  textarea:not(.border-none):not(.border-0) {
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    background-color: #ffffff;
+    color: #1e293b;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
 
-input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"])::placeholder,
-textarea::placeholder {
-  color: #94a3b8 !important;
-  opacity: 1 !important;
-}
+  select:not(.border-none):not(.border-0) {
+    border: 1px solid #e2e8f0;
+    border-radius: 1rem;
+    background-color: #ffffff;
+    color: #1e293b;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  }
 
-input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):focus,
-textarea:focus,
-select:focus {
-  border-color: #7e89ca;
+  select:not(.border-none):not(.border-0):not(.bg-transparent):not([style*="background-image: none"]):not([style*="background-image:none"]):not([class*="!bg-none"]):not([class*="bg-none"]) {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E");
+    background-position: right 12px center;
+    background-size: 18px;
+    background-repeat: no-repeat;
+  }
+
+  input::placeholder,
+  textarea::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+  }
+
+  input:focus,
+  textarea:focus,
+  select:focus {
+    border-color: #3b82f6;
+  }
 }
 
 /* ── MaterialPro typography (matches WrapPixel demo) ── */
@@ -664,30 +692,41 @@ body:has(.mp-wrapper) {
   box-shadow: 0 0 0 3px rgba(30, 136, 229, 0.15);
 }
 
-/* ── BUTTONS ── */
-.mp-btn {
+/* ── BUTTONS (Matches + Add Employee pill button style) ── */
+.mp-btn,
+.btn-primary,
+.mp-btn-primary {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  padding: 0.65rem 1.25rem;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  border-radius: var(--theme-radius-sm);
-  border: 1px solid transparent;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.75rem !important;
+  font-weight: 600 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  border-radius: 9999px !important;
+  border: none !important;
+  background-color: #1e88e5 !important;
+  color: #ffffff !important;
+  box-shadow: 0 8px 20px -4px rgba(30, 136, 229, 0.4) !important;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.2s ease-in-out;
   text-decoration: none !important;
 }
 
-.mp-btn-primary {
-  background: var(--theme-primary);
-  color: #ffffff !important;
-  box-shadow: 0 4px 14px rgba(30, 136, 229, 0.35);
+.mp-btn:hover,
+.btn-primary:hover,
+.mp-btn-primary:hover {
+  background-color: #1565c0 !important;
+  box-shadow: 0 10px 24px -4px rgba(30, 136, 229, 0.55) !important;
+  transform: translateY(-1px);
 }
 
-.mp-btn-primary:hover {
-  background: var(--theme-primary-dark);
+.mp-btn:active,
+.btn-primary:active,
+.mp-btn-primary:active {
+  transform: translateY(0) scale(0.98);
 }
 
 .mp-btn-accent {

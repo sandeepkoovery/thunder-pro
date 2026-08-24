@@ -226,15 +226,15 @@ export default function DatePicker({
                         setIsOpen(!isOpen);
                     }
                 }}
-                className={`w-full flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl border text-sm font-semibold transition-all cursor-pointer outline-none ${
+                className={`w-full flex items-center justify-between gap-2 pl-4 pr-3.5 py-2.5 rounded-2xl border text-[15px] font-medium transition-all cursor-pointer outline-none ${
                     isOpen
-                        ? 'border-[#635bfc] ring-4 ring-[#635bfc]/15 bg-white shadow-sm'
-                        : 'border-gray-300 bg-white hover:border-gray-400 hover:bg-gray-50/50 shadow-xs'
+                        ? 'border-blue-500 bg-white'
+                        : 'border-gray-200 bg-white hover:border-gray-300'
                 } ${disabled ? 'opacity-50 cursor-not-allowed bg-gray-100' : ''} ${inputClassName}`}
             >
                 <div className="flex items-center gap-2 overflow-hidden text-left">
-                    <CalendarIcon size={16} className={`shrink-0 ${value ? 'text-[#635bfc]' : 'text-gray-400'}`} />
-                    <span className={`truncate text-sm ${value ? 'text-gray-800 font-semibold' : 'text-gray-400 font-normal'}`}>
+                    <CalendarIcon size={16} className={`shrink-0 ${value ? 'text-slate-600' : 'text-gray-400'}`} />
+                    <span className={`truncate text-[15px] font-medium ${value ? 'text-slate-800' : 'text-gray-400'}`}>
                         {formatTriggerDisplay()}
                     </span>
                 </div>
