@@ -80,6 +80,20 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
         return selectedUsers.map(u => u.name).join(', ');
     };
 
+    const getStatusBadgeStyle = (status) => {
+        const s = (status || '').toUpperCase();
+        if (s === 'APPROVED') {
+            return 'bg-purple-50 text-purple-700 border-purple-200/80 hover:bg-purple-100';
+        }
+        if (s === 'DONE' || s === 'COMPLETED') {
+            return 'bg-emerald-50 text-emerald-700 border-emerald-200/80 hover:bg-emerald-100';
+        }
+        if (s === 'IN PROGRESS' || s === 'IN_PROGRESS') {
+            return 'bg-blue-50 text-blue-700 border-blue-200/80 hover:bg-blue-100';
+        }
+        return 'bg-red-50 text-red-700 border-red-200/80 hover:bg-red-100';
+    };
+
     // Form
     const form = useForm({
         client_name: '',
@@ -377,28 +391,16 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
 
                                                 {/* STATUS */}
                                                 <td className="py-4 px-6 whitespace-nowrap">
-                                                    {isUser ? (
-                                                        <select
-                                                            value={item.status || 'Not Done'}
-                                                            onChange={(e) => handleInlineStatusChange(item.id, e.target.value)}
-                                                            className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border cursor-pointer appearance-none text-center ${
-                                                                isDone
-                                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                                    : 'bg-red-50 text-red-600 border-red-100'
-                                                            }`}
-                                                        >
-                                                            <option value="Not Done">NOT DONE ∨</option>
-                                                            <option value="Done">DONE ∨</option>
-                                                        </select>
-                                                    ) : (
-                                                        <span className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border text-center ${
-                                                            isDone
-                                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                                : 'bg-red-50 text-red-600 border-red-100'
-                                                        }`}>
-                                                            {isDone ? 'DONE' : 'NOT DONE'}
-                                                        </span>
-                                                    )}
+                                                    <select
+                                                        value={item.status || 'Not Done'}
+                                                        onChange={(e) => handleInlineStatusChange(item.id, e.target.value)}
+                                                        className={`px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border cursor-pointer text-center outline-none transition-all ${getStatusBadgeStyle(item.status)}`}
+                                                    >
+                                                        <option value="Not Done" className="bg-white text-slate-800 font-bold">NOT DONE</option>
+                                                        <option value="In Progress" className="bg-white text-slate-800 font-bold">IN PROGRESS</option>
+                                                        <option value="Done" className="bg-white text-slate-800 font-bold">DONE</option>
+                                                        <option value="Approved" className="bg-white text-slate-800 font-bold">APPROVED</option>
+                                                    </select>
                                                 </td>
 
                                                 {/* ACTION */}
@@ -668,8 +670,9 @@ export default function Index({ worklists = [], users = [], taskTypeOptionsSetti
                                         className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-bold uppercase cursor-pointer focus:ring-2 focus:ring-blue-500/20"
                                     >
                                         <option value="Not Done">NOT DONE</option>
-                                        <option value="Done">DONE</option>
                                         <option value="In Progress">IN PROGRESS</option>
+                                        <option value="Done">DONE</option>
+                                        <option value="Approved">APPROVED</option>
                                     </select>
                                 </div>
 
