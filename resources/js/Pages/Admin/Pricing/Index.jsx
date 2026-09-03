@@ -481,13 +481,34 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                     <p className="text-sm text-gray-500 font-medium mt-1">Full invoice breakdown of your active base plan and assigned additional modules.</p>
                                 </div>
 
-                                <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl border border-slate-700 w-full md:w-auto min-w-[320px] text-right">
-                                    <span className="text-xs font-black uppercase tracking-widest text-slate-400 block">TOTAL MONTHLY AMOUNT</span>
-                                    <div className="text-4xl font-black text-white mt-2">
-                                        ₹{grandTotal.toLocaleString('en-IN')} <span className="text-sm font-normal text-slate-400">/ mo</span>
-                                    </div>
-                                    <div className="text-xs font-medium text-slate-400 mt-2">
-                                        Base Plan (₹{basePlanPrice.toLocaleString('en-IN')}) + Add-ons (₹{addOnsTotal.toLocaleString('en-IN')})
+                                <div className="bg-gradient-to-br from-indigo-50/90 via-purple-50/40 to-emerald-50/60 rounded-3xl p-6 sm:p-7 border border-indigo-100/80 shadow-sm w-full md:w-auto min-w-[340px] relative overflow-hidden group hover:shadow-md transition-all">
+                                    {/* Ambient soft background glow blobs */}
+                                    <div className="absolute -top-12 -right-12 w-32 h-32 bg-indigo-300/20 rounded-full blur-2xl pointer-events-none"></div>
+                                    <div className="absolute -bottom-12 -left-12 w-32 h-32 bg-purple-300/20 rounded-full blur-2xl pointer-events-none"></div>
+                                    
+                                    <div className="relative z-10 text-left md:text-right space-y-2">
+                                        <div className="flex items-center justify-start md:justify-end gap-2">
+                                            <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-indigo-100/80 text-indigo-700 rounded-full text-[11px] font-black uppercase tracking-wider border border-indigo-200/50">
+                                                <Receipt size={13} className="text-indigo-600" /> TOTAL MONTHLY AMOUNT
+                                            </span>
+                                        </div>
+                                        
+                                        <div className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 mt-1">
+                                            <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-800 bg-clip-text text-transparent">
+                                                ₹{grandTotal.toLocaleString('en-IN')}
+                                            </span>
+                                            <span className="text-sm font-bold text-slate-500 ml-1.5">/ mo</span>
+                                        </div>
+                                        
+                                        <div className="inline-flex flex-wrap items-center justify-start md:justify-end gap-1.5 text-xs font-semibold text-slate-600 pt-1">
+                                            <span className="bg-white/80 px-2.5 py-1 rounded-lg border border-slate-200/60 text-slate-700 shadow-2xs">
+                                                Base: <strong className="text-slate-900 font-extrabold">₹{basePlanPrice.toLocaleString('en-IN')}</strong>
+                                            </span>
+                                            <span className="text-slate-400 font-bold">+</span>
+                                            <span className="bg-purple-100/60 px-2.5 py-1 rounded-lg border border-purple-200/50 text-purple-800 shadow-2xs">
+                                                Add-ons: <strong className="text-purple-950 font-extrabold">₹{addOnsTotal.toLocaleString('en-IN')}</strong>
+                                            </span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

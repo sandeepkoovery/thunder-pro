@@ -25,10 +25,38 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-export default function Index({ worksheets = [], settings, users = [] }) {
+export default function Index({ worksheets = [], settings, userSettingsMap = {}, users = [] }) {
     const { auth } = usePage().props;
     const isUser = auth?.user?.role !== 'admin' && auth?.user?.role !== 'superadmin';
     const Layout = isUser ? UserLayout : AdminLayout;
+
+    // Determine settings for the active view/user
+    const activeUserSettings = useMemo(() => {
+        if (isUser && auth?.user?.id && userSettingsMap[auth.user.id]) {
+            return userSettingsMap[auth.user.id];
+        }
+        return settings || {};
+    }, [isUser, auth?.user?.id, userSettingsMap, settings]);
+
+    const showClientName = activeUserSettings?.client_name_enabled !== false;
+    const showTaskType = activeUserSettings?.task_type_enabled !== false;
+    const showStatus = activeUserSettings?.status_enabled !== false;
+    const showFileName = activeUserSettings?.file_name_enabled !== false;
+    const showDriveLink = activeUserSettings?.drive_link_enabled !== false;
+    const showProject = activeUserSettings?.project_enabled !== false;
+
+    // Helper for Admin View per-employee settings lookup
+    const getEmployeeColumnFlags = (userId) => {
+        const uSettings = (userId && userSettingsMap[userId]) ? userSettingsMap[userId] : settings;
+        return {
+            showClientName: uSettings?.client_name_enabled !== false,
+            showTaskType: uSettings?.task_type_enabled !== false,
+            showStatus: uSettings?.status_enabled !== false,
+            showFileName: uSettings?.file_name_enabled !== false,
+            showDriveLink: uSettings?.drive_link_enabled !== false,
+            showProject: uSettings?.project_enabled !== false,
+        };
+    };
 
     // View Mode & Filters
     const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
@@ -555,112 +583,121 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                         </div>
 
                                         {/* Accordion Table Body */}
-                                        {isOpen && (
-                                            <div className="overflow-x-auto">
-                                                <table className="w-full text-left border-collapse min-w-[900px]">
-                                                    <thead>
-                                                        <tr className="border-b border-gray-100 bg-slate-50/40">
-                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">DATE</th>
-                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">CLIENT</th>
-                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">TASK TYPE</th>
-                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">STATUS</th>
-                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">FILE NAME</th>
-                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">LINK</th>
-                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">PROJECT</th>
-                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">ADDED ON</th>
-                                                            <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400 text-right">ACTION</th>
-                                                        </tr>
-                                                    </thead>
-                                                    <tbody className="divide-y divide-gray-50">
-                                                        {group.items.map((item) => {
-                                                            const dateFmt = formatDate(item.date);
-                                                            const statusUpper = (item.status || 'DONE').toUpperCase();
+                                        {isOpen && (() => {
+                                            const flags = getEmployeeColumnFlags(group.userId);
+                                            return (
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-left border-collapse min-w-[800px]">
+                                                        <thead>
+                                                            <tr className="border-b border-gray-100 bg-slate-50/40">
+                                                                <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">DATE</th>
+                                                                {flags.showClientName && <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">CLIENT</th>}
+                                                                {flags.showTaskType && <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">TASK TYPE</th>}
+                                                                {flags.showStatus && <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">STATUS</th>}
+                                                                {flags.showFileName && <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">FILE NAME</th>}
+                                                                {flags.showDriveLink && <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">LINK</th>}
+                                                                {flags.showProject && <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">PROJECT</th>}
+                                                                <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">ADDED ON</th>
+                                                                <th className="py-4 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400 text-right">ACTION</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-gray-50">
+                                                            {group.items.map((item) => {
+                                                                const dateFmt = formatDate(item.date);
+                                                                const statusUpper = (item.status || 'DONE').toUpperCase();
 
-                                                            return (
-                                                                <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                                                                    {/* DATE */}
-                                                                    <td className="py-4 px-6 whitespace-nowrap">
-                                                                        <div className="font-extrabold text-gray-900 text-sm">{dateFmt.main}</div>
-                                                                        <div className="text-[10px] font-extrabold text-gray-400 tracking-wider">{dateFmt.sub}</div>
-                                                                    </td>
+                                                                return (
+                                                                    <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
+                                                                        {/* DATE */}
+                                                                        <td className="py-4 px-6 whitespace-nowrap">
+                                                                            <div className="font-extrabold text-gray-900 text-sm">{dateFmt.main}</div>
+                                                                            <div className="text-[10px] font-extrabold text-gray-400 tracking-wider">{dateFmt.sub}</div>
+                                                                        </td>
 
-                                                                    {/* CLIENT */}
-                                                                    <td className="py-4 px-6 font-bold text-gray-900 text-sm max-w-xs">{item.client_name || '-'}</td>
+                                                                        {/* CLIENT */}
+                                                                        {flags.showClientName && <td className="py-4 px-6 font-bold text-gray-900 text-sm max-w-xs">{item.client_name || '-'}</td>}
 
-                                                                    {/* TASK TYPE */}
-                                                                    <td className="py-4 px-6">
-                                                                        <span className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase bg-gray-100 text-gray-700 leading-none text-center">
-                                                                            {item.task_type || 'TASK'}
-                                                                        </span>
-                                                                    </td>
-
-                                                                    {/* STATUS */}
-                                                                    <td className="py-4 px-6">
-                                                                        <span className={`inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border text-center leading-none ${
-                                                                            statusUpper === 'APPROVED'
-                                                                                ? 'bg-purple-50 text-purple-600 border-purple-100'
-                                                                                : statusUpper === 'DONE' || statusUpper === 'COMPLETED'
-                                                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                                                : statusUpper === 'IN PROGRESS'
-                                                                                ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                                                                : 'bg-red-50 text-red-600 border-red-100'
-                                                                        }`}>
-                                                                            {item.status || 'DONE'}
-                                                                        </span>
-                                                                    </td>
-
-                                                                    {/* FILE NAME */}
-                                                                    <td className="py-4 px-6 font-semibold text-slate-700 text-sm">{item.file_name || '-'}</td>
-
-                                                                    {/* DRIVE LINK */}
-                                                                    <td className="py-4 px-6">
-                                                                        {item.drive_link ? (
-                                                                            <a
-                                                                                href={item.drive_link.startsWith('http') ? item.drive_link : `https://${item.drive_link}`}
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer"
-                                                                                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-100/80 transition-all"
-                                                                                title={item.drive_link}
-                                                                            >
-                                                                                <ExternalLink size={12} /> Link
-                                                                            </a>
-                                                                        ) : (
-                                                                            <span className="text-gray-400 text-xs font-medium">—</span>
+                                                                        {/* TASK TYPE */}
+                                                                        {flags.showTaskType && (
+                                                                            <td className="py-4 px-6">
+                                                                                <span className="inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase bg-gray-100 text-gray-700 leading-none text-center">
+                                                                                    {item.task_type || 'TASK'}
+                                                                                </span>
+                                                                            </td>
                                                                         )}
-                                                                    </td>
 
-                                                                    {/* PROJECT */}
-                                                                    <td className="py-4 px-6 font-semibold text-gray-600 text-sm">{item.project || '-'}</td>
+                                                                        {/* STATUS */}
+                                                                        {flags.showStatus && (
+                                                                            <td className="py-4 px-6">
+                                                                                <span className={`inline-flex items-center justify-center px-3.5 py-1.5 rounded-full text-xs font-extrabold uppercase border text-center leading-none ${
+                                                                                    statusUpper === 'APPROVED'
+                                                                                        ? 'bg-purple-50 text-purple-600 border-purple-100'
+                                                                                        : statusUpper === 'DONE' || statusUpper === 'COMPLETED'
+                                                                                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                                        : statusUpper === 'IN PROGRESS'
+                                                                                        ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                                                                        : 'bg-red-50 text-red-600 border-red-100'
+                                                                                }`}>
+                                                                                    {item.status || 'DONE'}
+                                                                                </span>
+                                                                            </td>
+                                                                        )}
 
-                                                                    {/* ADDED ON */}
-                                                                    <td className="py-4 px-6 text-gray-500 font-semibold text-xs whitespace-nowrap">{dateFmt.full}</td>
+                                                                        {/* FILE NAME */}
+                                                                        {flags.showFileName && <td className="py-4 px-6 font-semibold text-slate-700 text-sm">{item.file_name || '-'}</td>}
 
-                                                                    {/* ACTION */}
-                                                                    <td className="py-4 px-6 text-right whitespace-nowrap">
-                                                                        <div className="flex items-center justify-end gap-2">
-                                                                            <button
-                                                                                onClick={() => handleOpenEdit(item)}
-                                                                                className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                                                                                title="Edit Task"
-                                                                            >
-                                                                                <Edit2 size={16} />
-                                                                            </button>
-                                                                            <button
-                                                                                onClick={() => handleDelete(item.id)}
-                                                                                className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
-                                                                                title="Delete Task"
-                                                                            >
-                                                                                <Trash2 size={16} />
-                                                                            </button>
-                                                                        </div>
-                                                                    </td>
-                                                                </tr>
-                                                            );
-                                                        })}
-                                                    </tbody>
-                                                </table>
-                                            </div>
-                                        )}
+                                                                        {/* DRIVE LINK */}
+                                                                        {flags.showDriveLink && (
+                                                                            <td className="py-4 px-6">
+                                                                                {item.drive_link ? (
+                                                                                    <a
+                                                                                        href={item.drive_link.startsWith('http') ? item.drive_link : `https://${item.drive_link}`}
+                                                                                        target="_blank"
+                                                                                        rel="noopener noreferrer"
+                                                                                        className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-100/80 transition-all"
+                                                                                        title={item.drive_link}
+                                                                                    >
+                                                                                        <ExternalLink size={12} /> Link
+                                                                                    </a>
+                                                                                ) : (
+                                                                                    <span className="text-gray-400 text-xs font-medium">—</span>
+                                                                                )}
+                                                                            </td>
+                                                                        )}
+
+                                                                        {/* PROJECT */}
+                                                                        {flags.showProject && <td className="py-4 px-6 font-semibold text-gray-600 text-sm">{item.project || '-'}</td>}
+
+                                                                        {/* ADDED ON */}
+                                                                        <td className="py-4 px-6 text-gray-500 font-semibold text-xs whitespace-nowrap">{dateFmt.full}</td>
+
+                                                                        {/* ACTION */}
+                                                                        <td className="py-4 px-6 text-right whitespace-nowrap">
+                                                                            <div className="flex items-center justify-end gap-2">
+                                                                                <button
+                                                                                    onClick={() => handleOpenEdit(item)}
+                                                                                    className="p-1.5 text-blue-500 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                                                                                    title="Edit Task"
+                                                                                >
+                                                                                    <Edit2 size={16} />
+                                                                                </button>
+                                                                                <button
+                                                                                    onClick={() => handleDelete(item.id)}
+                                                                                    className="p-1.5 text-red-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                                                                                    title="Delete Task"
+                                                                                >
+                                                                                    <Trash2 size={16} />
+                                                                                </button>
+                                                                            </div>
+                                                                        </td>
+                                                                    </tr>
+                                                                );
+                                                            })}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            );
+                                        })()}
                                     </div>
                                 );
                             })
@@ -674,18 +711,19 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                 <thead>
                                     <tr className="border-b border-gray-100 bg-white">
                                         <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">DATE</th>
-                                        <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">CLIENT</th>
-                                        <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">TASK TYPE</th>
-                                        <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">STATUS</th>
-                                        <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">FILE NAME</th>
-                                        <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">LINK</th>
+                                        {showClientName && <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">CLIENT</th>}
+                                        {showTaskType && <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">TASK TYPE</th>}
+                                        {showStatus && <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">STATUS</th>}
+                                        {showFileName && <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">FILE NAME</th>}
+                                        {showDriveLink && <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">LINK</th>}
+                                        {showProject && <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400">PROJECT</th>}
                                         <th className="py-5 px-6 text-xs font-extrabold uppercase tracking-wider text-gray-400 text-right">ACTIONS</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-50">
                                     {filteredWorksheets.length === 0 ? (
                                         <tr>
-                                            <td colSpan={7} className="py-24 text-center">
+                                            <td colSpan={2 + (showClientName?1:0) + (showTaskType?1:0) + (showStatus?1:0) + (showFileName?1:0) + (showDriveLink?1:0) + (showProject?1:0)} className="py-24 text-center">
                                                 <div className="flex flex-col items-center justify-center">
                                                     <div className="w-16 h-16 rounded-2xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-3">
                                                         <CalendarIcon className="text-gray-300" size={32} />
@@ -705,41 +743,48 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                                         <div className="font-extrabold text-gray-900 text-sm">{dateFmt.main}</div>
                                                         <div className="text-[10px] font-extrabold text-gray-400 tracking-wider">{dateFmt.sub}</div>
                                                     </td>
-                                                    <td className="py-4 px-6 font-bold text-gray-900 text-sm">{item.client_name || '-'}</td>
-                                                    <td className="py-4 px-6">
-                                                        <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-gray-100 text-gray-700">
-                                                            {item.task_type || 'TASK'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-4 px-6">
-                                                        <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase border text-center ${
-                                                            statusUpper === 'APPROVED'
-                                                                ? 'bg-purple-50 text-purple-600 border-purple-100'
-                                                                : statusUpper === 'DONE' || statusUpper === 'COMPLETED'
-                                                                ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
-                                                                : statusUpper === 'IN PROGRESS'
-                                                                ? 'bg-blue-50 text-blue-600 border-blue-100'
-                                                                : 'bg-red-50 text-red-600 border-red-100'
-                                                        }`}>
-                                                            {item.status || 'DONE'}
-                                                        </span>
-                                                    </td>
-                                                    <td className="py-4 px-6 font-semibold text-slate-700 text-sm">{item.file_name || '-'}</td>
-                                                    <td className="py-4 px-6">
-                                                        {item.drive_link ? (
-                                                            <a
-                                                                href={item.drive_link.startsWith('http') ? item.drive_link : `https://${item.drive_link}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-100/80 transition-all"
-                                                                title={item.drive_link}
-                                                            >
-                                                                <ExternalLink size={12} /> Link
-                                                            </a>
-                                                        ) : (
-                                                            <span className="text-gray-400 text-xs font-medium">—</span>
-                                                        )}
-                                                    </td>
+                                                    {showClientName && <td className="py-4 px-6 font-bold text-gray-900 text-sm">{item.client_name || '-'}</td>}
+                                                    {showTaskType && (
+                                                        <td className="py-4 px-6">
+                                                            <span className="px-3 py-1 rounded-full text-xs font-extrabold uppercase bg-gray-100 text-gray-700">
+                                                                {item.task_type || 'TASK'}
+                                                            </span>
+                                                        </td>
+                                                    )}
+                                                    {showStatus && (
+                                                        <td className="py-4 px-6">
+                                                            <span className={`px-3 py-1 rounded-full text-xs font-extrabold uppercase border text-center ${
+                                                                statusUpper === 'APPROVED'
+                                                                    ? 'bg-purple-50 text-purple-600 border-purple-100'
+                                                                    : statusUpper === 'DONE' || statusUpper === 'COMPLETED'
+                                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+                                                                    : statusUpper === 'IN PROGRESS'
+                                                                    ? 'bg-blue-50 text-blue-600 border-blue-100'
+                                                                    : 'bg-red-50 text-red-600 border-red-100'
+                                                            }`}>
+                                                                {item.status || 'DONE'}
+                                                            </span>
+                                                        </td>
+                                                    )}
+                                                    {showFileName && <td className="py-4 px-6 font-semibold text-slate-700 text-sm">{item.file_name || '-'}</td>}
+                                                    {showDriveLink && (
+                                                        <td className="py-4 px-6">
+                                                            {item.drive_link ? (
+                                                                <a
+                                                                    href={item.drive_link.startsWith('http') ? item.drive_link : `https://${item.drive_link}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 border border-blue-100/80 transition-all"
+                                                                    title={item.drive_link}
+                                                                >
+                                                                    <ExternalLink size={12} /> Link
+                                                                </a>
+                                                            ) : (
+                                                                <span className="text-gray-400 text-xs font-medium">—</span>
+                                                            )}
+                                                        </td>
+                                                    )}
+                                                    {showProject && <td className="py-4 px-6 font-semibold text-gray-600 text-sm">{item.project || '-'}</td>}
                                                     <td className="py-4 px-6 text-right whitespace-nowrap">
                                                         <div className="flex items-center justify-end gap-2">
                                                             <button
@@ -944,11 +989,11 @@ export default function Index({ worksheets = [], settings, users = [] }) {
 
                 {/* IMAGE PREVIEW & DOWNLOAD MODAL (Matching Screenshot Design) */}
                 {isImagePreviewOpen && (
-                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-                        <div className="bg-white rounded-[32px] max-w-5xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 space-y-6 max-h-[90vh] flex flex-col my-auto">
+                    <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto">
+                        <div className="bg-white rounded-[28px] max-w-5xl w-full p-4 sm:p-6 shadow-2xl border border-slate-100 flex flex-col my-auto max-h-[95vh] gap-4">
                             
                             {/* Modal Header Bar */}
-                            <div className="flex items-center justify-between border-b border-gray-100 pb-4 shrink-0">
+                            <div className="flex items-center justify-between border-b border-gray-100 pb-3 shrink-0">
                                 <div>
                                     <h3 className="text-lg font-black text-gray-900">Worklist Image Preview</h3>
                                     <p className="text-xs text-gray-500 font-medium">Review your daily worklist image before downloading</p>
@@ -958,7 +1003,7 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                         type="button"
                                         onClick={handleDownloadImage}
                                         disabled={isCapturing}
-                                        className="px-6 py-2.5 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
+                                        className="px-5 py-2 rounded-2xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-black uppercase tracking-wider shadow-lg shadow-blue-500/20 transition-all flex items-center gap-2 cursor-pointer active:scale-95 disabled:opacity-50"
                                     >
                                         <Download size={16} /> {isCapturing ? 'GENERATING...' : 'DOWNLOAD IMAGE'}
                                     </button>
@@ -972,68 +1017,68 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                 </div>
                             </div>
 
-                            {/* Scrollable Container for Image Preview Canvas */}
-                            <div className="overflow-y-auto custom-scrollbar p-3 bg-slate-50/50 rounded-2xl">
+                            {/* Container for Image Preview Canvas */}
+                            <div className="overflow-y-auto custom-scrollbar p-2 sm:p-3 bg-slate-50/50 rounded-2xl flex-1">
                                 
                                 {/* TARGET CARD TO CAPTURE WITH html2canvas */}
                                 <div
                                     ref={previewCardRef}
-                                    className="bg-white p-8 sm:p-12 rounded-[28px] border border-gray-100 shadow-sm space-y-8 max-w-4xl mx-auto font-sans"
+                                    className="bg-white p-5 sm:p-8 rounded-[24px] border border-gray-100 shadow-sm space-y-6 max-w-4xl mx-auto font-sans"
                                     style={{ backgroundColor: '#ffffff' }}
                                 >
                                     {/* Header Title & Date */}
-                                    <div className="text-center space-y-1.5">
-                                        <h1 className="text-3xl font-black text-slate-900 tracking-tight uppercase">
+                                    <div className="text-center space-y-1">
+                                        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight uppercase">
                                             {selectedEmployeeObj ? `${selectedEmployeeObj.name} - DAILY WORKLIST` : 'DAILY WORKLIST'}
                                         </h1>
-                                        <p className="text-base font-bold text-blue-600">
+                                        <p className="text-sm sm:text-base font-bold text-blue-600">
                                             {formatFullDateHeader(selectedDate)}
                                         </p>
                                     </div>
 
                                     {/* 4 Summary Stat Cards Row */}
-                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                                         {/* TOTAL TASKS */}
-                                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-100 shadow-2xs">
-                                            <div className="w-10 h-10 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 shrink-0">
-                                                <ListFilter size={18} />
+                                        <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl bg-white border border-gray-100 shadow-2xs">
+                                            <div className="w-9 h-9 rounded-xl bg-gray-50 border border-gray-100 flex items-center justify-center text-gray-400 shrink-0">
+                                                <ListFilter size={16} />
                                             </div>
                                             <div>
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">TOTAL TASKS</span>
-                                                <span className="text-xl font-black text-slate-900 leading-none mt-0.5 block">{stats.total}</span>
+                                                <span className="text-lg font-black text-slate-900 leading-none mt-0.5 block">{stats.total}</span>
                                             </div>
                                         </div>
 
                                         {/* COMPLETED */}
-                                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-100 shadow-2xs">
-                                            <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 shrink-0">
-                                                <CheckCircle2 size={18} />
+                                        <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl bg-white border border-gray-100 shadow-2xs">
+                                            <div className="w-9 h-9 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-500 shrink-0">
+                                                <CheckCircle2 size={16} />
                                             </div>
                                             <div>
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">COMPLETED</span>
-                                                <span className="text-xl font-black text-slate-900 leading-none mt-0.5 block">{stats.completed}</span>
+                                                <span className="text-lg font-black text-slate-900 leading-none mt-0.5 block">{stats.completed}</span>
                                             </div>
                                         </div>
 
                                         {/* IN PROGRESS */}
-                                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-100 shadow-2xs">
-                                            <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500 shrink-0">
-                                                <Clock size={18} />
+                                        <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl bg-white border border-gray-100 shadow-2xs">
+                                            <div className="w-9 h-9 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-500 shrink-0">
+                                                <Clock size={16} />
                                             </div>
                                             <div>
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">IN PROGRESS</span>
-                                                <span className="text-xl font-black text-slate-900 leading-none mt-0.5 block">{stats.inProgress}</span>
+                                                <span className="text-lg font-black text-slate-900 leading-none mt-0.5 block">{stats.inProgress}</span>
                                             </div>
                                         </div>
 
                                         {/* APPROVED */}
-                                        <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-gray-100 shadow-2xs">
-                                            <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-500 shrink-0">
-                                                <CheckSquare size={18} />
+                                        <div className="flex items-center gap-3 p-3 sm:p-3.5 rounded-2xl bg-white border border-gray-100 shadow-2xs">
+                                            <div className="w-9 h-9 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-500 shrink-0">
+                                                <CheckSquare size={16} />
                                             </div>
                                             <div>
                                                 <span className="text-[9px] font-black uppercase tracking-widest text-gray-400 block">APPROVED</span>
-                                                <span className="text-xl font-black text-slate-900 leading-none mt-0.5 block">{stats.approved}</span>
+                                                <span className="text-lg font-black text-slate-900 leading-none mt-0.5 block">{stats.approved}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -1043,17 +1088,18 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="bg-gray-50/50 border-b border-gray-100 text-[11px] font-extrabold text-gray-400 uppercase tracking-widest">
-                                                    <th className="py-4 px-6">CLIENT</th>
-                                                    <th className="py-4 px-6">TASK TYPE</th>
-                                                    <th className="py-4 px-6">STATUS</th>
-                                                    <th className="py-4 px-6">FILE NAME</th>
-                                                    <th className="py-4 px-6">LINK</th>
+                                                    {showClientName && <th className="py-3 px-5">CLIENT</th>}
+                                                    {showTaskType && <th className="py-3 px-5">TASK TYPE</th>}
+                                                    {showStatus && <th className="py-3 px-5">STATUS</th>}
+                                                    {showFileName && <th className="py-3 px-5">FILE NAME</th>}
+                                                    {showDriveLink && <th className="py-3 px-5">LINK</th>}
+                                                    {showProject && <th className="py-3 px-5">PROJECT</th>}
                                                 </tr>
                                             </thead>
                                             <tbody className="divide-y divide-gray-50 text-sm">
                                                 {filteredWorksheets.length === 0 ? (
                                                     <tr>
-                                                        <td colSpan="5" className="py-8 text-center text-gray-400 font-bold uppercase text-xs">
+                                                        <td colSpan={(showClientName?1:0) + (showTaskType?1:0) + (showStatus?1:0) + (showFileName?1:0) + (showDriveLink?1:0) + (showProject?1:0) || 1} className="py-6 text-center text-gray-400 font-bold uppercase text-xs">
                                                             No daily tasks logged for this date
                                                         </td>
                                                     </tr>
@@ -1063,57 +1109,72 @@ export default function Index({ worksheets = [], settings, users = [] }) {
                                                         const isInProgress = (row.status || '').toUpperCase() === 'IN PROGRESS';
                                                         return (
                                                             <tr key={row.id || idx} className="hover:bg-gray-50/50">
-                                                                <td className="py-4 px-6 font-black text-slate-900 uppercase">
-                                                                    {row.client_name || '-'}
-                                                                </td>
-                                                                <td className="py-4 px-6">
-                                                                    <span
-                                                                        className="pill-badge whitespace-nowrap inline-flex items-center justify-center rounded-full text-[10px] font-extrabold uppercase bg-gray-100 text-gray-700 text-center"
-                                                                        style={{
-                                                                            display: 'inline-flex',
-                                                                            alignItems: 'center',
-                                                                            justifyContent: 'center',
-                                                                            whiteSpace: 'nowrap',
-                                                                            borderRadius: '9999px',
-                                                                            padding: '3px 12px',
-                                                                            height: '24px',
-                                                                        }}
-                                                                    >
-                                                                        <span className="pill-text relative -top-[1px] inline-block leading-none">
-                                                                            {row.task_type || 'TASK'}
+                                                                {showClientName && (
+                                                                    <td className="py-3 px-5 font-black text-slate-900 uppercase">
+                                                                        {row.client_name || '-'}
+                                                                    </td>
+                                                                )}
+                                                                {showTaskType && (
+                                                                    <td className="py-3 px-5">
+                                                                        <span
+                                                                            className="pill-badge whitespace-nowrap inline-flex items-center justify-center rounded-full text-[10px] font-extrabold uppercase bg-gray-100 text-gray-700 text-center"
+                                                                            style={{
+                                                                                display: 'inline-flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                whiteSpace: 'nowrap',
+                                                                                borderRadius: '9999px',
+                                                                                padding: '3px 12px',
+                                                                                height: '24px',
+                                                                            }}
+                                                                        >
+                                                                            <span className="pill-text relative -top-[1px] inline-block leading-none">
+                                                                                {row.task_type || 'TASK'}
+                                                                            </span>
                                                                         </span>
-                                                                    </span>
-                                                                </td>
-                                                                <td className="py-4 px-6">
-                                                                    <span
-                                                                        className={`pill-badge whitespace-nowrap inline-flex items-center justify-center rounded-full text-[10px] font-extrabold uppercase text-center ${
-                                                                            isDone 
-                                                                                ? 'bg-emerald-50 text-emerald-600' 
-                                                                                : isInProgress 
-                                                                                    ? 'bg-blue-50 text-blue-600' 
-                                                                                    : 'bg-red-50 text-red-600'
-                                                                        }`}
-                                                                        style={{
-                                                                            display: 'inline-flex',
-                                                                            alignItems: 'center',
-                                                                            justifyContent: 'center',
-                                                                            whiteSpace: 'nowrap',
-                                                                            borderRadius: '9999px',
-                                                                            padding: '3px 12px',
-                                                                            height: '24px',
-                                                                        }}
-                                                                    >
-                                                                        <span className="pill-text relative -top-[1px] inline-block leading-none">
-                                                                            {row.status || 'PENDING'}
+                                                                    </td>
+                                                                )}
+                                                                {showStatus && (
+                                                                    <td className="py-3 px-5">
+                                                                        <span
+                                                                            className={`pill-badge whitespace-nowrap inline-flex items-center justify-center rounded-full text-[10px] font-extrabold uppercase text-center ${
+                                                                                isDone 
+                                                                                    ? 'bg-emerald-50 text-emerald-600' 
+                                                                                    : isInProgress 
+                                                                                        ? 'bg-blue-50 text-blue-600' 
+                                                                                        : 'bg-red-50 text-red-600'
+                                                                            }`}
+                                                                            style={{
+                                                                                display: 'inline-flex',
+                                                                                alignItems: 'center',
+                                                                                justifyContent: 'center',
+                                                                                whiteSpace: 'nowrap',
+                                                                                borderRadius: '9999px',
+                                                                                padding: '3px 12px',
+                                                                                height: '24px',
+                                                                            }}
+                                                                        >
+                                                                            <span className="pill-text relative -top-[1px] inline-block leading-none">
+                                                                                {row.status || 'PENDING'}
+                                                                            </span>
                                                                         </span>
-                                                                    </span>
-                                                                </td>
-                                                                <td className="py-4 px-6 font-bold text-slate-700 text-xs uppercase">
-                                                                    {row.file_name || '-'}
-                                                                </td>
-                                                                <td className="py-4 px-6 text-xs text-blue-600 font-semibold truncate max-w-[150px]">
-                                                                    {row.drive_link ? 'Link Available' : '-'}
-                                                                </td>
+                                                                    </td>
+                                                                )}
+                                                                {showFileName && (
+                                                                    <td className="py-3 px-5 font-bold text-slate-700 text-xs uppercase">
+                                                                        {row.file_name || '-'}
+                                                                    </td>
+                                                                )}
+                                                                {showDriveLink && (
+                                                                    <td className="py-3 px-5 text-xs text-blue-600 font-semibold truncate max-w-[150px]">
+                                                                        {row.drive_link ? 'Link Available' : '-'}
+                                                                    </td>
+                                                                )}
+                                                                {showProject && (
+                                                                    <td className="py-3 px-5 font-bold text-slate-700 text-xs uppercase">
+                                                                        {row.project || '-'}
+                                                                    </td>
+                                                                )}
                                                             </tr>
                                                         );
                                                     })

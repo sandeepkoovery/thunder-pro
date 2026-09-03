@@ -89,9 +89,18 @@ class DailyListingsController extends Controller
         }
         $users = $userQuery->orderBy('name')->get(['id', 'name', 'email']);
 
+        $userSettingsList = DailyWorksheetSetting::where('admin_id', $adminId)->get();
+        $userSettingsMap = [];
+        foreach ($userSettingsList as $st) {
+            if ($st->user_id) {
+                $userSettingsMap[$st->user_id] = $st;
+            }
+        }
+
         return Inertia::render('DailyListings/Index', [
             'worksheets' => $worksheets,
             'settings' => $settings,
+            'userSettingsMap' => $userSettingsMap,
             'users' => $users,
         ]);
     }
