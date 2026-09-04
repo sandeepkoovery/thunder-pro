@@ -519,58 +519,68 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     
                                     {/* AI ASSISTANT CARD */}
-                                    <div className="p-6 rounded-2xl border-2 border-purple-200 bg-white shadow-sm flex flex-col justify-between">
-                                        <div>
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <div className="w-12 h-12 rounded-xl bg-purple-100 text-[#7460ee] flex items-center justify-center font-bold text-xl">
-                                                    🤖
-                                                </div>
+                                    {(() => {
+                                        const aiMod = (settings.additional_modules || []).find(m => m.key === 'ai_assistant') || {
+                                            label: 'AI Voice Assistant',
+                                            price: 499,
+                                            description: 'Malayalam & English Voice AI Assistant for database queries & automated insights'
+                                        };
+                                        return (
+                                            <div className="p-6 rounded-2xl border border-purple-200 bg-white shadow-sm flex flex-col justify-between">
                                                 <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="font-bold text-slate-900 text-base">AI Voice Assistant</h4>
-                                                        <span className="px-2 py-0.5 bg-purple-100 text-[#7460ee] text-[10px] font-extrabold uppercase rounded-md">
-                                                            Featured
-                                                        </span>
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="w-12 h-12 rounded-xl bg-purple-100 text-[#7460ee] flex items-center justify-center font-bold text-xl">
+                                                            🤖
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <h4 className="font-bold text-slate-900 text-base">{aiMod.label}</h4>
+                                                                <span className="px-2 py-0.5 bg-purple-100 text-[#7460ee] text-[10px] font-extrabold uppercase rounded-md">
+                                                                    Featured
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-xs font-bold text-emerald-600">₹{aiMod.price || 499} / month</span>
+                                                        </div>
                                                     </div>
-                                                    <span className="text-xs font-bold text-emerald-600">₹499 / month</span>
+                                                    <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                                                        {aiMod.description || 'Malayalam & English Voice AI Assistant for database queries & automated insights'}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                                                Malayalam & English Voice AI Assistant for database queries & automated insights
-                                            </p>
-                                        </div>
-                                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                                            <span className="text-[11px] font-semibold text-slate-400">Available Extension</span>
-                                            <span className="text-xs font-extrabold text-[#7460ee]">Available for Premium</span>
-                                        </div>
-                                    </div>
+                                        );
+                                    })()}
 
-                                    {/* CATERING MODULE CARD */}
-                                    <div className="p-6 rounded-2xl border-2 border-amber-200 bg-white shadow-sm flex flex-col justify-between">
-                                        <div>
-                                            <div className="flex items-center gap-3 mb-3">
-                                                <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xl">
-                                                    🍽️
-                                                </div>
+                                    {/* CATERING MANAGEMENT CARD */}
+                                    {(() => {
+                                        const catMod = (settings.additional_modules || []).find(m => m.key === 'catering') || {
+                                            label: 'Catering Management',
+                                            price: 499,
+                                            description: 'Complete catering management, custom menu planning, event order tracking & kitchen workflows'
+                                        };
+                                        return (
+                                            <div className="p-6 rounded-2xl border border-amber-200 bg-white shadow-sm flex flex-col justify-between">
                                                 <div>
-                                                    <div className="flex items-center gap-2">
-                                                        <h4 className="font-bold text-slate-900 text-base">Catering Module</h4>
-                                                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-extrabold uppercase rounded-md">
-                                                            New Add-on
-                                                        </span>
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xl">
+                                                            🍽️
+                                                        </div>
+                                                        <div>
+                                                            <div className="flex items-center gap-2">
+                                                                <h4 className="font-bold text-slate-900 text-base">{catMod.label || 'Catering Management'}</h4>
+                                                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-extrabold uppercase rounded-md">
+                                                                    New Add-on
+                                                                </span>
+                                                            </div>
+                                                            <span className="text-xs font-bold text-emerald-600">₹{catMod.price || 499} / month</span>
+                                                        </div>
                                                     </div>
-                                                    <span className="text-xs font-bold text-emerald-600">₹499 / month</span>
+                                                    <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                                                        {catMod.description || 'Complete catering management, custom menu planning, event order tracking & kitchen workflows'}
+                                                    </p>
                                                 </div>
                                             </div>
-                                            <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                                                Complete catering management, custom menu planning, event order tracking & kitchen workflows
-                                            </p>
-                                        </div>
-                                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
-                                            <span className="text-[11px] font-semibold text-slate-400">Available Extension</span>
-                                            <span className="text-xs font-extrabold text-[#7460ee]">Available for Premium</span>
-                                        </div>
-                                    </div>
+                                        );
+                                    })()}
 
                                 </div>
                             </div>

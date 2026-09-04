@@ -144,7 +144,7 @@ class PricingController extends Controller
             if (!$hasCatering) {
                 $additionalModules[] = [
                     'key' => 'catering',
-                    'label' => 'Catering Module',
+                    'label' => 'Catering Management',
                     'price' => 499,
                     'description' => 'Catering management, menu planning & order processing',
                     'included' => true
@@ -153,7 +153,7 @@ class PricingController extends Controller
         } else {
             $additionalModules = [
                 ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'description' => 'Malayalam & English Voice AI Assistant for database queries', 'included' => true],
-                ['key' => 'catering', 'label' => 'Catering Module', 'price' => 499, 'description' => 'Catering management, menu planning & order processing', 'included' => true],
+                ['key' => 'catering', 'label' => 'Catering Management', 'price' => 499, 'description' => 'Catering management, menu planning & order processing', 'included' => true],
                 ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'description' => 'Plan & schedule social content campaigns', 'included' => true],
                 ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'description' => 'Track & manage daily property/item listings', 'included' => true],
                 ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'description' => 'Manage creative tasks & designer workflows', 'included' => true],

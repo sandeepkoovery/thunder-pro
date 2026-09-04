@@ -545,7 +545,7 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
                                 {(() => {
                                     const catMod = (settings.additional_modules || []).find(m => m.key === 'catering') || {
                                         key: 'catering',
-                                        label: 'Catering Module',
+                                        label: 'Catering Management',
                                         price: 499,
                                         description: 'Complete catering management, custom menu planning, event order tracking & kitchen workflows'
                                     };

@@ -123,7 +123,7 @@ class HandleInertiaRequests extends Middleware
         $additionalModulesSettingJson = $settingsMap['additional_modules'] ?? null;
         $additionalModulesSetting = $additionalModulesSettingJson ? json_decode($additionalModulesSettingJson, true) : [
             ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true],
-            ['key' => 'catering', 'label' => 'Catering Module', 'price' => 499, 'included' => true],
+            ['key' => 'catering', 'label' => 'Catering Management', 'price' => 499, 'included' => true],
             ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'included' => true],
             ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'included' => true],
             ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'included' => true],
@@ -146,7 +146,7 @@ class HandleInertiaRequests extends Middleware
                 $additionalModulesSetting[] = ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true];
             }
             if (!$hasCateringMod) {
-                $additionalModulesSetting[] = ['key' => 'catering', 'label' => 'Catering Module', 'price' => 499, 'included' => true];
+                $additionalModulesSetting[] = ['key' => 'catering', 'label' => 'Catering Management', 'price' => 499, 'included' => true];
             }
         }
 
