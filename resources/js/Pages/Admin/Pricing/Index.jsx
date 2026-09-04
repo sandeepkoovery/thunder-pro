@@ -323,39 +323,57 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
 
                 {/* TAB: PRICING PLANS */}
                 {activeTab === 'plans' && (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-16 max-w-4xl mx-auto pt-10 pb-6 px-8">
+                    <div className="space-y-12 max-w-5xl mx-auto pt-6 pb-6 px-4">
                         
-                        {/* BASIC PLAN CARD */}
-                        <div className="relative">
-                            {/* Teal L-Shape Accent Behind Card */}
-                            <div className="absolute left-[-16px] bottom-[-16px] w-[20px] h-[55%] bg-[#00a896] rounded-bl-sm z-0"></div>
-                            <div className="absolute left-[-16px] bottom-[-16px] w-[55%] h-[20px] bg-[#00a896] rounded-bl-sm z-0"></div>
+                        {/* Cards Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                             
-                            {/* Main White Card */}
-                            <div className="relative z-10 bg-white border border-gray-200 p-10 flex flex-col justify-between h-full shadow-lg">
+                            {/* BASIC PLAN CARD */}
+                            <div className="bg-white rounded-[32px] border border-slate-200/90 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col justify-between h-full">
                                 <div>
-                                    {/* Title */}
-                                    <h3 className="text-3xl font-light text-center text-gray-800 mb-2">Basic</h3>
+                                    {/* Top Blue Header Banner */}
+                                    <div className="bg-[#1e75d8] pt-8 pb-6 px-6 relative flex flex-col items-center">
+                                        {/* White Pill Badge */}
+                                        <div className="bg-white px-8 py-2 rounded-xl shadow-md border border-white/20 mb-3">
+                                            <span className="font-black text-sm uppercase tracking-widest text-[#1e75d8]">BASIC</span>
+                                        </div>
+                                        
+                                        {/* Price Display */}
+                                        <div className="text-center text-white">
+                                            <span className="text-5xl font-black tracking-tight">₹{settings.basic_plan_price}</span>
+                                            <span className="block text-xs font-semibold uppercase tracking-wider text-white/90 mt-1">Per Month</span>
+                                        </div>
+                                    </div>
 
-                                    {/* Price */}
-                                    <div className="text-center mb-8">
-                                        <span className="text-5xl font-light text-gray-800 tracking-tight">₹{settings.basic_plan_price}</span>
-                                        <span className="text-xs font-normal text-gray-400 block mt-1">per month</span>
+                                    {/* Wavy Cutout Bottom Divider */}
+                                    <div className="relative w-full overflow-hidden leading-none bg-[#1e75d8] -mt-0.5">
+                                        <svg className="relative block w-full h-10 text-white" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                                            <path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="#ffffff" fillOpacity="0.3"></path>
+                                            <path d="M0,30 C250,100 450,10 700,80 C950,130 1080,25 1200,60 L1200,120 L0,120 Z" fill="#ffffff"></path>
+                                        </svg>
                                     </div>
 
                                     {/* Feature list */}
-                                    <div className="space-y-4 max-w-xs mx-auto mb-10">
+                                    <div className="divide-y divide-slate-100 px-8 py-2">
                                         {settingsForm.data.basic_plan_features.map((module) => {
                                             const included = module.included !== false;
+                                            const catchyLabels = {
+                                                'projects': 'Core Project & Task Tracking',
+                                                'users': 'Employee Directory & Profiles',
+                                                'leaves': 'Automated Leave Requests',
+                                                'attendance': 'Real-Time Attendance Logging',
+                                                'user_limit_basic': 'Up to 10 Active Team Members',
+                                            };
+                                            const displayLabel = catchyLabels[module.key] || module.label;
                                             return (
-                                                <div key={module.key} className="flex items-center gap-4">
+                                                <div key={module.key} className="py-3.5 flex items-center gap-3.5">
                                                     {included ? (
-                                                        <Check className="text-emerald-600 flex-shrink-0" size={18} strokeWidth={3} />
+                                                        <Check className="text-[#1e75d8] flex-shrink-0" size={18} strokeWidth={3} />
                                                     ) : (
                                                         <X className="text-red-500 flex-shrink-0" size={18} strokeWidth={3} />
                                                     )}
-                                                    <span className={`text-sm font-normal ${included ? 'text-gray-700' : 'text-gray-400 line-through'}`}>
-                                                        {module.label}
+                                                    <span className={`text-sm font-medium ${included ? 'text-slate-700' : 'text-slate-400 line-through'}`}>
+                                                        {displayLabel}
                                                     </span>
                                                 </div>
                                             );
@@ -363,68 +381,85 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                     </div>
                                 </div>
 
-                                <div>
-                                    {/* Buy / Subscribe Button */}
+                                <div className="p-8 pt-2">
                                     <div className="text-center">
                                         {isSuperAdmin ? (
                                             <button 
                                                 disabled
-                                                className="w-full py-3 bg-gray-100 text-gray-400 text-xs font-bold uppercase tracking-wider cursor-not-allowed"
+                                                className="w-full py-3.5 bg-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider rounded-xl cursor-not-allowed"
                                             >
-                                                Configure
+                                                System Tier (Super Admin)
                                             </button>
                                         ) : currentPlan === 'basic' ? (
                                             <button 
                                                 disabled
-                                                className="w-full py-3 bg-[#00a896] text-white text-xs font-bold uppercase tracking-wider cursor-default shadow-md"
+                                                className="w-full py-3.5 bg-[#1e75d8] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md opacity-90 cursor-default flex items-center justify-center gap-2"
                                             >
-                                                ACTIVE PLAN
+                                                <CheckCircle2 size={16} /> ACTIVE PLAN
                                             </button>
                                         ) : (
                                             <button
                                                 onClick={() => handleSubscribe('basic')}
                                                 disabled={subscriptionForm.processing}
-                                                className="w-full py-3 bg-[#00a896] hover:bg-[#009282] text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-98 shadow-sm"
+                                                className="w-full py-3.5 bg-[#1e75d8] hover:bg-[#165bb0] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all active:scale-98 shadow-md flex items-center justify-center gap-2"
                                             >
-                                                {subscriptionForm.processing ? "Processing..." : "SELECT"}
+                                                {subscriptionForm.processing ? "Processing..." : "SELECT PLAN"}
                                             </button>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* PREMIUM PLAN CARD */}
-                        <div className="relative">
-                            {/* Red L-Shape Accent Behind Card */}
-                            <div className="absolute left-[-16px] bottom-[-16px] w-[20px] h-[55%] bg-[#d90429] rounded-bl-sm z-0"></div>
-                            <div className="absolute left-[-16px] bottom-[-16px] w-[55%] h-[20px] bg-[#d90429] rounded-bl-sm z-0"></div>
-                            
-                            {/* Main White Card */}
-                            <div className="relative z-10 bg-white border border-gray-200 p-10 flex flex-col justify-between h-full shadow-lg">
+                            {/* PREMIUM PLAN CARD */}
+                            <div className="bg-white rounded-[32px] border border-slate-200/90 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col justify-between h-full">
                                 <div>
-                                    {/* Title */}
-                                    <h3 className="text-3xl font-light text-center text-gray-800 mb-2">Premium</h3>
+                                    {/* Top Purple Header Banner */}
+                                    <div className="bg-[#6b21a8] pt-8 pb-6 px-6 relative flex flex-col items-center">
+                                        {/* White Pill Badge */}
+                                        <div className="bg-white px-8 py-2 rounded-xl shadow-md border border-white/20 mb-3">
+                                            <span className="font-black text-sm uppercase tracking-widest text-[#6b21a8]">PREMIUM</span>
+                                        </div>
+                                        
+                                        {/* Price Display */}
+                                        <div className="text-center text-white">
+                                            <span className="text-5xl font-black tracking-tight">₹{settings.premium_plan_price}</span>
+                                            <span className="block text-xs font-semibold uppercase tracking-wider text-white/90 mt-1">Per Month</span>
+                                        </div>
+                                    </div>
 
-                                    {/* Price */}
-                                    <div className="text-center mb-8">
-                                        <span className="text-5xl font-light text-gray-800 tracking-tight">₹{settings.premium_plan_price}</span>
-                                        <span className="text-xs font-normal text-gray-400 block mt-1">per month</span>
+                                    {/* Wavy Cutout Bottom Divider */}
+                                    <div className="relative w-full overflow-hidden leading-none bg-[#6b21a8] -mt-0.5">
+                                        <svg className="relative block w-full h-10 text-white" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                                            <path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="#ffffff" fillOpacity="0.3"></path>
+                                            <path d="M0,30 C250,100 450,10 700,80 C950,130 1080,25 1200,60 L1200,120 L0,120 Z" fill="#ffffff"></path>
+                                        </svg>
                                     </div>
 
                                     {/* Feature list */}
-                                    <div className="space-y-4 max-w-xs mx-auto mb-10">
+                                    <div className="divide-y divide-slate-100 px-8 py-2">
                                         {settingsForm.data.premium_plan_features.map((module) => {
                                             const included = module.included !== false;
+                                            const catchyLabels = {
+                                                'projects': 'Advanced Multi-Project Management',
+                                                'users': 'Unlimited Employee Management',
+                                                'leaves': 'Automated Leave & Approval Workflows',
+                                                'attendance': 'Real-Time Biometric & Geo Attendance',
+                                                'calendar': 'Interactive Shared Team Calendar',
+                                                'chat': 'Instant Workspace Team Messaging',
+                                                'reports': 'Executive Analytics & Custom Reports',
+                                                'drive': 'Cloud Storage & Drive Integration',
+                                                'user_limit_premium': 'Unlimited Active Users & Scale',
+                                            };
+                                            const displayLabel = catchyLabels[module.key] || module.label;
                                             return (
-                                                <div key={module.key} className="flex items-center gap-4">
+                                                <div key={module.key} className="py-3.5 flex items-center gap-3.5">
                                                     {included ? (
-                                                        <Check className="text-emerald-600 flex-shrink-0" size={18} strokeWidth={3} />
+                                                        <Check className="text-[#6b21a8] flex-shrink-0" size={18} strokeWidth={3} />
                                                     ) : (
                                                         <X className="text-red-500 flex-shrink-0" size={18} strokeWidth={3} />
                                                     )}
-                                                    <span className={`text-sm font-normal ${included ? 'text-gray-700' : 'text-gray-400 line-through'}`}>
-                                                        {module.label}
+                                                    <span className={`text-sm font-medium ${included ? 'text-slate-700' : 'text-slate-400 line-through'}`}>
+                                                        {displayLabel}
                                                     </span>
                                                 </div>
                                             );
@@ -432,33 +467,111 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                     </div>
                                 </div>
 
-                                <div>
-                                    {/* Buy / Subscribe Button */}
+                                <div className="p-8 pt-2">
                                     <div className="text-center">
                                         {isSuperAdmin ? (
                                             <button 
                                                 disabled
-                                                className="w-full py-3 bg-gray-100 text-gray-400 text-xs font-bold uppercase tracking-wider cursor-not-allowed"
+                                                className="w-full py-3.5 bg-slate-100 text-slate-400 text-xs font-bold uppercase tracking-wider rounded-xl cursor-not-allowed"
                                             >
-                                                Configure
+                                                System Tier (Super Admin)
                                             </button>
                                         ) : currentPlan === 'premium' ? (
                                             <button 
                                                 disabled
-                                                className="w-full py-3 bg-[#d90429] text-white text-xs font-bold uppercase tracking-wider cursor-default shadow-md"
+                                                className="w-full py-3.5 bg-[#6b21a8] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md opacity-90 cursor-default flex items-center justify-center gap-2"
                                             >
-                                                ACTIVE PLAN
+                                                <CheckCircle2 size={16} /> ACTIVE PLAN
                                             </button>
                                         ) : (
                                             <button
                                                 onClick={() => handleSubscribe('premium')}
                                                 disabled={subscriptionForm.processing}
-                                                className="w-full py-3 bg-[#d90429] hover:bg-[#bd0320] text-white text-xs font-bold uppercase tracking-wider transition-all active:scale-98 shadow-sm"
+                                                className="w-full py-3.5 bg-[#6b21a8] hover:bg-[#581a87] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all active:scale-98 shadow-md flex items-center justify-center gap-2"
                                             >
-                                                {subscriptionForm.processing ? "Processing..." : "SELECT"}
+                                                {subscriptionForm.processing ? "Processing..." : "SELECT PLAN"}
                                             </button>
                                         )}
                                     </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        {/* ADD-ON MODULES BOX (Vibrant Light Colored Gradient Background) */}
+                        <div className="bg-white rounded-[32px] border border-purple-200/80 shadow-xl overflow-hidden">
+                            <div className="bg-gradient-to-r from-purple-100 via-indigo-100/90 to-purple-200/80 p-8 sm:p-10 relative overflow-hidden border-b border-purple-200">
+                                <div className="absolute right-0 top-0 w-96 h-96 bg-purple-300/30 rounded-full blur-3xl pointer-events-none"></div>
+                                <div className="relative z-10">
+                                    <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/90 text-[#7460ee] text-xs font-black uppercase tracking-wider border border-purple-200/80 mb-3 shadow-xs">
+                                        <Sparkles size={14} /> Power-Up Extensions
+                                    </div>
+                                    <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-slate-900">
+                                        Add-On Modules Box
+                                    </h2>
+                                    <p className="text-slate-700 text-sm mt-1 max-w-xl font-medium">
+                                        Specialized workspace extensions including AI Assistant and Catering Module available for tenant environments.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="p-8 sm:p-10 bg-slate-50/50">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    
+                                    {/* AI ASSISTANT CARD */}
+                                    <div className="p-6 rounded-2xl border-2 border-purple-200 bg-white shadow-sm flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="w-12 h-12 rounded-xl bg-purple-100 text-[#7460ee] flex items-center justify-center font-bold text-xl">
+                                                    🤖
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-bold text-slate-900 text-base">AI Voice Assistant</h4>
+                                                        <span className="px-2 py-0.5 bg-purple-100 text-[#7460ee] text-[10px] font-extrabold uppercase rounded-md">
+                                                            Featured
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-xs font-bold text-emerald-600">₹499 / month</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                                                Malayalam & English Voice AI Assistant for database queries & automated insights
+                                            </p>
+                                        </div>
+                                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                            <span className="text-[11px] font-semibold text-slate-400">Available Extension</span>
+                                            <span className="text-xs font-extrabold text-[#7460ee]">Available for Premium</span>
+                                        </div>
+                                    </div>
+
+                                    {/* CATERING MODULE CARD */}
+                                    <div className="p-6 rounded-2xl border-2 border-amber-200 bg-white shadow-sm flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xl">
+                                                    🍽️
+                                                </div>
+                                                <div>
+                                                    <div className="flex items-center gap-2">
+                                                        <h4 className="font-bold text-slate-900 text-base">Catering Module</h4>
+                                                        <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-extrabold uppercase rounded-md">
+                                                            New Add-on
+                                                        </span>
+                                                    </div>
+                                                    <span className="text-xs font-bold text-emerald-600">₹499 / month</span>
+                                                </div>
+                                            </div>
+                                            <p className="text-xs text-slate-600 leading-relaxed font-normal">
+                                                Complete catering management, custom menu planning, event order tracking & kitchen workflows
+                                            </p>
+                                        </div>
+                                        <div className="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                                            <span className="text-[11px] font-semibold text-slate-400">Available Extension</span>
+                                            <span className="text-xs font-extrabold text-[#7460ee]">Available for Premium</span>
+                                        </div>
+                                    </div>
+
                                 </div>
                             </div>
                         </div>

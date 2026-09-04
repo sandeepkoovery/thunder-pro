@@ -57,11 +57,11 @@ class PricingController extends Controller
                 }
             } else {
                 $basicFeatures = [
-                    ['key' => 'projects', 'label' => 'Projects', 'is_core' => true, 'included' => true],
-                    ['key' => 'users', 'label' => 'Employees', 'is_core' => true, 'included' => true],
-                    ['key' => 'leaves', 'label' => 'Leaves', 'is_core' => true, 'included' => true],
-                    ['key' => 'attendance', 'label' => 'Attendance', 'is_core' => true, 'included' => true],
-                    ['key' => 'user_limit_basic', 'label' => 'Max 10 Active Users', 'is_core' => true, 'included' => true],
+                    ['key' => 'projects', 'label' => 'Core Project & Task Tracking', 'is_core' => true, 'included' => true],
+                    ['key' => 'users', 'label' => 'Employee Directory & Profiles', 'is_core' => true, 'included' => true],
+                    ['key' => 'leaves', 'label' => 'Automated Leave Requests', 'is_core' => true, 'included' => true],
+                    ['key' => 'attendance', 'label' => 'Real-Time Attendance Logging', 'is_core' => true, 'included' => true],
+                    ['key' => 'user_limit_basic', 'label' => 'Up to 10 Active Team Members', 'is_core' => true, 'included' => true],
                 ];
             }
         }
@@ -79,14 +79,14 @@ class PricingController extends Controller
             if (!empty($premiumModulesLegacy)) {
                 $premiumFeatures = [];
                 $labels = [
-                    'projects' => 'Projects',
-                    'users' => 'Employees',
-                    'leaves' => 'Leaves',
-                    'attendance' => 'Attendance',
-                    'calendar' => 'Calendar',
-                    'chat' => 'Chat',
-                    'reports' => 'Reports',
-                    'user_limit_premium' => 'Unlimited Users',
+                    'projects' => 'Advanced Multi-Project Management',
+                    'users' => 'Unlimited Employee Management',
+                    'leaves' => 'Automated Leave & Approval Workflows',
+                    'attendance' => 'Real-Time Biometric & Geo Attendance',
+                    'calendar' => 'Interactive Shared Team Calendar',
+                    'chat' => 'Instant Workspace Team Messaging',
+                    'reports' => 'Executive Analytics & Custom Reports',
+                    'user_limit_premium' => 'Unlimited Active Users & Scale',
                 ];
                 foreach ($premiumModulesLegacy as $key) {
                     $premiumFeatures[] = [
@@ -98,15 +98,15 @@ class PricingController extends Controller
                 }
             } else {
                 $premiumFeatures = [
-                    ['key' => 'projects', 'label' => 'Projects', 'is_core' => true, 'included' => true],
-                    ['key' => 'users', 'label' => 'Employees', 'is_core' => true, 'included' => true],
-                    ['key' => 'leaves', 'label' => 'Leaves', 'is_core' => true, 'included' => true],
-                    ['key' => 'attendance', 'label' => 'Attendance', 'is_core' => true, 'included' => true],
-                    ['key' => 'calendar', 'label' => 'Calendar', 'is_core' => true, 'included' => true],
-                    ['key' => 'chat', 'label' => 'Chat', 'is_core' => true, 'included' => true],
-                    ['key' => 'reports', 'label' => 'Reports', 'is_core' => true, 'included' => true],
-                    ['key' => 'drive', 'label' => 'Google Drive', 'is_core' => true, 'included' => true],
-                    ['key' => 'user_limit_premium', 'label' => 'Unlimited Users', 'is_core' => true, 'included' => true],
+                    ['key' => 'projects', 'label' => 'Advanced Multi-Project Management', 'is_core' => true, 'included' => true],
+                    ['key' => 'users', 'label' => 'Unlimited Employee Management', 'is_core' => true, 'included' => true],
+                    ['key' => 'leaves', 'label' => 'Automated Leave & Approval Workflows', 'is_core' => true, 'included' => true],
+                    ['key' => 'attendance', 'label' => 'Real-Time Biometric & Geo Attendance', 'is_core' => true, 'included' => true],
+                    ['key' => 'calendar', 'label' => 'Interactive Shared Team Calendar', 'is_core' => true, 'included' => true],
+                    ['key' => 'chat', 'label' => 'Instant Workspace Team Messaging', 'is_core' => true, 'included' => true],
+                    ['key' => 'reports', 'label' => 'Executive Analytics & Custom Reports', 'is_core' => true, 'included' => true],
+                    ['key' => 'drive', 'label' => 'Cloud Storage & Drive Integration', 'is_core' => true, 'included' => true],
+                    ['key' => 'user_limit_premium', 'label' => 'Unlimited Active Users & Scale', 'is_core' => true, 'included' => true],
                 ];
             }
         }
@@ -123,10 +123,13 @@ class PricingController extends Controller
                 }
             }
             $hasAi = false;
+            $hasCatering = false;
             foreach ($additionalModules as $mod) {
                 if (($mod['key'] ?? '') === 'ai_assistant') {
                     $hasAi = true;
-                    break;
+                }
+                if (($mod['key'] ?? '') === 'catering') {
+                    $hasCatering = true;
                 }
             }
             if (!$hasAi) {
@@ -138,13 +141,23 @@ class PricingController extends Controller
                     'included' => true
                 ];
             }
+            if (!$hasCatering) {
+                $additionalModules[] = [
+                    'key' => 'catering',
+                    'label' => 'Catering Module',
+                    'price' => 499,
+                    'description' => 'Catering management, menu planning & order processing',
+                    'included' => true
+                ];
+            }
         } else {
             $additionalModules = [
+                ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'description' => 'Malayalam & English Voice AI Assistant for database queries', 'included' => true],
+                ['key' => 'catering', 'label' => 'Catering Module', 'price' => 499, 'description' => 'Catering management, menu planning & order processing', 'included' => true],
                 ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'description' => 'Plan & schedule social content campaigns', 'included' => true],
                 ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'description' => 'Track & manage daily property/item listings', 'included' => true],
                 ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'description' => 'Manage creative tasks & designer workflows', 'included' => true],
                 ['key' => 'domains', 'label' => 'Domains & Hosting', 'price' => 499, 'description' => 'Track domain names and website hosting', 'included' => true],
-                ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'description' => 'Malayalam & English Voice AI Assistant for database queries', 'included' => true],
             ];
         }
 

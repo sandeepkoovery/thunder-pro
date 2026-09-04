@@ -122,24 +122,31 @@ class HandleInertiaRequests extends Middleware
 
         $additionalModulesSettingJson = $settingsMap['additional_modules'] ?? null;
         $additionalModulesSetting = $additionalModulesSettingJson ? json_decode($additionalModulesSettingJson, true) : [
+            ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true],
+            ['key' => 'catering', 'label' => 'Catering Module', 'price' => 499, 'included' => true],
             ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'included' => true],
             ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'included' => true],
             ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'included' => true],
             ['key' => 'websites', 'label' => 'Websites & Domains', 'price' => 499, 'included' => true],
-            ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true],
         ];
 
-        // Ensure ai_assistant exists in additionalModulesSetting if array
+        // Ensure ai_assistant and catering exist in additionalModulesSetting if array
         if (is_array($additionalModulesSetting)) {
             $hasAiMod = false;
+            $hasCateringMod = false;
             foreach ($additionalModulesSetting as $mod) {
                 if (($mod['key'] ?? '') === 'ai_assistant') {
                     $hasAiMod = true;
-                    break;
+                }
+                if (($mod['key'] ?? '') === 'catering') {
+                    $hasCateringMod = true;
                 }
             }
             if (!$hasAiMod) {
                 $additionalModulesSetting[] = ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true];
+            }
+            if (!$hasCateringMod) {
+                $additionalModulesSetting[] = ['key' => 'catering', 'label' => 'Catering Module', 'price' => 499, 'included' => true];
             }
         }
 
@@ -147,7 +154,7 @@ class HandleInertiaRequests extends Middleware
             'dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 
             'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 
             'drive', 'chat', 'websites', 'reports', 'notifications', 'modules', 
-            'pricing', 'settings', 'ai_assistant'
+            'pricing', 'settings', 'ai_assistant', 'catering'
         ];
 
         if ($user && $user->role === 'superadmin') {
