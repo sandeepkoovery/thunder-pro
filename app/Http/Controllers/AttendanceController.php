@@ -1096,80 +1096,202 @@ class AttendanceController extends Controller
             ],
         ]);
     }
+
+    private function parseMonthInput($monthInput)
+    {
+        if (is_array($monthInput)) {
+            $val = $monthInput['target']['value'] ?? (is_string(reset($monthInput)) ? reset($monthInput) : null);
+            if ($val && is_string($val)) {
+                $monthInput = $val;
+            }
+        }
+
+        if (is_string($monthInput) && !empty($monthInput)) {
+            try {
+                $date = Carbon::parse($monthInput);
+                return [
+                    'date' => $date,
+                    'string' => $date->format('Y-m'),
+                ];
+            } catch (\Exception $e) {
+                // fallback
+            }
+        }
+
+        $now = Carbon::now();
+        return [
+            'date' => $now,
+            'string' => $now->format('Y-m'),
+        ];
+    }
+
     public function report(Request $request)
     {
         $adminId = $this->getTenantAdminId();
         $userId = $request->input('user_id');
-        $month = $request->input('month', Carbon::now()->format('Y-m'));
+        $leaveUserId = $request->input('leave_user_id');
+        $monthParsed = $this->parseMonthInput($request->input('month'));
+        $monthDate = $monthParsed['date'];
+        $monthStr = $monthParsed['string'];
+        $leaveStatus = $request->input('leave_status', 'all');
 
         $usersQuery = \App\Models\User::where('is_active', true);
         if ($adminId > 0) {
             $usersQuery->where('admin_id', $adminId);
         }
-        $users = $usersQuery->orderBy('name')->get(['id', 'name']);
+        $users = $usersQuery->orderBy('name')->get(['id', 'name', 'email', 'role', 'created_at']);
 
-        if ($userId && !$users->contains('id', $userId)) {
-            $userId = null;
+        // Attendance Monthly Export Data (Filtered by month and optional user_id)
+        $exportPreviewData = $this->getExportSummaryData($monthStr, $userId);
+
+        // Leave Report Data with Month, User & Status Filters
+        $startDate = $monthDate->copy()->startOfMonth()->toDateString();
+        $endDate = $monthDate->copy()->endOfMonth()->toDateString();
+
+        $leaveQuery = Leave::with('user');
+        if ($adminId > 0) {
+            $leaveQuery->whereHas('user', function ($q) use ($adminId) {
+                $q->where('admin_id', $adminId);
+            });
         }
 
-        // Default to the first user if none selected
-        if (!$userId && $users->isNotEmpty()) {
-            $userId = $users->first()->id;
+        // Filter by month
+        $leaveQuery->where(function ($q) use ($startDate, $endDate) {
+            $q->whereBetween('from_date', [$startDate, $endDate])
+                ->orWhereBetween('to_date', [$startDate, $endDate])
+                ->orWhere(function ($sub) use ($startDate, $endDate) {
+                    $sub->where('from_date', '<=', $startDate)
+                        ->where('to_date', '>=', $endDate);
+                });
+        });
+
+        // Filter by user if selected
+        if (!empty($leaveUserId)) {
+            $leaveQuery->where('user_id', $leaveUserId);
         }
 
-        $attendances = [];
-        $totalMonthlyMinutes = 0;
-        $dailySummaries = [];
-
-        if ($userId) {
-            $date = Carbon::parse($month);
-            $startDate = $date->copy()->subMonth()->day(25)->toDateString();
-            $endDate = $date->copy()->day(24)->toDateString();
-
-            $query = Attendance::where('user_id', $userId)
-                ->whereBetween('date', [$startDate, $endDate])
-                ->orderBy('date', 'desc')
-                ->orderBy('punch_in', 'asc');
-
-            $rawAttendances = $query->get();
-            $totalMonthlyMinutes = $rawAttendances->sum('total_worked_minutes');
-
-            // Group by date for the view
-            foreach ($rawAttendances as $attendance) {
-                // Ensure date is a string for array key
-                $dateKey = $attendance->date instanceof \Carbon\Carbon ? $attendance->date->format('Y-m-d') : $attendance->date;
-
-                if (!isset($dailySummaries[$dateKey])) {
-                    $dailySummaries[$dateKey] = [
-                        'date' => $dateKey,
-                        'total_minutes' => 0,
-                        'sessions' => []
-                    ];
-                }
-                $dailySummaries[$dateKey]['total_minutes'] += $attendance->total_worked_minutes;
-                $dailySummaries[$dateKey]['sessions'][] = $attendance;
-            }
-
-            // Convert to array and sort by date desc
-            $attendances = array_values($dailySummaries);
+        // Filter by status if selected
+        if (!empty($leaveStatus) && $leaveStatus !== 'all') {
+            $leaveQuery->where('status', $leaveStatus);
         }
+
+        $leaves = $leaveQuery->orderBy('created_at', 'desc')->get();
+
+        $leaveStats = [
+            'total' => $leaves->count(),
+            'approved' => $leaves->where('status', 'approved')->count(),
+            'pending' => $leaves->where('status', 'pending')->count(),
+            'rejected' => $leaves->where('status', 'rejected')->count(),
+        ];
 
         return Inertia::render('Admin/Attendance/Report', [
             'users' => $users,
-            'attendances' => $attendances,
-            'totalMonthlyMinutes' => $totalMonthlyMinutes,
+            'exportPreviewData' => $exportPreviewData,
+            'leaves' => $leaves,
+            'leaveStats' => $leaveStats,
             'filters' => [
-                'user_id' => $userId,
-                'month' => $month,
+                'user_id' => $userId ? (string)$userId : '',
+                'leave_user_id' => $leaveUserId ? (string)$leaveUserId : '',
+                'leave_status' => $leaveStatus ?: 'all',
+                'month' => $monthStr,
+                'active_tab' => $request->input('active_tab', 'attendance'),
             ],
         ]);
+    }
+
+    public function exportLeaves(Request $request)
+    {
+        $adminId = $this->getTenantAdminId();
+        $monthParsed = $this->parseMonthInput($request->input('month'));
+        $monthDate = $monthParsed['date'];
+        $monthStr = $monthParsed['string'];
+        $leaveUserId = $request->input('leave_user_id') ?: $request->input('user_id');
+        $leaveStatus = $request->input('leave_status', 'all');
+
+        $startDate = $monthDate->copy()->startOfMonth()->toDateString();
+        $endDate = $monthDate->copy()->endOfMonth()->toDateString();
+
+        $leaveQuery = Leave::with('user');
+        if ($adminId > 0) {
+            $leaveQuery->whereHas('user', function ($q) use ($adminId) {
+                $q->where('admin_id', $adminId);
+            });
+        }
+
+        $leaveQuery->where(function ($q) use ($startDate, $endDate) {
+            $q->whereBetween('from_date', [$startDate, $endDate])
+                ->orWhereBetween('to_date', [$startDate, $endDate])
+                ->orWhere(function ($sub) use ($startDate, $endDate) {
+                    $sub->where('from_date', '<=', $startDate)
+                        ->where('to_date', '>=', $endDate);
+                });
+        });
+
+        if (!empty($leaveUserId)) {
+            $leaveQuery->where('user_id', $leaveUserId);
+        }
+
+        if (!empty($leaveStatus) && $leaveStatus !== 'all') {
+            $leaveQuery->where('status', $leaveStatus);
+        }
+
+        $leaves = $leaveQuery->orderBy('created_at', 'desc')->get();
+
+        $headers = [
+            "Content-type" => "text/csv",
+            "Content-Disposition" => "attachment; filename=leave_report_{$monthStr}.csv",
+            "Pragma" => "no-cache",
+            "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
+            "Expires" => "0"
+        ];
+
+        $columns = [
+            'Employee Name',
+            'Employee Email',
+            'Leave Type',
+            'Day Type',
+            'From Date',
+            'To Date',
+            'No. of Days',
+            'Status',
+            'Reason',
+            'Admin Comment',
+            'Applied Date'
+        ];
+
+        $callback = function () use ($leaves, $columns) {
+            $file = fopen('php://output', 'w');
+            fputcsv($file, $columns);
+
+            foreach ($leaves as $leave) {
+                fputcsv($file, [
+                    $leave->user ? $leave->user->name : 'N/A',
+                    $leave->user ? $leave->user->email : 'N/A',
+                    ucfirst(str_replace('_', ' ', $leave->leave_type ?? 'casual')),
+                    ucfirst(str_replace('_', ' ', $leave->day_type ?? 'full_day')),
+                    $leave->from_date ? Carbon::parse($leave->from_date)->format('Y-m-d') : '',
+                    $leave->to_date ? Carbon::parse($leave->to_date)->format('Y-m-d') : '',
+                    $leave->no_of_days ?? 1,
+                    ucfirst($leave->status ?? 'pending'),
+                    $leave->reason ?? '',
+                    $leave->admin_comment ?? '',
+                    $leave->created_at ? Carbon::parse($leave->created_at)->format('Y-m-d H:i') : ''
+                ]);
+            }
+
+            fclose($file);
+        };
+
+        return response()->stream($callback, 200, $headers);
     }
 
     public function export(Request $request)
     {
         $adminId = $this->getTenantAdminId();
-        $monthStr = $request->input('month', Carbon::now()->format('Y-m'));
-        $month = Carbon::parse($monthStr);
+        $monthParsed = $this->parseMonthInput($request->input('month'));
+        $month = $monthParsed['date'];
+        $monthStr = $monthParsed['string'];
+
         $startDate = $month->copy()->subMonth()->day(25);
         $endDate = $month->copy()->day(24);
         $today = Carbon::today();
@@ -1178,6 +1300,8 @@ class AttendanceController extends Controller
         $calculationEndDate = $endDate->gt($today) ? $today : $endDate;
 
         $userIds = $request->input('user_ids');
+        $userId = $request->input('user_id');
+
         $query = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true);
         if ($adminId > 0) {
             $query->where('admin_id', $adminId);
@@ -1185,6 +1309,8 @@ class AttendanceController extends Controller
         if ($userIds) {
             $ids = is_array($userIds) ? $userIds : explode(',', $userIds);
             $query->whereIn('id', array_filter($ids));
+        } elseif ($userId) {
+            $query->where('id', $userId);
         }
         $users = $query->orderBy('name')->get();
 
@@ -1271,7 +1397,7 @@ class AttendanceController extends Controller
                             $lateDays++;
                         }
 
-                        // Check if early leave or missing punchout
+                        // Check early leave & missing punchouts
                         if ($attendance->punch_out) {
                             $punchOutLocal = Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata');
                             $timeStr = $punchOutLocal->format('H:i:s');
@@ -1284,7 +1410,7 @@ class AttendanceController extends Controller
                             }
                         }
                     } elseif (!$isWeekend) {
-                        // For weekdays, check if on leave or absent
+                        // Check if on leave
                         $isOnLeave = false;
                         foreach ($leaves as $leave) {
                             $from = $leave->from_date instanceof \Carbon\Carbon ? $leave->from_date->toDateString() : $leave->from_date;
@@ -1297,11 +1423,8 @@ class AttendanceController extends Controller
 
                         if ($isOnLeave) {
                             $leaveDays++;
-                        } else {
-                            // Only count as absent if today is passed
-                            if ($d->lt($today)) {
-                                $absentDays++;
-                            }
+                        } elseif ($d->lt($today)) {
+                            $absentDays++;
                         }
                     }
                 }
@@ -1326,10 +1449,13 @@ class AttendanceController extends Controller
         return response()->stream($callback, 200, $headers);
     }
 
-    private function getExportSummaryData($monthStr)
+    private function getExportSummaryData($monthInput, $userId = null)
     {
         $adminId = $this->getTenantAdminId();
-        $month = Carbon::parse($monthStr);
+        $monthParsed = $this->parseMonthInput($monthInput);
+        $month = $monthParsed['date'];
+        $monthStr = $monthParsed['string'];
+
         $startDate = $month->copy()->subMonth()->day(25);
         $endDate = $month->copy()->day(24);
         $today = Carbon::today();
@@ -1339,6 +1465,9 @@ class AttendanceController extends Controller
         $usersQuery = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true);
         if ($adminId > 0) {
             $usersQuery->where('admin_id', $adminId);
+        }
+        if (!empty($userId)) {
+            $usersQuery->where('id', $userId);
         }
         $users = $usersQuery->orderBy('name')->get();
 
