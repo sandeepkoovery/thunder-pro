@@ -105,8 +105,12 @@ class LeaveController extends Controller
 			$to = $from; // Force same day for half-day
 		}
 
+		$user = auth()->user();
+		$adminId = $user->admin_id ?? ($user->role === 'admin' ? $user->id : null);
+
 		Leave::create([
-			'user_id' => auth()->id(),
+			'user_id' => $user->id,
+			'admin_id' => $adminId,
 			'leave_type' => $request->leave_type,
 			'day_type' => $request->day_type,
 			'from_date' => $from,
