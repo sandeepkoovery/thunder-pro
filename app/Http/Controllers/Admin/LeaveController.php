@@ -26,6 +26,7 @@ class LeaveController extends Controller
         $year = $request->input('year', now()->year);
         $month = $request->input('month');
         $userId = $request->input('user_id');
+        $statusFilter = $request->input('status', ''); // '', 'pending', 'approved', 'rejected'
 
         $authUser = auth()->user();
         $isSuperAdmin = $authUser->role === 'superadmin';
@@ -78,7 +79,11 @@ class LeaveController extends Controller
             $query->where('user_id', $userId);
         }
 
-        $leaves = $query->paginate(10)->withQueryString();
+        if ($statusFilter) {
+            $query->where('status', $statusFilter);
+        }
+
+        $leaves = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
         // Stats should be calculated for the selected year (or current year if not selected)
         $statsYear = $year ?: now()->year;
@@ -188,15 +193,45 @@ class LeaveController extends Controller
                 ->count(),
         ];
 
+        // Tab counts — scoped to tenant + date + user filters (no status filter)
+        $baseCount = function (string $s = '') use ($applyTenantScope, $year, $month, $userId) {
+            $q = $applyTenantScope(Leave::query())
+                ->when($year && !$month, fn($q) => $q->whereYear('from_date', $year))
+                ->when($month, function ($q) use ($year, $month) {
+                    $filterYear = $year ?: now()->year;
+                    $startDate = \Carbon\Carbon::create($filterYear, $month, 1)->subMonth()->day(25)->toDateString();
+                    $endDate   = \Carbon\Carbon::create($filterYear, $month, 1)->day(24)->toDateString();
+                    $q->where(function ($sub) use ($startDate, $endDate) {
+                        $sub->whereBetween('from_date', [$startDate, $endDate])
+                            ->orWhereBetween('to_date', [$startDate, $endDate])
+                            ->orWhere(function ($inner) use ($startDate, $endDate) {
+                                $inner->where('from_date', '<', $startDate)->where('to_date', '>', $endDate);
+                            });
+                    });
+                })
+                ->when($userId, fn($q) => $q->where('user_id', $userId));
+            if ($s) $q->where('status', $s);
+            return $q->count();
+        };
+
+        $tabCounts = [
+            'all'      => $baseCount(),
+            'pending'  => $baseCount('pending'),
+            'approved' => $baseCount('approved'),
+            'rejected' => $baseCount('rejected'),
+        ];
+
         return Inertia::render('Admin/Leaves/Index', [
-            'leaves' => $leaves,
-            'users' => $users,
-            'stats' => $stats,
-            'filters' => [
-                'year' => $year,
-                'month' => $month,
+            'leaves'     => $leaves,
+            'users'      => $users,
+            'stats'      => $stats,
+            'tab_counts' => $tabCounts,
+            'filters'    => [
+                'year'    => $year,
+                'month'   => $month,
                 'user_id' => $userId,
-            ]
+                'status'  => $statusFilter,
+            ],
         ]);
     }
 
