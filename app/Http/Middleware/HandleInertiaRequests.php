@@ -135,19 +135,20 @@ class HandleInertiaRequests extends Middleware
             $hasAiMod = false;
             $hasCateringMod = false;
             foreach ($additionalModulesSetting as $mod) {
-                if (($mod['key'] ?? '') === 'ai_assistant') {
-                    $hasAiMod = true;
-                }
-                if (($mod['key'] ?? '') === 'catering') {
-                    $hasCateringMod = true;
-                }
+                if (($mod['key'] ?? '') === 'ai_assistant') { $hasAiMod = true; }
+                if (($mod['key'] ?? '') === 'catering')     { $hasCateringMod = true; }
             }
-            if (!$hasAiMod) {
-                $additionalModulesSetting[] = ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true];
-            }
-            if (!$hasCateringMod) {
-                $additionalModulesSetting[] = ['key' => 'catering', 'label' => 'Catering Management', 'price' => 499, 'included' => true];
-            }
+            if (!$hasAiMod)      { $additionalModulesSetting[] = ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant',   'price' => 499, 'included' => true]; }
+            if (!$hasCateringMod){ $additionalModulesSetting[] = ['key' => 'catering',     'label' => 'Catering Management', 'price' => 499, 'included' => true]; }
+
+            // Deduplicate by key — keep first occurrence
+            $seenKeys = [];
+            $additionalModulesSetting = array_values(array_filter($additionalModulesSetting, function ($m) use (&$seenKeys) {
+                $k = $m['key'] ?? null;
+                if (!$k || isset($seenKeys[$k])) return false;
+                $seenKeys[$k] = true;
+                return true;
+            }));
         }
 
         $allModulesList = [

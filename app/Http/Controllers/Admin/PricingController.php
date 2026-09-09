@@ -134,22 +134,31 @@ class PricingController extends Controller
             }
             if (!$hasAi) {
                 $additionalModules[] = [
-                    'key' => 'ai_assistant',
-                    'label' => 'AI Voice Assistant',
-                    'price' => 499,
+                    'key'         => 'ai_assistant',
+                    'label'       => 'AI Voice Assistant',
+                    'price'       => 499,
                     'description' => 'Malayalam & English Voice AI Assistant for database queries',
-                    'included' => true
+                    'included'    => true
                 ];
             }
             if (!$hasCatering) {
                 $additionalModules[] = [
-                    'key' => 'catering',
-                    'label' => 'Catering Management',
-                    'price' => 499,
+                    'key'         => 'catering',
+                    'label'       => 'Catering Management',
+                    'price'       => 499,
                     'description' => 'Catering management, menu planning & order processing',
-                    'included' => true
+                    'included'    => true
                 ];
             }
+
+            // Deduplicate by key — keep first occurrence of each key
+            $seen = [];
+            $additionalModules = array_values(array_filter($additionalModules, function ($mod) use (&$seen) {
+                $key = $mod['key'] ?? null;
+                if (!$key || isset($seen[$key])) return false;
+                $seen[$key] = true;
+                return true;
+            }));
         } else {
             $additionalModules = [
                 ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'description' => 'Malayalam & English Voice AI Assistant for database queries', 'included' => true],

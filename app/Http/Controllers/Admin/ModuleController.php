@@ -124,7 +124,15 @@ class ModuleController extends Controller
             if ($rKey === 'admin') {
                 $rolePermissions['admin'] = $allModuleKeys; // Admin always gets all modules
             } elseif (!isset($rolePermissions[$rKey]) || !is_array($rolePermissions[$rKey])) {
+                // Role has no saved permissions at all — use defaults
                 $rolePermissions[$rKey] = $defVal;
+            } else {
+                // Role has saved permissions — add back any default modules missing from the saved list
+                // (handles DB saved before new modules like content_calendar, daily_listings, drive were added)
+                $missing = array_diff($defVal, $rolePermissions[$rKey]);
+                if (!empty($missing)) {
+                    $rolePermissions[$rKey] = array_values(array_unique(array_merge($rolePermissions[$rKey], $missing)));
+                }
             }
         }
 
