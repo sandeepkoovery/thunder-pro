@@ -169,16 +169,17 @@ class HandleInertiaRequests extends Middleware
                 $allowedModules = $rolePermissions[$userRoleKey];
             } else {
                 $defaultRolePermissions = [
-                    'manager' => $allModulesList,
-                    'editor' => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications'],
+                    'manager'  => $allModulesList,
+                    'editor'   => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications'],
                     'designer' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications'],
-                    'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications'],
+                    'user'     => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications'],
                 ];
                 $allowedModules = $defaultRolePermissions[$userRoleKey] ?? ($plan === 'premium' ? $premiumModules : $basicModules);
+            }
 
-                if (!empty($userAdditionalModules) && is_array($userAdditionalModules)) {
-                    $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
-                }
+            // Always merge tenant's additional modules regardless of how allowedModules was resolved above
+            if (!empty($userAdditionalModules) && is_array($userAdditionalModules)) {
+                $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
             }
 
             // Only allow designers_worklist for regular 'user' role if they are a designer by designation/department or have assigned worklist tasks
