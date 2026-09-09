@@ -178,9 +178,22 @@ class HandleInertiaRequests extends Middleware
                 $allowedModules = $defaultRolePermissions[$userRoleKey] ?? ($plan === 'premium' ? $premiumModules : $basicModules);
             }
 
-            // Always merge tenant's additional modules regardless of how allowedModules was resolved above
+            // Merge tenant's additional purchased modules, but only those the role is allowed to see.
+            // This prevents admin-only add-ons (e.g. 'websites') from leaking into regular user menus.
             if (!empty($userAdditionalModules) && is_array($userAdditionalModules)) {
-                $allowedModules = array_values(array_unique(array_merge($allowedModules, $userAdditionalModules)));
+                // Per-role ceiling: the maximum modules this role can ever see
+                $roleCeiling = [
+                    'admin'    => $allModulesList,
+                    'manager'  => $allModulesList,
+                    'editor'   => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications', 'ai_assistant', 'catering'],
+                    'designer' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications', 'ai_assistant'],
+                    'user'     => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications', 'ai_assistant', 'catering'],
+                ];
+                $ceiling = $roleCeiling[$userRoleKey] ?? $allModulesList;
+                $grantableAdditional = array_intersect($userAdditionalModules, $ceiling);
+                if (!empty($grantableAdditional)) {
+                    $allowedModules = array_values(array_unique(array_merge($allowedModules, $grantableAdditional)));
+                }
             }
 
             // Only allow designers_worklist for regular 'user' role if they are a designer by designation/department or have assigned worklist tasks
