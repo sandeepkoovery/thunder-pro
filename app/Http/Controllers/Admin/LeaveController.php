@@ -31,11 +31,28 @@ class LeaveController extends Controller
         $isSuperAdmin = $authUser->role === 'superadmin';
         $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
 
+        // Get all user IDs belonging to this tenant (used as a fallback for leaves with NULL admin_id)
+        $tenantUserIds = \App\Models\User::where('admin_id', $tenantAdminId)->pluck('id')->toArray();
+
+        // Auto-heal: backfill admin_id for any leaves from tenant users that are missing it
+        if (!$isSuperAdmin && !empty($tenantUserIds)) {
+            Leave::whereIn('user_id', $tenantUserIds)
+                ->whereNull('admin_id')
+                ->update(['admin_id' => $tenantAdminId]);
+        }
+
         $query = Leave::with('user')->orderBy('from_date', 'desc');
 
-        // Scope leaves directly by admin_id (simpler & correct with new column)
+        // Scope by tenant: match admin_id OR (admin_id is null AND user_id is in tenant)
+        // This ensures leaves with a missing admin_id are still visible after the heal above
         if (!$isSuperAdmin) {
-            $query->where('admin_id', $tenantAdminId);
+            $query->where(function ($q) use ($tenantAdminId, $tenantUserIds) {
+                $q->where('admin_id', $tenantAdminId)
+                  ->orWhere(function ($sub) use ($tenantAdminId, $tenantUserIds) {
+                      $sub->whereNull('admin_id')
+                          ->whereIn('user_id', $tenantUserIds);
+                  });
+            });
         }
 
         if ($year && !$month) {
@@ -91,11 +108,24 @@ class LeaveController extends Controller
         }
         $users = $usersQuery->orderBy('name')->get(['id', 'name']);
 
-        // Calculate aggregate or user-specific stats
+        // Helper closure: tenant scope for stats (admin_id match OR user_id membership fallback)
+        $applyTenantScope = function ($q) use ($isSuperAdmin, $tenantAdminId, $tenantUserIds) {
+            if (!$isSuperAdmin) {
+                $q->where(function ($inner) use ($tenantAdminId, $tenantUserIds) {
+                    $inner->where('admin_id', $tenantAdminId)
+                          ->orWhere(function ($sub) use ($tenantAdminId, $tenantUserIds) {
+                              $sub->whereNull('admin_id')
+                                  ->whereIn('user_id', $tenantUserIds);
+                          });
+                });
+            }
+            return $q;
+        };
+
+        // Calculate aggregate or user-specific stats (using dual-scope closure)
         $stats = [
             'SL' => [
-                'taken' => Leave::query()
-                    ->when(!$isSuperAdmin, fn($q) => $q->where('admin_id', $tenantAdminId))
+                'taken' => $applyTenantScope(Leave::query())
                     ->when($year && !$month, fn($q) => $q->whereYear('from_date', $year))
                     ->when($month, function($q) use ($year, $month) {
                         $filterYear = $year ?: now()->year;
@@ -117,8 +147,7 @@ class LeaveController extends Controller
                 'total' => $userId ? 12 : null,
             ],
             'CL' => [
-                'taken' => Leave::query()
-                    ->when(!$isSuperAdmin, fn($q) => $q->where('admin_id', $tenantAdminId))
+                'taken' => $applyTenantScope(Leave::query())
                     ->when($year && !$month, fn($q) => $q->whereYear('from_date', $year))
                     ->when($month, function($q) use ($year, $month) {
                         $filterYear = $year ?: now()->year;
@@ -139,8 +168,7 @@ class LeaveController extends Controller
                     ->sum('no_of_days'),
                 'total' => $userId ? 12 : null,
             ],
-            'pending' => Leave::query()
-                ->when(!$isSuperAdmin, fn($q) => $q->where('admin_id', $tenantAdminId))
+            'pending' => $applyTenantScope(Leave::query())
                 ->when($year && !$month, fn($q) => $q->whereYear('from_date', $year))
                 ->when($month, function($q) use ($year, $month) {
                     $filterYear = $year ?: now()->year;
