@@ -302,16 +302,27 @@ class PricingController extends Controller
             }
         }
 
+        // Normalise price fields to integers before saving
+        $additionalModules = array_map(function ($mod) {
+            if (isset($mod['price'])) {
+                $mod['price'] = (int) $mod['price'];
+            }
+            return $mod;
+        }, $validated['additional_modules']);
+
         Setting::updateOrCreate(['key' => 'basic_plan_price'], ['value' => $validated['basic_plan_price']]);
         Setting::updateOrCreate(['key' => 'premium_plan_price'], ['value' => $validated['premium_plan_price']]);
         Setting::updateOrCreate(['key' => 'basic_plan_features'], ['value' => json_encode($validated['basic_plan_features'])]);
         Setting::updateOrCreate(['key' => 'premium_plan_features'], ['value' => json_encode($validated['premium_plan_features'])]);
-        Setting::updateOrCreate(['key' => 'additional_modules'], ['value' => json_encode($validated['additional_modules'])]);
+        Setting::updateOrCreate(['key' => 'additional_modules'], ['value' => json_encode($additionalModules)]);
         Setting::updateOrCreate(['key' => 'allow_admin_registration'], ['value' => ($request->boolean('allow_admin_registration') || $request->input('allow_admin_registration') === '1' || $request->input('allow_admin_registration') === 1) ? '1' : '0']);
 
         // Sync legacy keys for route and side navigation checks compatibility
         Setting::updateOrCreate(['key' => 'basic_plan_modules'], ['value' => json_encode($basicKeys)]);
         Setting::updateOrCreate(['key' => 'premium_plan_modules'], ['value' => json_encode($premiumKeys)]);
+
+        // Clear the settings cache so the public pricing page reflects the new prices immediately
+        \Illuminate\Support\Facades\Cache::forget('global_settings_map');
 
         return back()->with('success', 'Pricing settings updated successfully.');
     }

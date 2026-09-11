@@ -1016,7 +1016,7 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                                         min="0"
                                                         className="w-full pl-7 pr-3 py-1.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-900 focus:ring-1 focus:ring-purple-500 bg-white"
                                                         value={mod.price ?? 499}
-                                                        onChange={(e) => handleUpdateAdditionalModule(mod.key, 'price', e.target.value)}
+                                                        onChange={(e) => handleUpdateAdditionalModule(mod.key, 'price', parseInt(e.target.value, 10) || 0)}
                                                         placeholder="499"
                                                     />
                                                 </div>
