@@ -314,7 +314,10 @@ class PricingController extends Controller
         Setting::updateOrCreate(['key' => 'premium_plan_price'], ['value' => $validated['premium_plan_price']]);
         Setting::updateOrCreate(['key' => 'basic_plan_features'], ['value' => json_encode($validated['basic_plan_features'])]);
         Setting::updateOrCreate(['key' => 'premium_plan_features'], ['value' => json_encode($validated['premium_plan_features'])]);
-        Setting::updateOrCreate(['key' => 'additional_modules'], ['value' => json_encode($additionalModules)]);
+        // Delete + recreate to avoid stale duplicate rows causing updateOrCreate to update
+        // the wrong row, which would make the next read return the old value.
+        \Illuminate\Support\Facades\DB::table('settings')->where('key', 'additional_modules')->delete();
+        \App\Models\Setting::create(['key' => 'additional_modules', 'value' => json_encode($additionalModules)]);
         Setting::updateOrCreate(['key' => 'allow_admin_registration'], ['value' => ($request->boolean('allow_admin_registration') || $request->input('allow_admin_registration') === '1' || $request->input('allow_admin_registration') === 1) ? '1' : '0']);
 
         // Sync legacy keys for route and side navigation checks compatibility

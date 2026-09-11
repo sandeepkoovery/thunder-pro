@@ -165,8 +165,12 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
     const handleSaveSettings = (e) => {
         e.preventDefault();
         settingsForm.post(route('admin.pricing.settings'), {
-            // Backend flash already shows "Pricing settings updated successfully."
-            // so we skip the duplicate frontend toast here.
+            preserveScroll: true,
+            onSuccess: () => {
+                // Force a partial reload of the 'settings' prop so the form always
+                // shows the actual DB value — not a stale useForm initial-mount snapshot.
+                router.reload({ only: ['settings'] });
+            },
             onError: () => toast.error("Failed to save configurations"),
         });
     };
