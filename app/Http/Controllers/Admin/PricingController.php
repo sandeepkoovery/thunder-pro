@@ -27,12 +27,13 @@ class PricingController extends Controller
     {
         $basicFeaturesJson = Setting::where('key', 'basic_plan_features')->value('value');
         if ($basicFeaturesJson) {
-            $basicFeatures = json_decode($basicFeaturesJson, true);
-            foreach ($basicFeatures as &$feat) {
+            $basicFeatures = json_decode($basicFeaturesJson, true) ?: [];
+            $basicFeatures = array_map(function ($feat) {
                 if (!isset($feat['included'])) {
                     $feat['included'] = true;
                 }
-            }
+                return $feat;
+            }, $basicFeatures);
         } else {
             $basicModulesLegacy = json_decode(Setting::where('key', 'basic_plan_modules')->value('value') ?? '[]', true);
             if (!empty($basicModulesLegacy)) {
@@ -68,12 +69,13 @@ class PricingController extends Controller
 
         $premiumFeaturesJson = Setting::where('key', 'premium_plan_features')->value('value');
         if ($premiumFeaturesJson) {
-            $premiumFeatures = json_decode($premiumFeaturesJson, true);
-            foreach ($premiumFeatures as &$feat) {
+            $premiumFeatures = json_decode($premiumFeaturesJson, true) ?: [];
+            $premiumFeatures = array_map(function ($feat) {
                 if (!isset($feat['included'])) {
                     $feat['included'] = true;
                 }
-            }
+                return $feat;
+            }, $premiumFeatures);
         } else {
             $premiumModulesLegacy = json_decode(Setting::where('key', 'premium_plan_modules')->value('value') ?? '[]', true);
             if (!empty($premiumModulesLegacy)) {
@@ -113,15 +115,19 @@ class PricingController extends Controller
 
         $additionalModulesJson = Setting::where('key', 'additional_modules')->value('value');
         if ($additionalModulesJson) {
-            $additionalModules = json_decode($additionalModulesJson, true);
-            foreach ($additionalModules as &$mod) {
+            $additionalModules = json_decode($additionalModulesJson, true) ?: [];
+            $additionalModules = array_map(function ($mod) {
                 if (!isset($mod['included']) || $mod['included'] === false) {
                     $mod['included'] = true;
                 }
                 if (!isset($mod['price'])) {
                     $mod['price'] = 499;
+                } else {
+                    $mod['price'] = (int) $mod['price'];
                 }
-            }
+                return $mod;
+            }, $additionalModules);
+
             $hasAi = false;
             $hasCatering = false;
             foreach ($additionalModules as $mod) {
