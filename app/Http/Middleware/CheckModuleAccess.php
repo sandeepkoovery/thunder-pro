@@ -121,15 +121,15 @@ class CheckModuleAccess
                 if (empty($allowed)) {
                     $allowed = $plan === 'premium' 
                         ? ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'reports', 'drive', 'departments'] 
-                        : ['projects', 'users', 'leaves', 'attendance', 'chat', 'departments'];
+                        : ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'drive', 'departments'];
                 }
 
-                if ($plan === 'premium' && !in_array('drive', $allowed)) {
+                if (!in_array('drive', $allowed)) {
                     $allowed[] = 'drive';
                 }
 
                 // Core admin modules always allowed for tenant admins
-                $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'reports'];
+                $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'reports', 'drive'];
                 $allowed = array_unique(array_merge($allowed, $coreAlwaysAllowed));
 
                 if (!empty($additional) && is_array($additional)) {

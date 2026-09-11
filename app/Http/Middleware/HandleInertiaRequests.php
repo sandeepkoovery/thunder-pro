@@ -104,12 +104,15 @@ class HandleInertiaRequests extends Middleware
         }
 
         if (empty($basicModules)) {
-            $basicModules = ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'notifications'];
+            $basicModules = ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'drive', 'notifications'];
         }
         if (empty($premiumModules)) {
             $premiumModules = ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'reports', 'drive', 'notifications'];
         }
 
+        if (!in_array('drive', $basicModules)) {
+            $basicModules[] = 'drive';
+        }
         if (!in_array('drive', $premiumModules)) {
             $premiumModules[] = 'drive';
         }
@@ -219,7 +222,7 @@ class HandleInertiaRequests extends Middleware
             $tenantMaxModules = array_unique(array_merge(
                 $plan === 'premium' ? $premiumModules : $basicModules,
                 is_array($userAdditionalModules) ? $userAdditionalModules : [],
-                ['dashboard', 'calendar', 'notifications', 'pricing', 'settings', 'modules', 'reports']
+                ['dashboard', 'calendar', 'drive', 'notifications', 'pricing', 'settings', 'modules', 'reports']
             ));
 
             $allowedModules = array_values(array_intersect($allowedModules, $tenantMaxModules));

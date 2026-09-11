@@ -12,6 +12,7 @@ const CORE_MODULES = [
     { key: 'calendar', label: 'Calendar', is_core: true },
     { key: 'chat', label: 'Chat', is_core: true },
     { key: 'reports', label: 'Reports', is_core: true },
+    { key: 'drive', label: 'Drive', is_core: true },
     { key: 'user_limit_basic', label: 'Max 10 Active Users', is_core: true },
     { key: 'user_limit_premium', label: 'Unlimited Users', is_core: true }
 ];
