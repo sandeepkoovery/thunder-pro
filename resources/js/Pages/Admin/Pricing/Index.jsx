@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
 import { Head, useForm, usePage, router } from '@inertiajs/react';
 import { Settings, CreditCard, Check, X, Save, Users, AlertTriangle, ChevronUp, ChevronDown, Sliders, Sparkles, CheckCircle2, Receipt } from 'lucide-react';
@@ -39,9 +39,22 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
         allow_admin_registration: (settings.allow_admin_registration ?? '1') === '1',
     });
 
+    // Re-sync form data whenever Inertia refreshes the settings prop (e.g. after a successful save).
+    // Without this, useForm retains its original mount-time values and the UI appears to revert.
+    const prevSettingsRef = useRef(settings);
     useEffect(() => {
-        settingsForm.setData('allow_admin_registration', (settings.allow_admin_registration ?? '1') === '1');
-    }, [settings.allow_admin_registration]);
+        if (prevSettingsRef.current !== settings) {
+            prevSettingsRef.current = settings;
+            settingsForm.setData({
+                basic_plan_price:        settings.basic_plan_price || '999',
+                premium_plan_price:      settings.premium_plan_price || '2999',
+                basic_plan_features:     settings.basic_plan_features || [],
+                premium_plan_features:   settings.premium_plan_features || [],
+                additional_modules:      settings.additional_modules || [],
+                allow_admin_registration: (settings.allow_admin_registration ?? '1') === '1',
+            });
+        }
+    }, [settings]);
 
     // Core module dropdown addition select state
     const [selectedCoreBasic, setSelectedCoreBasic] = useState('custom');
@@ -152,7 +165,8 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
     const handleSaveSettings = (e) => {
         e.preventDefault();
         settingsForm.post(route('admin.pricing.settings'), {
-            onSuccess: () => toast.success("Pricing configurations saved successfully"),
+            // Backend flash already shows "Pricing settings updated successfully."
+            // so we skip the duplicate frontend toast here.
             onError: () => toast.error("Failed to save configurations"),
         });
     };
