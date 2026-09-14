@@ -197,12 +197,20 @@ class PaymentController extends Controller
                 ], 422);
             }
 
+            $isPaid = !$isDirect && !empty($paymentId);
+            $subStatus = $plan === 'premium' ? ($isPaid ? 'active' : 'trial') : 'active';
+            $trialEnds = ($plan === 'premium' && !$isPaid) ? \Carbon\Carbon::now()->addMonth() : null;
+            $subscribedAt = $isPaid ? \Carbon\Carbon::now() : null;
+
             $adminUser = Admin::create([
                 'name' => $name,
                 'email' => $email,
                 'password' => Hash::make($password),
                 'role' => 'admin',
                 'plan' => $plan,
+                'subscription_status' => $subStatus,
+                'trial_ends_at' => $trialEnds,
+                'subscribed_at' => $subscribedAt,
                 'additional_modules' => $additionalModules,
                 'phone' => $request->input('phone'),
                 'company_name' => $request->input('company_name'),
@@ -210,9 +218,17 @@ class PaymentController extends Controller
                 'approval_status' => 'pending',
             ]);
         } else {
+            $isPaid = !$isDirect && !empty($paymentId);
+            $subStatus = $plan === 'premium' ? ($isPaid ? 'active' : 'trial') : 'active';
+            $trialEnds = ($plan === 'premium' && !$isPaid) ? \Carbon\Carbon::now()->addMonth() : $adminUser->trial_ends_at;
+            $subscribedAt = $isPaid ? \Carbon\Carbon::now() : $adminUser->subscribed_at;
+
             $adminUser->update([
                 'role' => 'admin',
                 'plan' => $plan,
+                'subscription_status' => $subStatus,
+                'trial_ends_at' => $trialEnds,
+                'subscribed_at' => $subscribedAt,
                 'additional_modules' => $additionalModules,
             ]);
         }
@@ -221,11 +237,16 @@ class PaymentController extends Controller
         Auth::guard('admin')->login($adminUser, true);
         Auth::shouldUse('admin');
 
+        $successMsg = 'Registration submitted! Premium plan started with 1-Month Free Trial.';
+        if ($adminUser->approval_status === 'pending') {
+            $successMsg = 'Registration submitted! Your account is pending approval by the Super Administrator.';
+        } elseif ($isPaid) {
+            $successMsg = 'Payment verified & Premium subscription activated! Welcome to your Admin Dashboard.';
+        }
+
         return response()->json([
             'status' => 'success',
-            'message' => $adminUser->approval_status === 'pending' 
-                ? 'Registration submitted! Your account is pending approval by the Super Administrator.'
-                : 'Payment verified successfully! Welcome to your Admin Dashboard.',
+            'message' => $successMsg,
             'redirect' => route('dashboard'),
         ]);
     }

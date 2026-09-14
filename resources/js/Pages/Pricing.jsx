@@ -399,26 +399,34 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
                         </div>
 
                         {/* PREMIUM PLAN CARD */}
-                        <div className="bg-white rounded-[32px] border border-slate-200/90 shadow-xl hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col justify-between h-full">
+                        <div className="bg-white rounded-[32px] border-2 border-purple-400/80 shadow-2xl hover:shadow-purple-500/10 transition-all duration-300 overflow-hidden flex flex-col justify-between h-full relative">
+                            {/* Floating Top Ribbon for Free Trial */}
+                            <div className="absolute top-4 right-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full shadow-md z-10 flex items-center gap-1">
+                                <Sparkles size={12} /> 1 MONTH FREE TRIAL
+                            </div>
+
                             <div>
                                 {/* Top Purple Header Banner */}
-                                <div className="bg-[#6b21a8] pt-8 pb-6 px-6 relative flex flex-col items-center">
+                                <div className="bg-gradient-to-b from-[#6b21a8] to-[#581a87] pt-8 pb-6 px-6 relative flex flex-col items-center">
                                     {/* White Pill Badge */}
                                     <div className="bg-white px-8 py-2 rounded-xl shadow-md border border-white/20 mb-3">
                                         <span className="font-black text-sm uppercase tracking-widest text-[#6b21a8]">PREMIUM</span>
                                     </div>
                                     
-                                    {/* Price Display */}
-                                    <div className="text-center text-white">
-                                        <span className="text-5xl font-black tracking-tight">
-                                            ₹{settings.premium_plan_price}
+                                    {/* Price Display with Free Trial Callout */}
+                                    <div className="text-center text-white space-y-1">
+                                        <div>
+                                            <span className="text-4xl sm:text-5xl font-black tracking-tight text-white">₹{settings.premium_plan_price}</span>
+                                            <span className="text-xs font-bold uppercase tracking-wider text-purple-200 ml-1">/ month</span>
+                                        </div>
+                                        <span className="block text-[11px] font-medium text-purple-200/90">
+                                            Pay ₹0 today • Subscription starts after 1-month trial
                                         </span>
-                                        <span className="block text-xs font-semibold uppercase tracking-wider text-white/90 mt-1">Per Month</span>
                                     </div>
                                 </div>
 
                                 {/* Wavy Cutout Bottom Divider */}
-                                <div className="relative w-full overflow-hidden leading-none bg-[#6b21a8] -mt-0.5">
+                                <div className="relative w-full overflow-hidden leading-none bg-[#581a87] -mt-0.5">
                                     <svg className="relative block w-full h-10 text-white" viewBox="0 0 1200 120" preserveAspectRatio="none">
                                         <path d="M0,0 C150,90 350,-40 500,40 C650,120 900,10 1200,40 L1200,120 L0,120 Z" fill="#ffffff" fillOpacity="0.3"></path>
                                         <path d="M0,30 C250,100 450,10 700,80 C950,130 1080,25 1200,60 L1200,120 L0,120 Z" fill="#ffffff"></path>
@@ -433,7 +441,7 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
                                             'projects': 'Advanced Multi-Project Management',
                                             'users': 'Unlimited Employee Management',
                                             'leaves': 'Automated Leave & Approval Workflows',
-                                            'attendance': 'Real-Time Biometric & Geo Attendance',
+                                            'attendance': 'Real-Time Geo Attendance',
                                             'calendar': 'Interactive Shared Team Calendar',
                                             'chat': 'Instant Workspace Team Messaging',
                                             'reports': 'Executive Analytics & Custom Reports',
@@ -465,15 +473,16 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
                                             disabled
                                             className="w-full py-3.5 bg-[#6b21a8] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md opacity-90 cursor-default flex items-center justify-center gap-2"
                                         >
-                                            <CheckCircle2 size={16} /> ACTIVE PLAN
+                                            <CheckCircle2 size={16} /> ACTIVE PREMIUM PLAN
                                         </button>
                                     ) : (
                                         <button
                                             onClick={() => handleSelectPlan('premium')}
                                             disabled={loading}
-                                            className="w-full py-3.5 bg-[#6b21a8] hover:bg-[#581a87] active:scale-98 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
+                                            className="w-full py-3.5 bg-gradient-to-r from-[#6b21a8] to-purple-800 hover:from-[#581a87] hover:to-purple-900 active:scale-98 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all shadow-md hover:shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                                         >
-                                            {isAdmin ? 'UPGRADE TO PREMIUM' : 'SELECT PLAN'}
+                                            <Sparkles size={15} />
+                                            {isAdmin ? 'START 1-MONTH FREE TRIAL' : 'START 1-MONTH FREE TRIAL'}
                                         </button>
                                     )}
                                 </div>

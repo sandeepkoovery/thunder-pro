@@ -29,11 +29,14 @@ class AdminUsersController extends Controller
     {
         $admins = Admin::where('role', 'admin')
             ->latest()
-            ->get(['id', 'name', 'email', 'company_name', 'phone', 'plan', 'additional_modules', 'is_active', 'approval_status', 'created_at']);
+            ->get(['id', 'name', 'email', 'company_name', 'phone', 'plan', 'subscription_status', 'trial_ends_at', 'subscribed_at', 'additional_modules', 'is_active', 'approval_status', 'created_at']);
 
-        // Attach active employee count for each admin tenant
+        // Attach active employee count and trial info for each admin tenant
         $admins->transform(function ($admin) {
             $admin->users_count = User::where('admin_id', $admin->id)->count();
+            $admin->is_trial = $admin->isInTrial();
+            $admin->is_trial_expired = $admin->isTrialExpired();
+            $admin->days_left_in_trial = $admin->daysLeftInTrial();
             return $admin;
         });
 
@@ -148,10 +151,17 @@ class AdminUsersController extends Controller
         $status = $validated['approval_status'];
         $isApproved = ($status === 'approved');
 
-        $admin->update([
+        $updateData = [
             'approval_status' => $status,
             'is_active' => $isApproved,
-        ]);
+        ];
+
+        if ($isApproved) {
+            $updateData['subscription_status'] = 'active';
+            $updateData['subscribed_at'] = \Carbon\Carbon::now();
+        }
+
+        $admin->update($updateData);
 
         // Sync employee status
         User::where('admin_id', $admin->id)->update(['is_active' => $isApproved]);

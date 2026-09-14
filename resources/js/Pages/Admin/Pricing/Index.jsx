@@ -17,8 +17,8 @@ const CORE_MODULES = [
     { key: 'user_limit_premium', label: 'Unlimited Users', is_core: true }
 ];
 
-export default function Index({ settings, admins = [], currentPlan, currentAdditionalModules = [] }) {
-    const { auth } = usePage().props;
+export default function Index({ settings, admins = [], currentPlan, currentAdditionalModules = [], subscriptionInfo }) {
+    const { auth, isTrial, isTrialExpired, daysLeftInTrial, subscriptionStatus, trialEndsAt } = usePage().props;
     const isSuperAdmin = auth?.user?.role === 'superadmin';
     const [activeTab, setActiveTab] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -283,6 +283,62 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                     </div>
                 </div>
 
+                {/* Free Trial Active Banner */}
+                {isTrial && !isSuperAdmin && (
+                    <div className="bg-gradient-to-r from-purple-950 via-purple-900 to-indigo-950 text-white p-6 rounded-[24px] shadow-lg border border-purple-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-400/30 flex items-center justify-center text-purple-300 flex-shrink-0">
+                                <Sparkles size={24} />
+                            </div>
+                            <div>
+                                <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400 bg-emerald-950/80 border border-emerald-800 px-3 py-0.5 rounded-full inline-block mb-1">
+                                    1-Month Free Trial Active
+                                </span>
+                                <h3 className="text-lg font-bold text-white">
+                                    You have <strong className="text-emerald-300 font-black">{daysLeftInTrial} days remaining</strong> in your Premium free trial!
+                                </h3>
+                                <p className="text-xs text-purple-200/80 mt-0.5">
+                                    Enjoy full Premium features. Trial ends on {trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '1 month from activation'}.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => handleSubscribe('premium')}
+                            className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all whitespace-nowrap cursor-pointer"
+                        >
+                            Subscribe Now
+                        </button>
+                    </div>
+                )}
+
+                {/* Free Trial Expired Alert Banner */}
+                {isTrialExpired && !isSuperAdmin && (
+                    <div className="bg-gradient-to-r from-amber-950 via-red-950 to-purple-950 text-white p-6 rounded-[24px] shadow-lg border border-red-800/60 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-red-500/20 border border-red-400/30 flex items-center justify-center text-red-400 flex-shrink-0">
+                                <AlertTriangle size={24} />
+                            </div>
+                            <div>
+                                <span className="text-[11px] font-black uppercase tracking-widest text-red-400 bg-red-950/80 border border-red-800 px-3 py-0.5 rounded-full inline-block mb-1">
+                                    Free Trial Expired
+                                </span>
+                                <h3 className="text-lg font-bold text-white">
+                                    Your 1-Month Premium Free Trial Has Ended
+                                </h3>
+                                <p className="text-xs text-amber-200/80 mt-0.5">
+                                    A paid subscription is required to continue using Premium features. Subscribe now to retain full access.
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => handleSubscribe('premium')}
+                            className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all whitespace-nowrap cursor-pointer"
+                        >
+                            SUBSCRIBE TO PREMIUM NOW
+                        </button>
+                    </div>
+                )}
+
                 {/* Tabs Navigation */}
                 <div className="flex bg-white p-1.5 rounded-[20px] shadow-sm border border-gray-100 gap-1 overflow-x-auto">
                     <button
@@ -462,7 +518,7 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                                 'projects': 'Advanced Multi-Project Management',
                                                 'users': 'Unlimited Employee Management',
                                                 'leaves': 'Automated Leave & Approval Workflows',
-                                                'attendance': 'Real-Time Biometric & Geo Attendance',
+                                                'attendance': 'Real-Time Geo Attendance',
                                                 'calendar': 'Interactive Shared Team Calendar',
                                                 'chat': 'Instant Workspace Team Messaging',
                                                 'reports': 'Executive Analytics & Custom Reports',
@@ -616,9 +672,19 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                             {/* Header & Total Monthly Amount Box */}
                             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-gray-100 pb-8">
                                 <div>
-                                    <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase tracking-wider mb-3 border border-emerald-100">
-                                        <CheckCircle2 size={15} className="text-emerald-500" /> Active Subscription
-                                    </div>
+                                    {isTrial ? (
+                                        <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-purple-50 text-purple-700 rounded-full text-xs font-black uppercase tracking-wider mb-3 border border-purple-200 shadow-2xs">
+                                            <Sparkles size={15} className="text-purple-600" /> 1-Month Free Trial Active ({daysLeftInTrial} Days Left)
+                                        </div>
+                                    ) : isTrialExpired ? (
+                                        <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-red-50 text-red-700 rounded-full text-xs font-black uppercase tracking-wider mb-3 border border-red-200 shadow-2xs">
+                                            <AlertTriangle size={15} className="text-red-600" /> Free Trial Expired - Subscription Needed
+                                        </div>
+                                    ) : (
+                                        <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase tracking-wider mb-3 border border-emerald-100 shadow-2xs">
+                                            <CheckCircle2 size={15} className="text-emerald-500" /> Active Subscription
+                                        </div>
+                                    )}
                                     <h2 className="text-3xl font-black text-gray-900 tracking-tight">Subscription & Billing Details</h2>
                                     <p className="text-sm text-gray-500 font-medium mt-1">Full invoice breakdown of your active base plan and assigned additional modules.</p>
                                 </div>

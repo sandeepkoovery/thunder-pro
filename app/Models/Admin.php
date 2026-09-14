@@ -18,6 +18,9 @@ class Admin extends Authenticatable
         'password',
         'role',
         'plan',
+        'trial_ends_at',
+        'subscription_status',
+        'subscribed_at',
         'additional_modules',
         'company_name',
         'phone',
@@ -69,7 +72,59 @@ class Admin extends Authenticatable
             'additional_modules' => 'array',
             'month_start_day' => 'integer',
             'month_end_day' => 'integer',
+            'trial_ends_at' => 'datetime',
+            'subscribed_at' => 'datetime',
         ];
+    }
+
+    public function isInTrial(): bool
+    {
+        if ($this->plan !== 'premium') {
+            return false;
+        }
+        if ($this->subscription_status === 'active') {
+            return false;
+        }
+        if (!$this->trial_ends_at) {
+            return false;
+        }
+        return \Carbon\Carbon::now()->lt($this->trial_ends_at);
+    }
+
+    public function isTrialExpired(): bool
+    {
+        if ($this->plan !== 'premium') {
+            return false;
+        }
+        if ($this->subscription_status === 'active') {
+            return false;
+        }
+        if (!$this->trial_ends_at) {
+            return false;
+        }
+        return \Carbon\Carbon::now()->gte($this->trial_ends_at);
+    }
+
+    public function daysLeftInTrial(): int
+    {
+        if (!$this->isInTrial()) {
+            return 0;
+        }
+        return (int) max(0, ceil(\Carbon\Carbon::now()->diffInSeconds($this->trial_ends_at, false) / 86400));
+    }
+
+    public function isSubscriptionActive(): bool
+    {
+        if ($this->role === 'superadmin') {
+            return true;
+        }
+        if ($this->plan === 'basic') {
+            return true;
+        }
+        if ($this->subscription_status === 'active') {
+            return true;
+        }
+        return $this->isInTrial();
     }
 
     public function getMonthDateRange(string $monthStr): array

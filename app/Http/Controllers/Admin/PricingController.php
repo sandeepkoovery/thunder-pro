@@ -84,7 +84,7 @@ class PricingController extends Controller
                     'projects' => 'Advanced Multi-Project Management',
                     'users' => 'Unlimited Employee Management',
                     'leaves' => 'Automated Leave & Approval Workflows',
-                    'attendance' => 'Real-Time Biometric & Geo Attendance',
+                    'attendance' => 'Real-Time Geo Attendance',
                     'calendar' => 'Interactive Shared Team Calendar',
                     'chat' => 'Instant Workspace Team Messaging',
                     'reports' => 'Executive Analytics & Custom Reports',
@@ -103,7 +103,7 @@ class PricingController extends Controller
                     ['key' => 'projects', 'label' => 'Advanced Multi-Project Management', 'is_core' => true, 'included' => true],
                     ['key' => 'users', 'label' => 'Unlimited Employee Management', 'is_core' => true, 'included' => true],
                     ['key' => 'leaves', 'label' => 'Automated Leave & Approval Workflows', 'is_core' => true, 'included' => true],
-                    ['key' => 'attendance', 'label' => 'Real-Time Biometric & Geo Attendance', 'is_core' => true, 'included' => true],
+                    ['key' => 'attendance', 'label' => 'Real-Time Geo Attendance', 'is_core' => true, 'included' => true],
                     ['key' => 'calendar', 'label' => 'Interactive Shared Team Calendar', 'is_core' => true, 'included' => true],
                     ['key' => 'chat', 'label' => 'Instant Workspace Team Messaging', 'is_core' => true, 'included' => true],
                     ['key' => 'reports', 'label' => 'Executive Analytics & Custom Reports', 'is_core' => true, 'included' => true],
@@ -237,7 +237,14 @@ class PricingController extends Controller
         if ($isSuperAdmin) {
             $admins = \App\Models\Admin::where('role', 'admin')
                 ->orderBy('name')
-                ->get(['id', 'name', 'email', 'plan', 'additional_modules', 'company_name', 'phone', 'is_active']);
+                ->get(['id', 'name', 'email', 'plan', 'subscription_status', 'trial_ends_at', 'subscribed_at', 'additional_modules', 'company_name', 'phone', 'is_active']);
+            
+            $admins->transform(function ($adm) {
+                $adm->is_trial = $adm->isInTrial();
+                $adm->is_trial_expired = $adm->isTrialExpired();
+                $adm->days_left_in_trial = $adm->daysLeftInTrial();
+                return $adm;
+            });
         }
 
         $isPremium = ($admin?->plan === 'premium');
@@ -247,6 +254,14 @@ class PricingController extends Controller
             'admins' => $admins,
             'currentPlan' => strtolower($admin?->plan ?? $user?->plan ?? 'basic'),
             'currentAdditionalModules' => $isPremium ? ($admin?->additional_modules ?? []) : [],
+            'subscriptionInfo' => [
+                'status' => $admin?->subscription_status ?? 'active',
+                'trial_ends_at' => $admin?->trial_ends_at?->toIso8601String(),
+                'subscribed_at' => $admin?->subscribed_at?->toIso8601String(),
+                'is_trial' => $admin ? $admin->isInTrial() : false,
+                'is_trial_expired' => $admin ? $admin->isTrialExpired() : false,
+                'days_left_in_trial' => $admin ? $admin->daysLeftInTrial() : 0,
+            ],
         ]);
     }
 
@@ -266,10 +281,29 @@ class PricingController extends Controller
 
         $admin = \App\Models\Admin::where('email', $user->email)->first();
         if ($admin) {
-            $admin->update([
-                'plan' => $request->plan,
-                'additional_modules' => $additionalModules,
-            ]);
+            if ($request->plan === 'premium') {
+                // When selecting/subscribing to Premium plan: set pending Super Admin approval
+                $admin->update([
+                    'plan' => 'premium',
+                    'approval_status' => 'pending',
+                    'is_active' => false,
+                    'additional_modules' => $additionalModules,
+                ]);
+
+                // Disable employee user accounts while admin plan approval is pending
+                \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => false]);
+
+                return back()->with('success', 'Premium Plan request submitted! Your account will be activated after Super Administrator approval.');
+            } else {
+                $admin->update([
+                    'plan' => 'basic',
+                    'subscription_status' => 'active',
+                    'approval_status' => 'approved',
+                    'is_active' => true,
+                    'additional_modules' => [],
+                ]);
+                \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => true]);
+            }
         }
 
         if ($user instanceof \App\Models\User || isset($user->plan)) {
@@ -344,16 +378,41 @@ class PricingController extends Controller
 
         $request->validate([
             'plan' => 'required|in:basic,premium',
+            'subscription_status' => 'nullable|in:trial,active,expired',
             'additional_modules' => 'nullable|array',
+            'extend_trial_days' => 'nullable|integer|min:1',
         ]);
 
         $admin = \App\Models\Admin::findOrFail($id);
-        $admin->update([
+        $updateData = [
             'plan' => $request->plan,
+            'approval_status' => 'approved',
+            'is_active' => true,
             'additional_modules' => $request->input('additional_modules', []),
-        ]);
+        ];
 
-        return back()->with('success', 'Plan & modules updated successfully for ' . $admin->name . '.');
+        if ($request->filled('subscription_status')) {
+            $updateData['subscription_status'] = $request->input('subscription_status');
+            if ($request->input('subscription_status') === 'active') {
+                $updateData['subscribed_at'] = \Carbon\Carbon::now();
+            }
+        } else {
+            $updateData['subscription_status'] = 'active';
+            $updateData['subscribed_at'] = \Carbon\Carbon::now();
+        }
+
+        if ($request->filled('extend_trial_days') && $request->input('extend_trial_days') > 0) {
+            $baseDate = ($admin->trial_ends_at && $admin->trial_ends_at->isFuture()) ? $admin->trial_ends_at : \Carbon\Carbon::now();
+            $updateData['trial_ends_at'] = $baseDate->copy()->addDays((int) $request->input('extend_trial_days'));
+            $updateData['subscription_status'] = 'trial';
+        }
+
+        $admin->update($updateData);
+
+        // Sync employee status
+        \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => true]);
+
+        return back()->with('success', 'Plan & subscription status approved and activated successfully for ' . $admin->name . '.');
     }
 
     public function toggleAdminStatus(Request $request, $id)

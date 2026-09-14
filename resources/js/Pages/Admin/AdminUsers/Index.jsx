@@ -421,21 +421,42 @@ export default function Index() {
 
                           {/* PLAN & MODULES */}
                           <td className="py-4 px-5 whitespace-nowrap">
-                            <div className="flex items-center gap-1.5">
-                              {admin.plan === "premium" ? (
-                                <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#f3e8ff] text-[#7e22ce] border border-[#e9d5ff]">
-                                  Premium Plan
-                                </span>
-                              ) : (
-                                <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-gray-100 text-gray-600 border border-gray-200">
-                                  Basic Plan
-                                </span>
-                              )}
-                              
-                              {Array.isArray(admin.additional_modules) && admin.additional_modules.length > 0 && (
-                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100">
-                                  +{admin.additional_modules.length} Mods
-                                </span>
+                            <div className="flex flex-col gap-1">
+                              <div className="flex items-center gap-1.5">
+                                {admin.plan === "premium" ? (
+                                  <span className="px-3 py-0.5 rounded-full text-[11px] font-bold bg-[#f3e8ff] text-[#7e22ce] border border-[#e9d5ff]">
+                                    Premium Plan
+                                  </span>
+                                ) : (
+                                  <span className="px-3 py-0.5 rounded-full text-[11px] font-bold bg-gray-100 text-gray-600 border border-gray-200">
+                                    Basic Plan
+                                  </span>
+                                )}
+                                
+                                {Array.isArray(admin.additional_modules) && admin.additional_modules.length > 0 && (
+                                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-50 text-purple-700 border border-purple-100">
+                                    +{admin.additional_modules.length} Mods
+                                  </span>
+                                )}
+                              </div>
+
+                              {admin.plan === "premium" && (
+                                <div>
+                                  {admin.is_trial || admin.subscription_status === 'trial' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                      <span>🎁 1-Mo Trial</span>
+                                      <span className="text-emerald-900">({admin.days_left_in_trial ?? 30}d left)</span>
+                                    </span>
+                                  ) : admin.is_trial_expired || admin.subscription_status === 'expired' ? (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-red-50 text-red-700 border border-red-200">
+                                      ⚠️ Trial Expired
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-extrabold bg-purple-50 text-purple-700 border border-purple-200">
+                                      ✓ Active Subscription
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </td>

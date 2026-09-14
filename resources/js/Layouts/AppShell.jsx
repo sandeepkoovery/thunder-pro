@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import { Link, router, Head, usePage } from "@inertiajs/react";
-import { Menu, Search, Moon, Sun, ChevronDown, LogOut, Settings, User, CreditCard, DollarSign, HelpCircle, Power, Download, Clock, ShieldAlert, FolderKanban, Users as UsersIcon, Building2, FileText, CalendarDays, Sparkles, List, Palette, MessageSquare, Bell } from "lucide-react";
+import { Menu, Search, Moon, Sun, ChevronDown, LogOut, Settings, User, CreditCard, DollarSign, HelpCircle, Power, Download, Clock, ShieldAlert, FolderKanban, Users as UsersIcon, Building2, FileText, CalendarDays, Sparkles, List, Palette, MessageSquare, Bell, Lock, CheckCircle2, ArrowRight, AlertTriangle } from "lucide-react";
 import NotificationDropdown from "@/Components/NotificationDropdown";
 import ThemeCustomizer from "@/Components/ThemeCustomizer";
 import AskWorkNestVoiceAssistant from "@/Components/AskWorkNestVoiceAssistant";
@@ -446,6 +446,114 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
         <ThemeCustomizer isOpen={customizerOpen} setIsOpen={setCustomizerOpen} />
         <AskWorkNestVoiceAssistant />
       </div>
+
+      {/* FULL-SCREEN BLUR FREE TRIAL EXPIRED OVERLAY MODAL */}
+      {pageProps.isTrialExpired && !isSuperAdmin && (typeof window === 'undefined' || (!window.location.pathname.includes('/pricing') && !window.location.pathname.includes('/admin/pricing'))) && (
+        <div className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+          <div className="bg-white rounded-[32px] max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-purple-200/80 text-center animate-in fade-in zoom-in duration-300 relative pointer-events-auto my-auto overflow-hidden">
+            
+            {/* Decorative Ambient Background Glowing Aura */}
+            <div className="absolute -top-24 -right-24 w-60 h-60 bg-purple-400/20 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-amber-400/20 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div className="relative z-10">
+              {/* Lock Icon Container */}
+              <div className="w-20 h-20 rounded-3xl bg-gradient-to-tr from-purple-600 via-indigo-600 to-purple-800 text-white flex items-center justify-center mx-auto mb-5 shadow-xl shadow-purple-600/30 border border-purple-400/30">
+                <Lock size={38} className="animate-pulse" />
+              </div>
+
+              {/* Status Badge */}
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-50 text-red-700 text-xs font-black uppercase tracking-wider mb-3 border border-red-200 shadow-2xs">
+                <AlertTriangle size={14} className="text-red-600" />
+                <span>1-Month Free Trial Expired</span>
+              </div>
+
+              {/* Title */}
+              <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                Your Free Trial Has Ended
+              </h2>
+
+              {/* Description */}
+              <p className="text-slate-600 text-sm mt-2 leading-relaxed font-medium">
+                Your 1-month Premium free trial has expired. Access to your workspace features is locked until a paid subscription is activated.
+              </p>
+
+              {/* Premium Plan Summary Box */}
+              <div className="mt-5 bg-gradient-to-br from-purple-50/80 via-slate-50 to-indigo-50/60 rounded-2xl p-5 border border-purple-100/90 text-left space-y-3 shadow-xs">
+                <div className="flex items-center justify-between border-b border-purple-100 pb-3">
+                  <div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-purple-600 block">SELECTED PLAN</span>
+                    <h4 className="text-lg font-black text-slate-900">PREMIUM PLAN</h4>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-2xl font-black text-purple-700">₹{pageProps.pricingSettings?.premium_plan_price || '2,999'}</span>
+                    <span className="text-xs font-bold text-slate-500 block">/ month</span>
+                  </div>
+                </div>
+
+                <div className="space-y-2 pt-1">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block mb-1">Included Premium Access:</span>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs font-semibold text-slate-700">
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={15} className="text-purple-600 shrink-0" />
+                      <span>Unlimited Employees</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={15} className="text-purple-600 shrink-0" />
+                      <span>Multi-Project System</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={15} className="text-purple-600 shrink-0" />
+                      <span>Geo Attendance</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={15} className="text-purple-600 shrink-0" />
+                      <span>Automated Leave Approvals</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={15} className="text-purple-600 shrink-0" />
+                      <span>Team Chat & Drive Integration</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <CheckCircle2 size={15} className="text-purple-600 shrink-0" />
+                      <span>Executive Analytics & Reports</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 space-y-3">
+                <button
+                  onClick={() => {
+                    router.post(route('admin.pricing.subscribe'), { plan: 'premium' }, {
+                      onSuccess: () => {
+                        toast.success('Premium Plan request submitted! Your account is pending Super Administrator approval.');
+                      },
+                      onError: (err) => {
+                        toast.error(err?.error || 'Failed to submit Premium plan request.');
+                      }
+                    });
+                  }}
+                  className="w-full py-4 rounded-2xl bg-gradient-to-r from-purple-700 via-indigo-700 to-purple-900 hover:from-purple-800 hover:to-indigo-800 text-white font-extrabold text-sm uppercase tracking-wider shadow-lg shadow-purple-700/30 transition-all active:scale-98 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Sparkles size={18} />
+                  <span>CONTINUE WITH PREMIUM PLAN</span>
+                  <ArrowRight size={18} />
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full py-2 rounded-xl text-slate-500 hover:text-slate-700 hover:bg-slate-100 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <LogOut size={15} />
+                  <span>Log Out Account</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FULL-SCREEN BLUR PENDING APPROVAL OVERLAY */}
       {isPendingApproval && (
