@@ -94,50 +94,75 @@ class CheckModuleAccess
                 return Setting::pluck('value', 'key')->all();
             });
 
+            // Basic Plan active modules
+            $basicFeaturesJson = $settingsMap['basic_plan_features'] ?? null;
+            if ($basicFeaturesJson) {
+                $basicFeatures = json_decode($basicFeaturesJson, true) ?: [];
+                $basicModules = [];
+                foreach ($basicFeatures as $feat) {
+                    if (($feat['included'] ?? true) === true) {
+                        $basicModules[] = $feat['key'];
+                    }
+                }
+            } else {
+                $basicModules = json_decode($settingsMap['basic_plan_modules'] ?? '[]', true) ?: [];
+            }
+
+            // Premium Plan active modules
+            $premiumFeaturesJson = $settingsMap['premium_plan_features'] ?? null;
+            if ($premiumFeaturesJson) {
+                $premiumFeatures = json_decode($premiumFeaturesJson, true) ?: [];
+                $premiumModules = [];
+                foreach ($premiumFeatures as $feat) {
+                    if (($feat['included'] ?? true) === true) {
+                        $premiumModules[] = $feat['key'];
+                    }
+                }
+            } else {
+                $premiumModules = json_decode($settingsMap['premium_plan_modules'] ?? '[]', true) ?: [];
+            }
+
+            if (empty($basicModules)) {
+                $basicModules = ['projects', 'users', 'leaves', 'attendance', 'departments'];
+            }
+            if (empty($premiumModules)) {
+                $premiumModules = ['projects', 'users', 'leaves', 'attendance', 'departments', 'calendar', 'chat', 'reports', 'drive'];
+            }
+
+            if (!in_array('departments', $basicModules)) {
+                $basicModules[] = 'departments';
+            }
+            if (!in_array('departments', $premiumModules)) {
+                $premiumModules[] = 'departments';
+            }
+
             $userRoleKey = $user->role ?? 'user';
             $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;
             $rolePermissions = $rolePermissionsJson ? json_decode($rolePermissionsJson, true) : null;
 
             if (is_array($rolePermissions) && isset($rolePermissions[$userRoleKey]) && is_array($rolePermissions[$userRoleKey])) {
-                $allowed = $rolePermissions[$userRoleKey];
+                $roleAllowed = $rolePermissions[$userRoleKey];
                 if ($userRoleKey === 'admin') {
-                    $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'reports'];
-                    $allowed = array_unique(array_merge($allowed, $coreAlwaysAllowed));
+                    $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'departments'];
+                    $roleAllowed = array_unique(array_merge($roleAllowed, $coreAlwaysAllowed));
                 }
             } else {
-                $featuresJson = $settingsMap[$plan . '_plan_features'] ?? null;
-                if ($featuresJson) {
-                    $features = json_decode($featuresJson, true);
-                    $allowed = [];
-                    foreach ($features as $feat) {
-                        if (($feat['included'] ?? true) === true) {
-                            $allowed[] = $feat['key'];
-                        }
-                    }
-                } else {
-                    $allowed = json_decode($settingsMap[$plan . '_plan_modules'] ?? '[]', true);
-                }
-
-                if (empty($allowed)) {
-                    $allowed = $plan === 'premium' 
-                        ? ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'reports', 'drive', 'departments'] 
-                        : ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'drive', 'departments'];
-                }
-
-                if (!in_array('drive', $allowed)) {
-                    $allowed[] = 'drive';
-                }
-
-                // Core admin modules always allowed for tenant admins
-                $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'reports', 'drive'];
-                $allowed = array_unique(array_merge($allowed, $coreAlwaysAllowed));
-
-                if (!empty($additional) && is_array($additional)) {
-                    // Map legacy 'domains' key to 'websites'
-                    $additionalMapped = array_map(function($m) { return $m === 'domains' ? 'websites' : $m; }, $additional);
-                    $allowed = array_unique(array_merge($allowed, $additionalMapped));
-                }
+                $roleAllowed = $plan === 'premium' ? $premiumModules : $basicModules;
             }
+
+            $additionalMapped = !empty($additional) && is_array($additional) 
+                ? array_map(function($m) { return $m === 'domains' ? 'websites' : $m; }, $additional)
+                : [];
+
+            $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'departments'];
+
+            $tenantMaxModules = array_unique(array_merge(
+                $plan === 'premium' ? $premiumModules : $basicModules,
+                $additionalMapped,
+                $coreAlwaysAllowed
+            ));
+
+            $allowed = array_values(array_intersect($roleAllowed, $tenantMaxModules));
 
             if (!in_array($module, $allowed)) {
                 if ($request->expectsJson()) {

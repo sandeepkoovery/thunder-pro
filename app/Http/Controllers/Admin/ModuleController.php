@@ -205,8 +205,8 @@ class ModuleController extends Controller
             if (!$isSuperAdmin) {
                 $admin = $user->tenant_id ? \App\Models\User::find($user->tenant_id) : $user;
                 $plan = $admin ? ($admin->subscription_plan ?? 'basic') : 'basic';
-                $basicModules = ['dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 'calendar', 'drive', 'chat', 'reports', 'notifications', 'modules', 'pricing', 'settings'];
-                $premiumModules = ['dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'websites', 'reports', 'notifications', 'ai_assistant', 'modules', 'pricing', 'settings'];
+                $basicModules = ['dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 'notifications', 'modules', 'pricing', 'settings'];
+                $premiumModules = ['dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 'calendar', 'chat', 'reports', 'drive', 'notifications', 'modules', 'pricing', 'settings'];
 
                 $userAdditionalModules = [];
                 if ($admin && !empty($admin->additional_modules)) {
@@ -216,7 +216,7 @@ class ModuleController extends Controller
                 $tenantMaxModules = array_unique(array_merge(
                     $plan === 'premium' ? $premiumModules : $basicModules,
                     $userAdditionalModules,
-                    ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'reports']
+                    ['dashboard', 'departments', 'notifications', 'pricing', 'settings', 'modules']
                 ));
 
                 $orderCheckModules = array_values(array_intersect($modules, $tenantMaxModules));

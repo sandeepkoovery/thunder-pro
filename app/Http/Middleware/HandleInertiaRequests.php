@@ -104,18 +104,12 @@ class HandleInertiaRequests extends Middleware
         }
 
         if (empty($basicModules)) {
-            $basicModules = ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'drive', 'notifications'];
+            $basicModules = ['projects', 'users', 'leaves', 'attendance', 'departments'];
         }
         if (empty($premiumModules)) {
-            $premiumModules = ['projects', 'users', 'leaves', 'attendance', 'calendar', 'chat', 'reports', 'drive', 'notifications'];
+            $premiumModules = ['projects', 'users', 'leaves', 'attendance', 'departments', 'calendar', 'chat', 'reports', 'drive'];
         }
 
-        if (!in_array('drive', $basicModules)) {
-            $basicModules[] = 'drive';
-        }
-        if (!in_array('drive', $premiumModules)) {
-            $premiumModules[] = 'drive';
-        }
         if (!in_array('departments', $basicModules)) {
             $basicModules[] = 'departments';
         }
@@ -222,7 +216,7 @@ class HandleInertiaRequests extends Middleware
             $tenantMaxModules = array_unique(array_merge(
                 $plan === 'premium' ? $premiumModules : $basicModules,
                 is_array($userAdditionalModules) ? $userAdditionalModules : [],
-                ['dashboard', 'calendar', 'drive', 'notifications', 'pricing', 'settings', 'modules', 'reports']
+                ['dashboard', 'departments', 'notifications', 'pricing', 'settings', 'modules']
             ));
 
             $allowedModules = array_values(array_intersect($allowedModules, $tenantMaxModules));
