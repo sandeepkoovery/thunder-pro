@@ -234,7 +234,7 @@ class HandleInertiaRequests extends Middleware
             if ($user instanceof \App\Models\Admin) {
                 if ($user->role !== 'superadmin') {
                     $approvalStatus = $user->approval_status ?? 'approved';
-                    $isPendingApproval = ($approvalStatus === 'pending');
+                    $isPendingApproval = ($approvalStatus === 'pending' && !$user->isInTrial());
                 }
             } elseif ($user instanceof \App\Models\User) {
                 if ($user->department_id && !$user->relationLoaded('department')) {
@@ -244,7 +244,7 @@ class HandleInertiaRequests extends Middleware
                     $parentAdmin = \App\Models\Admin::find($user->admin_id);
                     if ($parentAdmin) {
                         $approvalStatus = $parentAdmin->approval_status ?? 'approved';
-                        $isPendingApproval = ($approvalStatus === 'pending');
+                        $isPendingApproval = ($approvalStatus === 'pending' && !$parentAdmin->isInTrial());
                     }
                 }
             }
@@ -272,6 +272,8 @@ class HandleInertiaRequests extends Middleware
             'isTrialExpired' => $admin ? $admin->isTrialExpired() : false,
             'daysLeftInTrial' => $admin ? $admin->daysLeftInTrial() : 0,
             'trialEndsAt' => $admin?->trial_ends_at?->toIso8601String(),
+            'adminApprovalStatus' => $approvalStatus,
+            'isSubscriptionPending' => ($approvalStatus === 'pending'),
             'allowedModules' => $allowedModules,
             'userAdditionalModules' => $userAdditionalModules,
             'moduleOrder' => json_decode($settingsMap['module_order'] ?? '[]', true) ?: [],

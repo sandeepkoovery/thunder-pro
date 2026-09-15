@@ -18,7 +18,7 @@ const CORE_MODULES = [
 ];
 
 export default function Index({ settings, admins = [], currentPlan, currentAdditionalModules = [], subscriptionInfo }) {
-    const { auth, isTrial, isTrialExpired, daysLeftInTrial, subscriptionStatus, trialEndsAt } = usePage().props;
+    const { auth, isTrial, isTrialExpired, daysLeftInTrial, subscriptionStatus, trialEndsAt, isSubscriptionPending } = usePage().props;
     const isSuperAdmin = auth?.user?.role === 'superadmin';
     const [activeTab, setActiveTab] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -326,16 +326,25 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                     You have <strong className="text-emerald-300 font-black">{daysLeftInTrial} days remaining</strong> in your Premium free trial!
                                 </h3>
                                 <p className="text-xs text-purple-200/80 mt-0.5">
-                                    Enjoy full Premium features. Trial ends on {trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '1 month from activation'}.
+                                    {isSubscriptionPending
+                                        ? 'Your subscription request has been submitted and is awaiting Super Admin approval. Premium access continues during your trial.'
+                                        : `Enjoy full Premium features. Trial ends on ${trialEndsAt ? new Date(trialEndsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '1 month from activation'}.`
+                                    }
                                 </p>
                             </div>
                         </div>
-                        <button
-                            onClick={() => handleSubscribe('premium')}
-                            className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all whitespace-nowrap cursor-pointer"
-                        >
-                            Subscribe Now
-                        </button>
+                        {isSubscriptionPending ? (
+                            <div className="px-5 py-2.5 bg-amber-500/20 border border-amber-400/40 text-amber-300 font-extrabold text-xs uppercase tracking-wider rounded-xl whitespace-nowrap flex items-center gap-2">
+                                <CheckCircle2 size={14} /> Approval Pending
+                            </div>
+                        ) : (
+                            <button
+                                onClick={() => setActiveTab('subscription')}
+                                className="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 text-white font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-md transition-all whitespace-nowrap cursor-pointer"
+                            >
+                                Subscribe Now
+                            </button>
+                        )}
                     </div>
                 )}
 
@@ -579,12 +588,27 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                             >
                                                 System Tier (Super Admin)
                                             </button>
-                                        ) : currentPlan === 'premium' ? (
+                                        ) : currentPlan === 'premium' && !isTrial ? (
                                             <button 
                                                 disabled
                                                 className="w-full py-3.5 bg-[#6b21a8] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl shadow-md opacity-90 cursor-default flex items-center justify-center gap-2"
                                             >
                                                 <CheckCircle2 size={16} /> ACTIVE PLAN
+                                            </button>
+                                        ) : isTrial && isSubscriptionPending ? (
+                                            <button
+                                                disabled
+                                                className="w-full py-3.5 bg-amber-100 text-amber-700 text-xs font-extrabold uppercase tracking-wider rounded-xl cursor-not-allowed flex items-center justify-center gap-2"
+                                            >
+                                                <CheckCircle2 size={16} /> Subscription Pending Approval
+                                            </button>
+                                        ) : isTrial ? (
+                                            <button
+                                                onClick={() => setActiveTab('subscription')}
+                                                disabled={subscriptionForm.processing}
+                                                className="w-full py-3.5 bg-[#6b21a8] hover:bg-[#581a87] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all active:scale-98 shadow-md flex items-center justify-center gap-2"
+                                            >
+                                                {subscriptionForm.processing ? "Processing..." : "SUBSCRIBE NOW"}
                                             </button>
                                         ) : (
                                             <button
@@ -701,12 +725,36 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                             <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 border-b border-gray-100 pb-8">
                                 <div>
                                     {isTrial ? (
-                                        <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-purple-50 text-purple-700 rounded-full text-xs font-black uppercase tracking-wider mb-3 border border-purple-200 shadow-2xs">
-                                            <Sparkles size={15} className="text-purple-600" /> 1-Month Free Trial Active ({daysLeftInTrial} Days Left)
-                                        </div>
+                                        isSubscriptionPending ? (
+                                            <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-amber-50 text-amber-700 rounded-full text-xs font-black uppercase tracking-wider mb-3 border border-amber-200 shadow-2xs">
+                                                <CheckCircle2 size={15} className="text-amber-600" /> Subscription Requested – Awaiting Approval
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-wrap items-center gap-3 mb-3">
+                                                <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-purple-50 text-purple-700 rounded-full text-xs font-black uppercase tracking-wider border border-purple-200 shadow-2xs">
+                                                    <Sparkles size={15} className="text-purple-600" /> 1-Month Free Trial Active ({daysLeftInTrial} Days Left)
+                                                </div>
+                                                <button
+                                                    onClick={() => handleSubscribe('premium')}
+                                                    disabled={subscriptionForm.processing}
+                                                    className="px-4 py-1.5 bg-[#6b21a8] hover:bg-[#581a87] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                                                >
+                                                    {subscriptionForm.processing ? "Processing..." : "SUBSCRIBE NOW"}
+                                                </button>
+                                            </div>
+                                        )
                                     ) : isTrialExpired ? (
-                                        <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-red-50 text-red-700 rounded-full text-xs font-black uppercase tracking-wider mb-3 border border-red-200 shadow-2xs">
-                                            <AlertTriangle size={15} className="text-red-600" /> Free Trial Expired - Subscription Needed
+                                        <div className="flex flex-wrap items-center gap-3 mb-3">
+                                            <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-red-50 text-red-700 rounded-full text-xs font-black uppercase tracking-wider border border-red-200 shadow-2xs">
+                                                <AlertTriangle size={15} className="text-red-600" /> Free Trial Expired - Subscription Needed
+                                            </div>
+                                            <button
+                                                onClick={() => handleSubscribe('premium')}
+                                                disabled={subscriptionForm.processing}
+                                                className="px-4 py-1.5 bg-[#6b21a8] hover:bg-[#581a87] text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                                            >
+                                                {subscriptionForm.processing ? "Processing..." : "SUBSCRIBE NOW"}
+                                            </button>
                                         </div>
                                     ) : (
                                         <div className="inline-flex items-center gap-1.5 px-4 py-1.5 bg-emerald-50 text-emerald-600 rounded-full text-xs font-black uppercase tracking-wider mb-3 border border-emerald-100 shadow-2xs">
@@ -1219,6 +1267,7 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                                         <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Email Address</th>
                                                         <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Account Status</th>
                                                         <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Current Plan</th>
+                                                        <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Approval</th>
                                                         <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400">Granted Add-on Modules</th>
                                                         <th className="pb-4 text-xs font-bold uppercase tracking-widest text-gray-400 text-right">Actions</th>
                                                     </tr>
@@ -1226,9 +1275,15 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                                 <tbody className="divide-y divide-gray-50">
                                                     {admins.map((admin) => {
                                                         const adminMods = Array.isArray(admin.additional_modules) ? admin.additional_modules : [];
+                                                        const isPending = admin.approval_status === 'pending';
                                                         return (
-                                                            <tr key={admin.id} className="hover:bg-gray-50/50 transition-colors">
-                                                                <td className="py-4 font-semibold text-gray-900 text-sm">{admin.name}</td>
+                                                            <tr key={admin.id} className={`hover:bg-gray-50/50 transition-colors ${isPending ? 'bg-amber-50/30' : ''}`}>
+                                                                <td className="py-4 font-semibold text-gray-900 text-sm">
+                                                                    <div>{admin.name}</div>
+                                                                    {isPending && (
+                                                                        <div className="text-[10px] text-amber-600 font-bold uppercase tracking-wider mt-0.5">⚠ Subscription Pending</div>
+                                                                    )}
+                                                                </td>
                                                                 <td className="py-4 text-gray-500 text-sm">{admin.email}</td>
                                                                 <td className="py-4">
                                                                     <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
@@ -1240,13 +1295,20 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                                                     </span>
                                                                 </td>
                                                                 <td className="py-4">
-                                                                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                                                                        admin.plan === 'premium'
-                                                                            ? 'bg-purple-50 text-purple-600 border border-purple-100'
-                                                                            : 'bg-blue-50 text-blue-600 border border-blue-100'
-                                                                    }`}>
-                                                                        {admin.plan || 'basic'}
-                                                                    </span>
+                                                                    <div className="flex flex-col gap-1">
+                                                                        <span className={`inline-flex px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider w-max ${
+                                                                            admin.plan === 'premium'
+                                                                                ? 'bg-purple-50 text-purple-600 border border-purple-100'
+                                                                                : 'bg-blue-50 text-blue-600 border border-blue-100'
+                                                                        }`}>
+                                                                            {admin.plan || 'basic'}
+                                                                        </span>
+                                                                        {admin.is_trial && (
+                                                                            <span className="text-[10px] text-amber-600 font-bold bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 w-max">
+                                                                                In Trial ({admin.days_left_in_trial}d left)
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
                                                                 </td>
                                                                 <td className="py-4">
                                                                     <div className="flex items-center gap-3">
@@ -1267,7 +1329,16 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                                                     </div>
                                                                 </td>
                                                                 <td className="py-4 text-right">
-                                                                    <div className="flex justify-end gap-2">
+                                                                    <div className="flex justify-end gap-2 flex-wrap">
+                                                                        {isPending && (
+                                                                            <button
+                                                                                onClick={() => handleUpdateAdminPlan(admin.id, admin.plan || 'premium', adminMods)}
+                                                                                disabled={adminPlanForm.processing}
+                                                                                className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm cursor-pointer"
+                                                                            >
+                                                                                ✓ Approve
+                                                                            </button>
+                                                                        )}
                                                                         <button
                                                                             onClick={() => router.post(route('admin.pricing.admin-status', admin.id))}
                                                                             className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
@@ -1291,9 +1362,9 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                                                         </button>
                                                                         <button
                                                                             onClick={() => handleUpdateAdminPlan(admin.id, 'premium', adminMods)}
-                                                                            disabled={admin.plan === 'premium' || adminPlanForm.processing}
+                                                                            disabled={(admin.plan === 'premium' && !isPending) || adminPlanForm.processing}
                                                                             className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                                admin.plan === 'premium'
+                                                                                admin.plan === 'premium' && !isPending
                                                                                     ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                                                                     : 'bg-purple-600 hover:bg-purple-700 text-white shadow-sm'
                                                                             }`}

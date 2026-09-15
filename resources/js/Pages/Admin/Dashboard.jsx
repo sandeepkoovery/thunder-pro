@@ -1,7 +1,8 @@
 // resources/js/Pages/Admin/Dashboard.jsx
 import React, { useState } from "react";
 import AdminLayout from "@/Layouts/AdminLayout";
-import { Head, Link, usePage } from "@inertiajs/react";
+import { Head, Link, usePage, router } from "@inertiajs/react";
+import toast from "react-hot-toast";
 import {
   Users,
   FolderKanban,
@@ -12,6 +13,8 @@ import {
   TrendingUp,
   CreditCard,
   Settings,
+  Sparkles,
+  CheckCircle2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -44,9 +47,38 @@ export default function Dashboard({
   todayAttendance,
   personalStats
 }) {
-  const { auth } = usePage().props;
+  const { 
+    auth, 
+    userPlan = 'basic', 
+    subscriptionStatus = 'active', 
+    isTrial = false, 
+    isTrialExpired = false, 
+    daysLeftInTrial = 0,
+    isSubscriptionPending = false,
+  } = usePage().props;
   const user = auth.user;
   const isSuperAdmin = user?.role === 'superadmin';
+  const isAdmin = user?.role === 'admin';
+
+  // Subscribe directly from dashboard (same as pricing page)
+  const [isSubscribing, setIsSubscribing] = useState(false);
+  const handleSubscribe = (planName) => {
+    setIsSubscribing(true);
+    router.post(route('admin.pricing.subscribe'), {
+      plan: planName,
+      additional_modules: [],
+    }, {
+      onSuccess: () => {
+        toast.success('Subscription request submitted! Awaiting Super Admin approval.');
+        setIsSubscribing(false);
+      },
+      onError: () => {
+        toast.error('Failed to submit subscription request.');
+        setIsSubscribing(false);
+      },
+      onFinish: () => setIsSubscribing(false),
+    });
+  };
 
   if (isSuperAdmin) {
     return (
@@ -176,14 +208,41 @@ export default function Dashboard({
       <div className="mp-vuesy-header text-white -mx-[28px] -mt-[24px] px-[28px] py-6 sm:py-8 shadow-sm transition-all duration-300 relative">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6 mb-6">
           <div>
-            <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">Dashboard</h1>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h1 className="text-xl sm:text-2xl font-bold text-white leading-tight">Dashboard</h1>
+              {userPlan === 'premium' ? (
+                isTrial ? (
+                  <span className="px-3 py-0.5 rounded-full bg-amber-400/20 text-amber-200 border border-amber-300/30 text-xs font-bold flex items-center gap-1">
+                    <Sparkles size={12} className="text-amber-300" />
+                    Premium Free Trial
+                  </span>
+                ) : isTrialExpired ? (
+                  <span className="px-3 py-0.5 rounded-full bg-red-400/20 text-red-200 border border-red-300/30 text-xs font-bold flex items-center gap-1">
+                    <AlertCircle size={12} className="text-red-300" />
+                    Trial Expired
+                  </span>
+                ) : (
+                  <span className="px-3 py-0.5 rounded-full bg-emerald-400/20 text-emerald-200 border border-emerald-300/30 text-xs font-bold flex items-center gap-1">
+                    <Sparkles size={12} className="text-emerald-300" />
+                    Premium Plan
+                  </span>
+                )
+              ) : (
+                <span className="px-3 py-0.5 rounded-full bg-blue-400/20 text-blue-200 border border-blue-300/30 text-xs font-bold">
+                  Basic Plan
+                </span>
+              )}
+            </div>
             <p className="text-xs sm:text-sm text-purple-200 mt-1 mp-header-breadcrumb">
               <Link href="/" className="hover:text-white transition-colors">Home</Link> &gt; <span className="text-white">Dashboard</span>
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-purple-200 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
-            <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
-            <span>Welcome back, <strong className="text-white font-semibold">{user?.name}</strong></span>
+
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-purple-200 bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
+              <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
+              <span>Welcome back, <strong className="text-white font-semibold">{user?.name}</strong></span>
+            </div>
           </div>
         </div>
 
@@ -236,6 +295,136 @@ export default function Dashboard({
           {statsExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </button>
       </div>
+
+      {/* TENANT ADMIN SUBSCRIPTION & TRIAL BANNER */}
+      {isAdmin && (
+        <div className="pt-2">
+          {isTrial ? (
+            isSubscriptionPending ? (
+              // Already requested subscription – show pending state
+              <div className="bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 border border-amber-500/30 rounded-3xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
+                <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+                    <Sparkles size={24} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black uppercase tracking-wider text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-200">
+                        Premium Plan (Free Trial)
+                      </span>
+                      <span className="text-xs font-bold text-amber-900 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                        ⏳ <strong>{daysLeftInTrial} {daysLeftInTrial === 1 ? 'Day' : 'Days'} Left</strong> in Free Trial
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mt-1.5">
+                      Subscription Requested – Awaiting Super Admin Approval
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-0.5 max-w-2xl">
+                      Your subscription request has been submitted. You have full Premium access during your free trial. Subscription activates after Super Admin approval.
+                    </p>
+                  </div>
+                </div>
+                <div className="px-5 py-2.5 bg-amber-100 text-amber-700 font-bold text-xs uppercase tracking-wider rounded-2xl border border-amber-200 flex items-center gap-2 whitespace-nowrap flex-shrink-0">
+                  <CheckCircle2 size={16} />
+                  <span>Pending Approval</span>
+                </div>
+              </div>
+            ) : (
+              // Trial active, not yet subscribed – show Subscribe Now
+              <div className="bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 border border-amber-500/30 rounded-3xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4 relative overflow-hidden">
+                <div className="absolute -right-6 -bottom-6 w-32 h-32 bg-amber-400/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="flex items-start gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-600 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+                    <Sparkles size={24} className="text-amber-600 animate-pulse" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-xs font-black uppercase tracking-wider text-amber-800 bg-amber-100 px-2.5 py-0.5 rounded-full border border-amber-200">
+                        Premium Plan (Free Trial)
+                      </span>
+                      <span className="text-xs font-bold text-amber-900 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-300 flex items-center gap-1">
+                        ⏳ <strong>{daysLeftInTrial} {daysLeftInTrial === 1 ? 'Day' : 'Days'} Left</strong> in Free Trial
+                      </span>
+                    </div>
+                    <h3 className="text-lg font-bold text-gray-900 mt-1.5">
+                      Your 1-Month Premium Free Trial is Active
+                    </h3>
+                    <p className="text-xs sm:text-sm text-gray-600 mt-0.5 max-w-2xl">
+                      You currently have full access to all Premium features. Subscribe to an active paid subscription now to ensure uninterrupted access when your trial ends.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleSubscribe('premium')}
+                  disabled={isSubscribing}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-wider rounded-2xl shadow-md shadow-blue-600/20 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer"
+                >
+                  <CreditCard size={16} />
+                  <span>{isSubscribing ? 'Processing...' : 'Subscribe Now'}</span>
+                </button>
+              </div>
+            )
+          ) : isTrialExpired ? (
+            <div className="bg-red-50 border border-red-200 rounded-3xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0">
+                  <AlertCircle size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-red-700 bg-red-100 px-2.5 py-0.5 rounded-full border border-red-200">
+                      Trial Expired
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mt-1.5">
+                    Your Premium Free Trial Has Expired
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-0.5 max-w-2xl">
+                    Your 1-month free trial period has ended. Subscribe to a paid subscription now to reactivate access to Premium features.
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => handleSubscribe('premium')}
+                disabled={isSubscribing}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-60 text-white font-bold text-xs uppercase tracking-wider rounded-2xl shadow-md shadow-blue-600/20 flex items-center gap-2 whitespace-nowrap transition-all cursor-pointer"
+              >
+                <CreditCard size={16} />
+                <span>{isSubscribing ? 'Processing...' : 'Subscribe Now'}</span>
+              </button>
+            </div>
+          ) : userPlan === 'basic' ? (
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200/80 rounded-3xl p-5 md:p-6 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
+                  <CreditCard size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-black uppercase tracking-wider text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full border border-blue-200">
+                      Basic Plan
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mt-1.5">
+                    Active Subscription: Basic Plan
+                  </h3>
+                  <p className="text-xs sm:text-sm text-gray-600 mt-0.5 max-w-2xl">
+                    You are currently on the Basic Plan (up to 10 active employees, core tracking). Upgrade to Premium Plan for unlimited users, Calendar, Chat, Executive Reports, Cloud Drive & Add-on modules.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={route("admin.pricing.index")}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs uppercase tracking-wider rounded-2xl shadow-md shadow-blue-600/20 flex items-center gap-2 whitespace-nowrap transition-all"
+              >
+                <Sparkles size={16} />
+                <span>Upgrade to Premium</span>
+              </Link>
+            </div>
+          ) : null}
+        </div>
+      )}
 
       {/* DASHBOARD CHARTS ROW */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">

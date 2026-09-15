@@ -253,18 +253,39 @@ class PricingController extends Controller
         $admin = \App\Models\Admin::where('email', $user->email)->first();
         if ($admin) {
             if ($request->plan === 'premium') {
-                // When selecting/subscribing to Premium plan: set pending Super Admin approval
-                $admin->update([
-                    'plan' => 'premium',
-                    'approval_status' => 'pending',
-                    'is_active' => false,
-                    'additional_modules' => $additionalModules,
-                ]);
+                $isInTrial = $admin->isInTrial();
+                if ($isInTrial) {
+                    // Admin is in active trial mode — mark subscription as pending approval while keeping access active during trial
+                    $admin->update([
+                        'plan' => 'premium',
+                        'additional_modules' => $additionalModules,
+                        'approval_status' => 'pending',
+                        'is_active' => true,
+                    ]);
+                    \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => true]);
 
-                // Disable employee user accounts while admin plan approval is pending
-                \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => false]);
+                    if ($user instanceof \App\Models\User || isset($user->plan)) {
+                        $user->update(['plan' => $request->plan]);
+                    }
 
-                return back()->with('success', 'Premium Plan request submitted! Your account will be activated after Super Administrator approval.');
+                    return back()->with('success', 'Subscription request submitted! Your account remains active during the trial. Access will continue after Super Admin approves your subscription.');
+                } else {
+                    // Trial has ended or account is not in trial: set pending approval & deactivate until Super Admin approves
+                    $admin->update([
+                        'plan' => 'premium',
+                        'approval_status' => 'pending',
+                        'is_active' => false,
+                        'additional_modules' => $additionalModules,
+                    ]);
+
+                    \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => false]);
+
+                    if ($user instanceof \App\Models\User || isset($user->plan)) {
+                        $user->update(['plan' => $request->plan]);
+                    }
+
+                    return back()->with('success', 'Premium Plan request submitted! Your account will be activated after Super Administrator approval.');
+                }
             } else {
                 $admin->update([
                     'plan' => 'basic',
