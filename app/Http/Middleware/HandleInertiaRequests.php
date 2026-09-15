@@ -118,26 +118,8 @@ class HandleInertiaRequests extends Middleware
         }
 
         $additionalModulesSettingJson = $settingsMap['additional_modules'] ?? null;
-        $additionalModulesSetting = $additionalModulesSettingJson ? json_decode($additionalModulesSettingJson, true) : [
-            ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true],
-            ['key' => 'catering', 'label' => 'Catering Management', 'price' => 499, 'included' => true],
-            ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'included' => true],
-            ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'included' => true],
-            ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'included' => true],
-            ['key' => 'websites', 'label' => 'Websites & Domains', 'price' => 499, 'included' => true],
-        ];
-
-        // Ensure ai_assistant and catering exist in additionalModulesSetting if array
-        if (is_array($additionalModulesSetting)) {
-            $hasAiMod = false;
-            $hasCateringMod = false;
-            foreach ($additionalModulesSetting as $mod) {
-                if (($mod['key'] ?? '') === 'ai_assistant') { $hasAiMod = true; }
-                if (($mod['key'] ?? '') === 'catering')     { $hasCateringMod = true; }
-            }
-            if (!$hasAiMod)      { $additionalModulesSetting[] = ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant',   'price' => 499, 'included' => true]; }
-            if (!$hasCateringMod){ $additionalModulesSetting[] = ['key' => 'catering',     'label' => 'Catering Management', 'price' => 499, 'included' => true]; }
-
+        if ($additionalModulesSettingJson) {
+            $additionalModulesSetting = json_decode($additionalModulesSettingJson, true) ?: [];
             // Deduplicate by key — keep first occurrence
             $seenKeys = [];
             $additionalModulesSetting = array_values(array_filter($additionalModulesSetting, function ($m) use (&$seenKeys) {
@@ -146,6 +128,15 @@ class HandleInertiaRequests extends Middleware
                 $seenKeys[$k] = true;
                 return true;
             }));
+        } else {
+            $additionalModulesSetting = [
+                ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true],
+                ['key' => 'catering', 'label' => 'Catering Management', 'price' => 499, 'included' => true],
+                ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'included' => true],
+                ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'included' => true],
+                ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'included' => true],
+                ['key' => 'websites', 'label' => 'Websites & Domains', 'price' => 499, 'included' => true],
+            ];
         }
 
         $allModulesList = [

@@ -56,6 +56,8 @@ class CheckModuleAccess
             'chat.' => 'chat',
             'ai.' => 'ai_assistant',
             'google-drive.' => 'drive',
+            'drive.' => 'drive',
+            'admin.drive.' => 'drive',
             'content-calendar.' => 'content_calendar',
             'daily-listings.' => 'daily_listings',
             'designers-worklist.' => 'designers_worklist',

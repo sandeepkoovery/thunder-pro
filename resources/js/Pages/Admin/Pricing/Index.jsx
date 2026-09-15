@@ -96,9 +96,37 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
         settingsForm.setData('additional_modules', updatedList);
     };
 
-    const handleDeleteAdditionalModule = (key) => {
-        const updatedList = settingsForm.data.additional_modules.filter((mod) => mod.key !== key);
+    // State for delete confirmation modal on add-on modules
+    const [deleteConfirmModal, setDeleteConfirmModal] = useState({
+        isOpen: false,
+        key: null,
+        label: '',
+        purchasedAdmins: [],
+    });
+
+    const promptDeleteAdditionalModule = (mod) => {
+        const purchased = (admins || []).filter((adm) => {
+            const userMods = Array.isArray(adm.additional_modules) ? adm.additional_modules : [];
+            return userMods.includes(mod.key) || (mod.key === 'websites' && userMods.includes('domains'));
+        });
+
+        setDeleteConfirmModal({
+            isOpen: true,
+            key: mod.key,
+            label: mod.label || mod.key,
+            purchasedAdmins: purchased,
+        });
+    };
+
+    const confirmDeleteAdditionalModule = () => {
+        if (!deleteConfirmModal.key) return;
+        const keyToDelete = deleteConfirmModal.key;
+        const labelToDelete = deleteConfirmModal.label;
+
+        const updatedList = settingsForm.data.additional_modules.filter((m) => m.key !== keyToDelete);
         settingsForm.setData('additional_modules', updatedList);
+        setDeleteConfirmModal({ isOpen: false, key: null, label: '', purchasedAdmins: [] });
+        toast.success(`Removed '${labelToDelete}' module. Click 'Save Pricing Settings' to persist changes.`);
     };
 
     // State for standard logged-in tenant Admin add-on module selections
@@ -1083,7 +1111,7 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                             </div>
                                             <button
                                                 type="button"
-                                                onClick={() => handleDeleteAdditionalModule(mod.key)}
+                                                onClick={() => promptDeleteAdditionalModule(mod)}
                                                 className="text-red-400 hover:text-red-600 p-1 transition-colors"
                                                 title="Remove additional module"
                                             >
@@ -1383,6 +1411,78 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                 className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold uppercase shadow-md"
                             >
                                 Save Assigned Modules ({tempAdminModules.length})
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirmation Modal for Add-on Modules */}
+            {deleteConfirmModal.isOpen && (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="bg-white rounded-3xl max-w-lg w-full p-6 shadow-2xl space-y-5 animate-in fade-in zoom-in duration-200">
+                        <div className="flex items-start justify-between gap-3 border-b border-gray-100 pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-red-100 text-red-600 flex items-center justify-center flex-shrink-0">
+                                    <AlertTriangle size={20} />
+                                </div>
+                                <div>
+                                    <h3 className="font-bold text-gray-900 text-lg">
+                                        {deleteConfirmModal.purchasedAdmins.length > 0 ? "Delete Purchased Add-on Module?" : "Delete Add-on Module?"}
+                                    </h3>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        Module: <span className="font-bold text-purple-700">{deleteConfirmModal.label}</span>
+                                    </p>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setDeleteConfirmModal({ isOpen: false, key: null, label: '', purchasedAdmins: [] })}
+                                className="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100 transition-colors"
+                            >
+                                <X size={18} />
+                            </button>
+                        </div>
+
+                        {deleteConfirmModal.purchasedAdmins.length > 0 ? (
+                            <div className="space-y-3">
+                                <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs leading-relaxed font-medium">
+                                    ⚠️ <strong>Warning:</strong> This add-on module is currently purchased / assigned to <strong>{deleteConfirmModal.purchasedAdmins.length} admin account(s)</strong>:
+                                </div>
+                                
+                                <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+                                    {deleteConfirmModal.purchasedAdmins.map((adm) => (
+                                        <div key={adm.id} className="p-2.5 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between text-xs">
+                                            <span className="font-bold text-gray-900">{adm.company_name || adm.name}</span>
+                                            <span className="text-gray-500 font-mono text-[11px]">{adm.email}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <p className="text-xs text-gray-600">
+                                    Are you sure you want to remove <strong className="text-gray-900">{deleteConfirmModal.label}</strong> from the catalog? Click <strong>'Confirm Delete'</strong> and then <strong>'Save Pricing Settings'</strong> to persist.
+                                </p>
+                            </div>
+                        ) : (
+                            <p className="text-sm text-gray-600">
+                                Are you sure you want to delete <strong className="text-gray-900">{deleteConfirmModal.label}</strong> from the add-on modules catalog?
+                            </p>
+                        )}
+
+                        <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteConfirmModal({ isOpen: false, key: null, label: '', purchasedAdmins: [] })}
+                                className="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-bold uppercase transition-colors"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={confirmDeleteAdditionalModule}
+                                className="px-5 py-2.5 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold uppercase transition-colors shadow-md shadow-red-600/20"
+                            >
+                                Confirm Delete
                             </button>
                         </div>
                     </div>
