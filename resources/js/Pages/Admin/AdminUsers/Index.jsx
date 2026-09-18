@@ -75,6 +75,8 @@ export default function Index() {
     password: "",
     phone: "",
     plan: "basic",
+    subscription_status: "trial",
+    trial_days: 30,
     additional_modules: [],
     approval_status: "approved",
     casual_leaves: 12,
@@ -97,6 +99,8 @@ export default function Index() {
         password: "",
         phone: admin.phone || "",
         plan: admin.plan || "basic",
+        subscription_status: admin.is_trial ? "trial" : (admin.subscription_status || "trial"),
+        trial_days: (admin.days_left_in_trial && admin.days_left_in_trial > 0) ? admin.days_left_in_trial : 30,
         additional_modules: Array.isArray(admin.additional_modules) ? admin.additional_modules : [],
         approval_status: admin.approval_status || "approved",
         casual_leaves: admin.casual_leaves ?? 12,
@@ -114,6 +118,8 @@ export default function Index() {
         password: "",
         phone: "",
         plan: "basic",
+        subscription_status: "trial",
+        trial_days: 30,
         additional_modules: [],
         approval_status: "approved",
         casual_leaves: 12,
@@ -884,6 +890,78 @@ export default function Index() {
                       );
                     })}
                   </div>
+                </div>
+              )}
+
+              {/* Premium Subscription & Trial Status */}
+              {form.plan === "premium" && (
+                <div className="p-3.5 bg-purple-50/60 border border-purple-100 rounded-2xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-purple-900 uppercase tracking-wider">Premium Subscription &amp; Trial</span>
+                    {form.subscription_status === "trial" ? (
+                      <span className="text-[11px] font-extrabold text-amber-700 bg-amber-100/80 px-2.5 py-0.5 rounded-full border border-amber-200">
+                        🎁 Free Trial ({form.trial_days || 30} days)
+                      </span>
+                    ) : (
+                      <span className="text-[11px] font-extrabold text-emerald-700 bg-emerald-100/80 px-2.5 py-0.5 rounded-full border border-emerald-200">
+                        ✓ Active Paid
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, subscription_status: "trial" }))}
+                      className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                        form.subscription_status === "trial"
+                          ? "border-amber-500 bg-amber-50/80 text-amber-900 font-bold ring-2 ring-amber-400/30"
+                          : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="text-xs font-bold flex items-center gap-1.5">
+                        <span>🎁 30-Day Free Trial</span>
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Trial period before paid</p>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, subscription_status: "active" }))}
+                      className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                        form.subscription_status === "active"
+                          ? "border-emerald-500 bg-emerald-50/80 text-emerald-900 font-bold ring-2 ring-emerald-400/30"
+                          : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+                      }`}
+                    >
+                      <div className="text-xs font-bold flex items-center gap-1.5">
+                        <span>✓ Active Paid</span>
+                      </div>
+                      <p className="text-[10px] text-gray-500 mt-0.5">Paid subscription</p>
+                    </button>
+                  </div>
+
+                  {form.subscription_status === "trial" && (
+                    <div className="bg-white p-2.5 rounded-xl border border-purple-100 flex items-center justify-between gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-700 uppercase tracking-wider">
+                          Trial Duration / Days Remaining
+                        </label>
+                        <p className="text-[10px] text-gray-400">Number of days workspace access is granted under trial</p>
+                      </div>
+                      <div className="w-24">
+                        <input
+                          type="number"
+                          name="trial_days"
+                          min="1"
+                          max="365"
+                          value={form.trial_days}
+                          onChange={handleFormChange}
+                          className="w-full px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-bold text-center bg-gray-50 focus:bg-white focus:outline-none focus:border-purple-500"
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 

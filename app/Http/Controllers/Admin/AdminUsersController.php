@@ -74,6 +74,8 @@ class AdminUsersController extends Controller
             'password' => 'required|string|min:6',
             'phone' => 'nullable|string|max:50',
             'plan' => 'required|in:basic,premium',
+            'subscription_status' => 'nullable|in:trial,active,expired',
+            'trial_days' => 'nullable|integer|min:1|max:365',
             'additional_modules' => 'nullable|array',
             'approval_status' => 'required|in:pending,approved,rejected',
             'casual_leaves' => 'nullable|integer|min:0|max:365',
@@ -87,6 +89,16 @@ class AdminUsersController extends Controller
         $name = !empty($validated['name']) ? $validated['name'] : $companyName;
         $isApproved = $validated['approval_status'] === 'approved';
 
+        $subStatus = 'active';
+        $trialEndsAt = null;
+        if ($validated['plan'] === 'premium') {
+            $subStatus = $validated['subscription_status'] ?? 'trial';
+            $trialDays = isset($validated['trial_days']) ? (int) $validated['trial_days'] : 30;
+            if ($subStatus === 'trial') {
+                $trialEndsAt = \Carbon\Carbon::now()->addDays($trialDays);
+            }
+        }
+
         $admin = Admin::create([
             'name' => $name,
             'company_name' => $companyName,
@@ -94,6 +106,9 @@ class AdminUsersController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => 'admin',
             'plan' => $validated['plan'],
+            'subscription_status' => $subStatus,
+            'trial_ends_at' => $trialEndsAt,
+            'subscribed_at' => ($subStatus === 'active') ? \Carbon\Carbon::now() : null,
             'additional_modules' => $validated['plan'] === 'premium' ? ($validated['additional_modules'] ?? []) : [],
             'phone' => $validated['phone'] ?? null,
             'casual_leaves' => isset($validated['casual_leaves']) ? (int) $validated['casual_leaves'] : 12,
@@ -122,6 +137,8 @@ class AdminUsersController extends Controller
             'password' => 'nullable|string|min:6',
             'phone' => 'nullable|string|max:50',
             'plan' => 'required|in:basic,premium',
+            'subscription_status' => 'nullable|in:trial,active,expired',
+            'trial_days' => 'nullable|integer|min:1|max:365',
             'additional_modules' => 'nullable|array',
             'approval_status' => 'required|in:pending,approved,rejected',
             'casual_leaves' => 'nullable|integer|min:0|max:365',
@@ -150,6 +167,21 @@ class AdminUsersController extends Controller
             'approval_status' => $validated['approval_status'],
             'is_active' => $isApproved,
         ];
+
+        if ($validated['plan'] === 'premium') {
+            if (!empty($validated['subscription_status'])) {
+                $updateData['subscription_status'] = $validated['subscription_status'];
+                if ($validated['subscription_status'] === 'trial') {
+                    if (isset($validated['trial_days'])) {
+                        $updateData['trial_ends_at'] = \Carbon\Carbon::now()->addDays((int) $validated['trial_days']);
+                    } elseif (!$admin->trial_ends_at || \Carbon\Carbon::now()->gte($admin->trial_ends_at)) {
+                        $updateData['trial_ends_at'] = \Carbon\Carbon::now()->addDays(30);
+                    }
+                } elseif ($validated['subscription_status'] === 'active') {
+                    $updateData['subscribed_at'] = $admin->subscribed_at ?? \Carbon\Carbon::now();
+                }
+            }
+        }
 
         if (!empty($validated['password'])) {
             $updateData['password'] = Hash::make($validated['password']);
@@ -182,8 +214,20 @@ class AdminUsersController extends Controller
         ];
 
         if ($isApproved) {
-            $updateData['subscription_status'] = 'active';
-            $updateData['subscribed_at'] = \Carbon\Carbon::now();
+            // If admin is on premium plan, preserve or activate their 30-day trial unless they already have a paid subscription
+            if ($admin->plan === 'premium') {
+                if ($admin->subscription_status === 'trial' || ($admin->trial_ends_at && \Carbon\Carbon::now()->lt($admin->trial_ends_at)) || empty($admin->subscribed_at)) {
+                    $updateData['subscription_status'] = 'trial';
+                    if (!$admin->trial_ends_at || \Carbon\Carbon::now()->gte($admin->trial_ends_at)) {
+                        $updateData['trial_ends_at'] = \Carbon\Carbon::now()->addDays(30);
+                    }
+                } else {
+                    $updateData['subscription_status'] = 'active';
+                    $updateData['subscribed_at'] = $admin->subscribed_at ?? \Carbon\Carbon::now();
+                }
+            } else {
+                $updateData['subscription_status'] = 'active';
+            }
         }
 
         $admin->update($updateData);

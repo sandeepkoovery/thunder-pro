@@ -93,6 +93,9 @@ class Admin extends Authenticatable
         if ($this->subscription_status === 'active') {
             return false;
         }
+        if ($this->subscription_status === 'trial' && !$this->trial_ends_at) {
+            return true;
+        }
         if (!$this->trial_ends_at) {
             return false;
         }
@@ -117,6 +120,9 @@ class Admin extends Authenticatable
     {
         if (!$this->isInTrial()) {
             return 0;
+        }
+        if (!$this->trial_ends_at) {
+            return 30;
         }
         return (int) max(0, ceil(\Carbon\Carbon::now()->diffInSeconds($this->trial_ends_at, false) / 86400));
     }
