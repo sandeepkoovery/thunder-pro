@@ -1,5 +1,5 @@
 import React from "react";
-import { Head, Link, router } from "@inertiajs/react";
+import { Head, Link, router, usePage } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
 import DatePicker from "@/Components/DatePicker";
 import { Check, X, Calendar, User, FileText, Eye, Trash2, Pencil, Clock, Settings, ShieldCheck } from "lucide-react";
@@ -13,6 +13,8 @@ const TABS = [
 ];
 
 export default function Index({ leaves, users, filters, stats, tab_counts, leave_quotas = { CL: 12, SL: 12 } }) {
+    const { auth } = usePage().props;
+    const isSuperAdmin = auth?.user?.role === 'super_admin';
     const { data, links, current_page } = leaves;
 
     const [year,   setYear]   = React.useState(filters.year    || new Date().getFullYear());
@@ -160,21 +162,25 @@ export default function Index({ leaves, users, filters, stats, tab_counts, leave
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Leave Requests</h1>
-                    <p className="text-xs text-gray-400 mt-1">
-                        Company Quota: <span className="font-semibold text-gray-700">{leave_quotas?.CL ?? 12} Casual</span> & <span className="font-semibold text-gray-700">{leave_quotas?.SL ?? 12} Sick</span> leaves / year per employee
-                    </p>
+                    {!isSuperAdmin && (
+                        <p className="text-xs text-gray-400 mt-1">
+                            Company Quota: <span className="font-semibold text-gray-700">{leave_quotas?.CL ?? 12} Casual</span> & <span className="font-semibold text-gray-700">{leave_quotas?.SL ?? 12} Sick</span> leaves / year per employee
+                        </p>
+                    )}
                 </div>
                 <div className="mp-filter-bar flex flex-wrap items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => setQuotaModalOpen(true)}
-                        className="px-3.5 py-2.5 bg-white border border-blue-200 hover:border-blue-500 text-blue-700 hover:bg-blue-50/50 rounded-lg shadow-xs font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
-                        style={{ minHeight: '44px' }}
-                        title="Configure company casual & sick leave quotas"
-                    >
-                        <Settings size={15} className="text-blue-600" />
-                        <span>Leave Policy</span>
-                    </button>
+                    {!isSuperAdmin && (
+                        <button
+                            type="button"
+                            onClick={() => setQuotaModalOpen(true)}
+                            className="px-3.5 py-2.5 bg-white border border-blue-200 hover:border-blue-500 text-blue-700 hover:bg-blue-50/50 rounded-lg shadow-xs font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
+                            style={{ minHeight: '44px' }}
+                            title="Configure company casual & sick leave quotas"
+                        >
+                            <Settings size={15} className="text-blue-600" />
+                            <span>Leave Policy</span>
+                        </button>
+                    )}
                     <select
                         value={userId}
                         onChange={(e) => handleFilterChange('user_id', e.target.value)}
@@ -209,7 +215,7 @@ export default function Index({ leaves, users, filters, stats, tab_counts, leave
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Sick Leave (SL)</p>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded">Quota: {leave_quotas?.SL ?? 12}</span>
+                            {!isSuperAdmin && <span className="text-[10px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded">Quota: {leave_quotas?.SL ?? 12}</span>}
                         </div>
                         <div className="flex items-baseline gap-2">
                             <span className="text-3xl font-black text-gray-800">{parseFloat(stats?.SL?.taken || 0)}</span>
@@ -223,7 +229,7 @@ export default function Index({ leaves, users, filters, stats, tab_counts, leave
                     <div>
                         <div className="flex items-center gap-2 mb-1">
                             <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Casual Leave (CL)</p>
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">Quota: {leave_quotas?.CL ?? 12}</span>
+                            {!isSuperAdmin && <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">Quota: {leave_quotas?.CL ?? 12}</span>}
                         </div>
                         <div className="flex items-baseline gap-2">
                             <span className="text-3xl font-black text-gray-800">{parseFloat(stats?.CL?.taken || 0)}</span>

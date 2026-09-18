@@ -60,8 +60,6 @@ export default function Index() {
     trial_days: 30,
     additional_modules: [],
     approval_status: "approved",
-    casual_leaves: 12,
-    sick_leaves: 12,
   });
   const [errors, setErrors] = useState({});
   const [deleteId, setDeleteId] = useState(null);
@@ -81,8 +79,6 @@ export default function Index() {
         trial_days: (admin.days_left_in_trial && admin.days_left_in_trial > 0) ? admin.days_left_in_trial : 30,
         additional_modules: Array.isArray(admin.additional_modules) ? admin.additional_modules : [],
         approval_status: admin.approval_status || "approved",
-        casual_leaves: admin.casual_leaves ?? 12,
-        sick_leaves: admin.sick_leaves ?? 12,
       });
     } else {
       setEditingAdmin(null);
@@ -97,8 +93,6 @@ export default function Index() {
         trial_days: 30,
         additional_modules: [],
         approval_status: "approved",
-        casual_leaves: 12,
-        sick_leaves: 12,
       });
     }
     setErrors({});
@@ -688,41 +682,6 @@ export default function Index() {
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:border-blue-500"
                     />
                   </div>
-                </div>
-              </div>
-
-              {/* Annual Leave Quotas for this Company */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-gray-50/70 border border-gray-200 rounded-2xl">
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Annual Casual Leaves (CL)
-                  </label>
-                  <input
-                    type="number"
-                    name="casual_leaves"
-                    min="0"
-                    max="365"
-                    value={form.casual_leaves}
-                    onChange={handleFormChange}
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-sm font-bold bg-white focus:outline-none focus:border-blue-500"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-0.5">Days / year per employee</p>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
-                    Annual Sick Leaves (SL)
-                  </label>
-                  <input
-                    type="number"
-                    name="sick_leaves"
-                    min="0"
-                    max="365"
-                    value={form.sick_leaves}
-                    onChange={handleFormChange}
-                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-sm font-bold bg-white focus:outline-none focus:border-blue-500"
-                  />
-                  <p className="text-[10px] text-gray-400 mt-0.5">Days / year per employee</p>
                 </div>
               </div>
 
