@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Head, router, useForm, Link } from '@inertiajs/react';
+import { Head, router, useForm, Link, usePage } from '@inertiajs/react';
 import { Filter, Edit, RotateCcw, MapPin, Smartphone, Monitor, Info, X, Download, Coffee, Clock, Plus, Home, Phone, MessageSquare, ChevronRight, FileText, Printer, Trash2, Eye } from 'lucide-react';
 import Modal from '@/Components/Modal';
 import TextInput from '@/Components/TextInput';
@@ -30,6 +30,9 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
     const officeEndTime = timingRules?.end_time || settings?.office_end_time || '18:00';
     const officeBufferMinutes = timingRules?.buffer_minutes ?? (settings?.login_buffer_minutes ? parseInt(settings.login_buffer_minutes, 10) : 30);
     const officeHoursLabel = `${formatTime12(officeStartTime)} - ${formatTime12(officeEndTime)} IST`;
+
+    const { auth } = usePage().props;
+    const isSuperAdmin = auth?.user?.role === 'superadmin';
 
     const [displayMode, setDisplayMode] = useState(filters.display || 'table');
     const [editingAttendance, setEditingAttendance] = useState(null);
@@ -683,14 +686,16 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                             <p className="text-xs sm:text-sm text-gray-400 font-medium flex items-center gap-1.5">
                                                 <span className="text-amber-400 text-sm">☼</span> {todayStr}
                                             </p>
-                                            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-indigo-100 inline-flex items-center gap-1.5">
-                                                <span>Office Hours: {officeHoursLabel}</span>
-                                                {officeBufferMinutes > 0 && (
-                                                    <span className="text-blue-600/80 font-semibold normal-case tracking-normal">
-                                                        (+{officeBufferMinutes}m buffer)
-                                                    </span>
-                                                )}
-                                            </div>
+                                            {!isSuperAdmin && (
+                                                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-indigo-100 inline-flex items-center gap-1.5">
+                                                    <span>Office Hours: {officeHoursLabel}</span>
+                                                    {officeBufferMinutes > 0 && (
+                                                        <span className="text-blue-600/80 font-semibold normal-case tracking-normal">
+                                                            (+{officeBufferMinutes}m buffer)
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
 
@@ -755,14 +760,16 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                             <div className="flex items-center gap-8 flex-wrap">
                                 <div className="flex flex-col gap-1.5">
                                     <h2 className="text-[28px] font-black text-gray-900 tracking-tight">Attendance Monitoring</h2>
-                                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-widest border border-indigo-100 inline-flex items-center gap-1.5 w-fit">
-                                        <span>Office Hours: {officeHoursLabel}</span>
-                                        {officeBufferMinutes > 0 && (
-                                            <span className="text-blue-600/80 font-semibold normal-case tracking-normal">
-                                                (+{officeBufferMinutes}m buffer)
-                                            </span>
-                                        )}
-                                    </div>
+                                    {!isSuperAdmin && (
+                                        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-widest border border-indigo-100 inline-flex items-center gap-1.5 w-fit">
+                                            <span>Office Hours: {officeHoursLabel}</span>
+                                            {officeBufferMinutes > 0 && (
+                                                <span className="text-blue-600/80 font-semibold normal-case tracking-normal">
+                                                    (+{officeBufferMinutes}m buffer)
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                             {displayMode === 'export' ? (
