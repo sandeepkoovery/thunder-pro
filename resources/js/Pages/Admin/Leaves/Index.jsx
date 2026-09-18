@@ -2,7 +2,7 @@ import React from "react";
 import { Head, Link, router } from "@inertiajs/react";
 import AdminLayout from "@/Layouts/AdminLayout";
 import DatePicker from "@/Components/DatePicker";
-import { Check, X, Calendar, User, FileText, Eye, Trash2, Pencil, Clock } from "lucide-react";
+import { Check, X, Calendar, User, FileText, Eye, Trash2, Pencil, Clock, Settings, ShieldCheck } from "lucide-react";
 import toast from "react-hot-toast";
 
 const TABS = [
@@ -12,7 +12,7 @@ const TABS = [
     { key: 'rejected', label: 'Rejected' },
 ];
 
-export default function Index({ leaves, users, filters, stats, tab_counts }) {
+export default function Index({ leaves, users, filters, stats, tab_counts, leave_quotas = { CL: 12, SL: 12 } }) {
     const { data, links, current_page } = leaves;
 
     const [year,   setYear]   = React.useState(filters.year    || new Date().getFullYear());
@@ -26,6 +26,20 @@ export default function Index({ leaves, users, filters, stats, tab_counts }) {
     const [editForm, setEditForm] = React.useState({
         leave_type: '', day_type: '', from_date: '', to_date: '', reason: '', status: ''
     });
+
+    const [quotaModalOpen, setQuotaModalOpen] = React.useState(false);
+    const [quotaForm, setQuotaForm] = React.useState({
+        casual_leaves: leave_quotas?.CL ?? 12,
+        sick_leaves:   leave_quotas?.SL ?? 12,
+    });
+    const [savingQuotas, setSavingQuotas] = React.useState(false);
+
+    React.useEffect(() => {
+        setQuotaForm({
+            casual_leaves: leave_quotas?.CL ?? 12,
+            sick_leaves:   leave_quotas?.SL ?? 12,
+        });
+    }, [leave_quotas]);
 
     const navigate = (newFilters) => {
         router.get(route('admin.leaves.index'), newFilters, {
@@ -82,6 +96,23 @@ export default function Index({ leaves, users, filters, stats, tab_counts }) {
         });
     };
 
+    const handleSaveQuotas = (e) => {
+        e.preventDefault();
+        setSavingQuotas(true);
+        router.post(route('admin.leaves.update-quotas'), quotaForm, {
+            preserveScroll: true,
+            onSuccess: () => {
+                toast.success("Company leave quotas updated successfully!");
+                setQuotaModalOpen(false);
+                setSavingQuotas(false);
+            },
+            onError: () => {
+                toast.error("Failed to update company leave quotas");
+                setSavingQuotas(false);
+            }
+        });
+    };
+
     const formatDate = (dateString) => {
         if (!dateString) return "-";
         return new Date(dateString).toLocaleDateString("en-GB", {
@@ -127,8 +158,23 @@ export default function Index({ leaves, users, filters, stats, tab_counts }) {
 
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Leave Requests</h1>
-                <div className="mp-filter-bar flex flex-wrap gap-2">
+                <div>
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Leave Requests</h1>
+                    <p className="text-xs text-gray-400 mt-1">
+                        Company Quota: <span className="font-semibold text-gray-700">{leave_quotas?.CL ?? 12} Casual</span> & <span className="font-semibold text-gray-700">{leave_quotas?.SL ?? 12} Sick</span> leaves / year per employee
+                    </p>
+                </div>
+                <div className="mp-filter-bar flex flex-wrap items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setQuotaModalOpen(true)}
+                        className="px-3.5 py-2.5 bg-white border border-blue-200 hover:border-blue-500 text-blue-700 hover:bg-blue-50/50 rounded-lg shadow-xs font-bold text-xs transition-all flex items-center gap-2 cursor-pointer"
+                        style={{ minHeight: '44px' }}
+                        title="Configure company casual & sick leave quotas"
+                    >
+                        <Settings size={15} className="text-blue-600" />
+                        <span>Leave Policy</span>
+                    </button>
                     <select
                         value={userId}
                         onChange={(e) => handleFilterChange('user_id', e.target.value)}
@@ -161,7 +207,10 @@ export default function Index({ leaves, users, filters, stats, tab_counts }) {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Sick Leave (SL)</p>
+                        <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Sick Leave (SL)</p>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-rose-50 text-rose-600 rounded">Quota: {leave_quotas?.SL ?? 12}</span>
+                        </div>
                         <div className="flex items-baseline gap-2">
                             <span className="text-3xl font-black text-gray-800">{parseFloat(stats?.SL?.taken || 0)}</span>
                             {stats?.SL?.total  && <span className="text-gray-400 font-bold">/ {stats.SL.total} Days Taken</span>}
@@ -172,7 +221,10 @@ export default function Index({ leaves, users, filters, stats, tab_counts }) {
                 </div>
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-blue-100 flex items-center justify-between">
                     <div>
-                        <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Casual Leave (CL)</p>
+                        <div className="flex items-center gap-2 mb-1">
+                            <p className="text-sm font-bold text-gray-400 uppercase tracking-wider">Casual Leave (CL)</p>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 bg-blue-50 text-blue-600 rounded">Quota: {leave_quotas?.CL ?? 12}</span>
+                        </div>
                         <div className="flex items-baseline gap-2">
                             <span className="text-3xl font-black text-gray-800">{parseFloat(stats?.CL?.taken || 0)}</span>
                             {stats?.CL?.total  && <span className="text-gray-400 font-bold">/ {stats.CL.total} Days Taken</span>}
@@ -400,10 +452,109 @@ export default function Index({ leaves, users, filters, stats, tab_counts }) {
                                 <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Reason</p>
                                 <p className="text-gray-700 text-sm leading-relaxed whitespace-pre-wrap">{selectedLeave.reason || "No reason provided."}</p>
                             </div>
+
+                            {selectedLeave.user?.leave_stats && (
+                                <div className="bg-blue-50/70 border border-blue-100 p-3.5 rounded-xl space-y-1">
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="font-bold text-gray-700">Annual Quota Utilization ({year || new Date().getFullYear()}):</span>
+                                        <span className="text-[11px] font-semibold text-blue-600">Company Policy</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2 pt-1 text-xs">
+                                        <div className="bg-white p-2 rounded-lg border border-blue-100 flex justify-between">
+                                            <span className="text-gray-500 font-medium">Sick Leave (SL):</span>
+                                            <span className="font-bold text-gray-800">{selectedLeave.user.leave_stats.SL_taken || 0} / {selectedLeave.user.leave_stats.SL_total ?? leave_quotas?.SL ?? 12} days</span>
+                                        </div>
+                                        <div className="bg-white p-2 rounded-lg border border-blue-100 flex justify-between">
+                                            <span className="text-gray-500 font-medium">Casual Leave (CL):</span>
+                                            <span className="font-bold text-gray-800">{selectedLeave.user.leave_stats.CL_taken || 0} / {selectedLeave.user.leave_stats.CL_total ?? leave_quotas?.CL ?? 12} days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
                             <div className="flex justify-end pt-2">
                                 <button onClick={() => setSelectedLeave(null)} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition font-medium">Close</button>
                             </div>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Company Leave Policy / Quotas Modal */}
+            {quotaModalOpen && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <div className="px-6 py-4 border-b flex justify-between items-center bg-gray-50">
+                            <div className="flex items-center gap-2">
+                                <div className="p-2 bg-blue-100 text-blue-700 rounded-lg">
+                                    <Settings size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="text-base font-bold text-gray-800">Company Leave Policy</h3>
+                                    <p className="text-[11px] text-gray-500">Configure annual leave quotas per employee</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setQuotaModalOpen(false)} className="text-gray-400 hover:text-gray-600 transition cursor-pointer">
+                                <X size={20} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleSaveQuotas} className="p-6 space-y-4">
+                            <div className="bg-blue-50/70 border border-blue-100 p-3 rounded-xl text-blue-900 text-xs leading-relaxed">
+                                💡 Configure how many Casual Leaves and Sick Leaves are allocated annually to each employee in this company.
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Annual Casual Leaves (CL)</label>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">Days / Year</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="365"
+                                    value={quotaForm.casual_leaves}
+                                    onChange={(e) => setQuotaForm(prev => ({ ...prev, casual_leaves: e.target.value }))}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-gray-800 text-sm"
+                                    required
+                                />
+                                <p className="text-[11px] text-gray-400">Default company allowance: 12 days</p>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <div className="flex justify-between items-center">
+                                    <label className="text-xs font-bold text-gray-700 uppercase tracking-wider">Annual Sick Leaves (SL)</label>
+                                    <span className="text-[10px] font-bold px-2 py-0.5 bg-rose-50 text-rose-700 rounded-full">Days / Year</span>
+                                </div>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    max="365"
+                                    value={quotaForm.sick_leaves}
+                                    onChange={(e) => setQuotaForm(prev => ({ ...prev, sick_leaves: e.target.value }))}
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold text-gray-800 text-sm"
+                                    required
+                                />
+                                <p className="text-[11px] text-gray-400">Default company allowance: 12 days</p>
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-3 border-t">
+                                <button
+                                    type="button"
+                                    onClick={() => setQuotaModalOpen(false)}
+                                    className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-semibold transition cursor-pointer"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={savingQuotas}
+                                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold shadow-md shadow-blue-500/20 transition flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                                >
+                                    {savingQuotas ? "Saving..." : "Save Policy"}
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

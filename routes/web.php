@@ -214,6 +214,7 @@ Route::middleware(['auth', 'is_admin'])
             // ✅ ADMIN LEAVE ROUTES
             // -------------------------
             Route::get('leaves', [AdminLeaveController::class, 'index'])->name('leaves.index');
+            Route::post('leaves/quotas', [AdminLeaveController::class, 'updateQuotas'])->name('leaves.update-quotas');
             Route::get('leaves/{id}', [AdminLeaveController::class, 'show'])->name('leaves.show');
             Route::post('leaves/{id}/approve', [AdminLeaveController::class, 'approve'])->name('leaves.approve');
             Route::post('leaves/{id}/reject', [AdminLeaveController::class, 'reject'])->name('leaves.reject');

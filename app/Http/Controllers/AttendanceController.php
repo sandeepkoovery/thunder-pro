@@ -277,6 +277,53 @@ class AttendanceController extends Controller
         return $user->admin_id ?? 0;
     }
 
+    private function getOfficeTimingRules($tenantAdminId = null, $user = null)
+    {
+        $adminId = $tenantAdminId;
+        if (!$adminId && $user) {
+            $adminId = $user->admin_id ?? 0;
+        }
+        if (!$adminId) {
+            $adminId = $this->getTenantAdminId();
+        }
+
+        $admin = $adminId > 0 ? \App\Models\Admin::find($adminId) : null;
+
+        $startTime = $admin ? $admin->office_start_time : null;
+        $endTime = $admin ? $admin->office_end_time : null;
+        $bufferMinutes = $admin ? $admin->login_buffer_minutes : null;
+
+        if (!$startTime || !$endTime || $bufferMinutes === null) {
+            $settings = \App\Models\Setting::all()->pluck('value', 'key');
+            if (!$startTime) {
+                $startTime = $settings["office_start_time_{$adminId}"] ?? $settings['office_start_time'] ?? '09:00';
+            }
+            if (!$endTime) {
+                $endTime = $settings["office_end_time_{$adminId}"] ?? $settings['office_end_time'] ?? '18:00';
+            }
+            if ($bufferMinutes === null) {
+                $bufferMinutes = $settings["login_buffer_minutes_{$adminId}"] ?? $settings['login_buffer_minutes'] ?? 30;
+            }
+        }
+
+        return [
+            'start_time'     => $startTime ?: '09:00',
+            'end_time'       => $endTime ?: '18:00',
+            'buffer_minutes' => (int)($bufferMinutes ?? 30),
+        ];
+    }
+
+    private function getLateCutoff($dateString, $startTime = '09:00', $bufferMinutes = 30)
+    {
+        $base = Carbon::parse($dateString . ' ' . $startTime, 'Asia/Kolkata');
+        return $base->copy()->addMinutes($bufferMinutes)->second(59);
+    }
+
+    private function getEarlyLeaveCutoff($dateString, $endTime = '18:00')
+    {
+        return Carbon::parse($dateString . ' ' . $endTime . ':00', 'Asia/Kolkata');
+    }
+
     public function index(Request $request)
     {
         $user = Auth::user();
@@ -285,6 +332,21 @@ class AttendanceController extends Controller
         }
 
         $adminId = $this->getTenantAdminId();
+        $timingRules = $this->getOfficeTimingRules($adminId);
+
+        $settings = \App\Models\Setting::all()->pluck('value', 'key');
+        if (isset($settings["monthly_working_days_{$adminId}"])) {
+            $settings['monthly_working_days'] = $settings["monthly_working_days_{$adminId}"];
+        }
+        if (isset($settings["office_start_time_{$adminId}"])) {
+            $settings['office_start_time'] = $settings["office_start_time_{$adminId}"];
+        }
+        if (isset($settings["office_end_time_{$adminId}"])) {
+            $settings['office_end_time'] = $settings["office_end_time_{$adminId}"];
+        }
+        if (isset($settings["login_buffer_minutes_{$adminId}"])) {
+            $settings['login_buffer_minutes'] = $settings["login_buffer_minutes_{$adminId}"];
+        }
 
         $usersQuery = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true);
         if ($adminId > 0) {
@@ -428,11 +490,11 @@ class AttendanceController extends Controller
 
                         $checkInTime = Carbon::parse($attendance->punch_in)->timezone('Asia/Kolkata');
                         $dateString = $attendance->date instanceof \Carbon\Carbon ? $attendance->date->format('Y-m-d') : $attendance->date;
-                        $nineThirtyAM = Carbon::parse($dateString . ' 09:30:59', 'Asia/Kolkata');
-                        $sixPM = Carbon::parse($dateString . ' 18:00:00', 'Asia/Kolkata');
+                        $lateCutoff = $this->getLateCutoff($dateString, $timingRules['start_time'], $timingRules['buffer_minutes']);
+                        $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $timingRules['end_time']);
 
-                        $isLate = $checkInTime->gt($nineThirtyAM);
-                        $isEarlyLeave = $attendance->punch_out && Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->lt($sixPM);
+                        $isLate = $checkInTime->gt($lateCutoff);
+                        $isEarlyLeave = $attendance->punch_out && Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->lt($earlyLeaveCutoff);
 
                         $status = 'Present';
                         if ($isLate && $isEarlyLeave) {
@@ -504,10 +566,6 @@ class AttendanceController extends Controller
                 // Reverse to show most recent first (like it was before)
                 $attendanceData = array_reverse($attendanceData);
 
-                $settings = \App\Models\Setting::all()->pluck('value', 'key');
-                if (isset($settings["monthly_working_days_{$adminId}"])) {
-                    $settings['monthly_working_days'] = $settings["monthly_working_days_{$adminId}"];
-                }
                 $exportMonth = $filters['month'] ?? Carbon::now()->format('Y-m');
                 $exportPreviewData = $this->getExportSummaryData($exportMonth);
 
@@ -520,6 +578,7 @@ class AttendanceController extends Controller
                     'selectedUser' => $users->find($userId),
                     'leaves' => $leaves,
                     'settings' => $settings,
+                    'timingRules' => $timingRules,
                     'exportPreviewData' => $exportPreviewData,
                     'correctionRequests' => $correctionRequests,
                 ]);
@@ -537,14 +596,14 @@ class AttendanceController extends Controller
 
                 $totalMonthlyMinutes = $attendances->sum('total_worked_minutes');
 
-                $attendanceData = $attendances->map(function ($att) {
+                $attendanceData = $attendances->map(function ($att) use ($timingRules) {
                     $checkInTime = $att->punch_in ? Carbon::parse($att->punch_in)->timezone('Asia/Kolkata') : null;
                     $dateString = $att->date instanceof \Carbon\Carbon ? $att->date->format('Y-m-d') : $att->date;
-                    $nineThirtyAM = Carbon::parse($dateString . ' 09:30:59', 'Asia/Kolkata');
-                    $sixPM = Carbon::parse($dateString . ' 18:00:00', 'Asia/Kolkata');
+                    $lateCutoff = $this->getLateCutoff($dateString, $timingRules['start_time'], $timingRules['buffer_minutes']);
+                    $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $timingRules['end_time']);
 
-                    $isLate = $checkInTime && $checkInTime->gt($nineThirtyAM);
-                    $isEarlyLeave = $att->punch_out && Carbon::parse($att->punch_out)->timezone('Asia/Kolkata')->lt($sixPM);
+                    $isLate = $checkInTime && $checkInTime->gt($lateCutoff);
+                    $isEarlyLeave = $att->punch_out && Carbon::parse($att->punch_out)->timezone('Asia/Kolkata')->lt($earlyLeaveCutoff);
 
                     $status = 'Present';
                     if ($isLate && $isEarlyLeave) {
@@ -593,10 +652,6 @@ class AttendanceController extends Controller
                     ];
                 })->values()->toArray();
 
-                $settings = \App\Models\Setting::all()->pluck('value', 'key');
-                if (isset($settings["monthly_working_days_{$adminId}"])) {
-                    $settings['monthly_working_days'] = $settings["monthly_working_days_{$adminId}"];
-                }
                 $exportMonth = $filters['month'] ?? Carbon::now()->format('Y-m');
                 $exportPreviewData = $this->getExportSummaryData($exportMonth);
 
@@ -609,6 +664,7 @@ class AttendanceController extends Controller
                     'selectedUser' => null,
                     'leaves' => collect([]),
                     'settings' => $settings,
+                    'timingRules' => $timingRules,
                     'exportPreviewData' => $exportPreviewData,
                     'correctionRequests' => $correctionRequests,
                 ]);
@@ -635,7 +691,7 @@ class AttendanceController extends Controller
         $attendances = $attendancesQuery->get()->keyBy('user_id');
 
         // Map users to their attendance and calculate status
-        $attendanceData = $filteredUsers->map(function ($user) use ($attendances, $date) {
+        $attendanceData = $filteredUsers->map(function ($user) use ($attendances, $date, $timingRules) {
             $attendance = $attendances->get($user->id);
             $status = 'Absent';
             $checkIn = '-';
@@ -677,12 +733,11 @@ class AttendanceController extends Controller
 
                 // Calculate Status
                 $dateString = $attendance->date instanceof \Carbon\Carbon ? $attendance->date->format('Y-m-d') : $attendance->date;
-                $nineAM = Carbon::parse($dateString . ' 09:00:00', 'Asia/Kolkata');
-                $nineThirtyAM = Carbon::parse($dateString . ' 09:30:59', 'Asia/Kolkata');
-                $sixPM = Carbon::parse($dateString . ' 18:00:00', 'Asia/Kolkata');
+                $lateCutoff = $this->getLateCutoff($dateString, $timingRules['start_time'], $timingRules['buffer_minutes']);
+                $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $timingRules['end_time']);
 
-                $isLate = $checkInTime->gt($nineThirtyAM);
-                $isEarlyLeave = $attendance->punch_out && Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->lt($sixPM);
+                $isLate = $checkInTime->gt($lateCutoff);
+                $isEarlyLeave = $attendance->punch_out && Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->lt($earlyLeaveCutoff);
 
                 $status = 'Present';
                 if ($isLate && $isEarlyLeave) {
@@ -739,6 +794,8 @@ class AttendanceController extends Controller
             'users' => $users,
             'filters' => array_merge($filters, ['date' => $date]),
             'viewType' => 'daily',
+            'settings' => $settings,
+            'timingRules' => $timingRules,
             'exportPreviewData' => $exportPreviewData,
             'correctionRequests' => $correctionRequests,
         ]);
@@ -948,7 +1005,9 @@ class AttendanceController extends Controller
     }
     public function userIndex(Request $request)
     {
-        $userId = auth()->id();
+        $user = auth()->user();
+        $userId = $user ? $user->id : auth()->id();
+        $timingRules = $this->getOfficeTimingRules(null, $user);
         $monthInput = $request->input('month');
         if (is_array($monthInput)) {
             $monthStr = $monthInput['target']['value'] ?? (is_string(reset($monthInput)) ? reset($monthInput) : Carbon::now()->format('Y-m'));
@@ -1016,11 +1075,11 @@ class AttendanceController extends Controller
                 $attendanceId = $attendance->id;
                 $checkInTime = Carbon::parse($attendance->punch_in)->timezone('Asia/Kolkata');
                 $dateString = $attendance->date instanceof \Carbon\Carbon ? $attendance->date->format('Y-m-d') : $attendance->date;
-                $nineThirtyAM = Carbon::parse($dateString . ' 09:30:59', 'Asia/Kolkata');
-                $sixPM = Carbon::parse($dateString . ' 18:00:00', 'Asia/Kolkata');
+                $lateCutoff = $this->getLateCutoff($dateString, $timingRules['start_time'], $timingRules['buffer_minutes']);
+                $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $timingRules['end_time']);
 
-                $isLate = $checkInTime->gt($nineThirtyAM);
-                $isEarlyLeave = $attendance->punch_out && Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->lt($sixPM);
+                $isLate = $checkInTime->gt($lateCutoff);
+                $isEarlyLeave = $attendance->punch_out && Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->lt($earlyLeaveCutoff);
 
                 $status = 'Present';
                 if ($isLate && $isEarlyLeave) {
@@ -1340,6 +1399,8 @@ class AttendanceController extends Controller
             fputcsv($file, $columns);
 
             foreach ($users as $user) {
+                $timingRules = $this->getOfficeTimingRules(null, $user);
+
                 // Get all attendances for the month range
                 $attendances = Attendance::where('user_id', $user->id)
                     ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
@@ -1391,9 +1452,9 @@ class AttendanceController extends Controller
                         }
 
                         // Check if late
-                        $punchIn = Carbon::parse($attendance->punch_in);
-                        $nineThirtyAM = Carbon::parse($dateStr . ' 09:30:59');
-                        if ($punchIn->gt($nineThirtyAM)) {
+                        $punchIn = Carbon::parse($attendance->punch_in)->timezone('Asia/Kolkata');
+                        $lateCutoff = $this->getLateCutoff($dateStr, $timingRules['start_time'], $timingRules['buffer_minutes']);
+                        if ($punchIn->gt($lateCutoff)) {
                             $lateDays++;
                         }
 
@@ -1404,8 +1465,8 @@ class AttendanceController extends Controller
                             if ($timeStr === '23:59:59' || $timeStr === '23:59:00' || ($attendance->status === 'punched_out' && ($attendance->total_worked_minutes === 0 || $attendance->total_worked_minutes === null))) {
                                 $missingPunchoutDays++;
                             }
-                            $sixPM = Carbon::parse($dateStr . ' 18:00:00', 'Asia/Kolkata');
-                            if ($punchOutLocal->lt($sixPM) && $timeStr !== '23:59:59' && $timeStr !== '23:59:00') {
+                            $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateStr, $timingRules['end_time']);
+                            if ($punchOutLocal->lt($earlyLeaveCutoff) && $timeStr !== '23:59:59' && $timeStr !== '23:59:00') {
                                 $earlyLeaveDays++;
                             }
                         }
@@ -1474,6 +1535,8 @@ class AttendanceController extends Controller
         $rows = [];
 
         foreach ($users as $user) {
+            $timingRules = $this->getOfficeTimingRules(null, $user);
+
             $attendances = Attendance::where('user_id', $user->id)
                 ->whereBetween('date', [$startDate->toDateString(), $endDate->toDateString()])
                 ->get()
@@ -1519,9 +1582,9 @@ class AttendanceController extends Controller
                         $noBreakDays++;
                     }
 
-                    $punchIn = Carbon::parse($attendance->punch_in);
-                    $nineThirtyAM = Carbon::parse($dateStr . ' 09:30:59');
-                    if ($punchIn->gt($nineThirtyAM)) {
+                    $punchIn = Carbon::parse($attendance->punch_in)->timezone('Asia/Kolkata');
+                    $lateCutoff = $this->getLateCutoff($dateStr, $timingRules['start_time'], $timingRules['buffer_minutes']);
+                    if ($punchIn->gt($lateCutoff)) {
                         $lateDays++;
                     }
 
@@ -1531,8 +1594,8 @@ class AttendanceController extends Controller
                         if ($timeStr === '23:59:59' || $timeStr === '23:59:00' || ($attendance->status === 'punched_out' && ($attendance->total_worked_minutes === 0 || $attendance->total_worked_minutes === null))) {
                             $missingPunchoutDays++;
                         }
-                        $sixPM = Carbon::parse($dateStr . ' 18:00:00', 'Asia/Kolkata');
-                        if ($punchOutLocal->lt($sixPM) && $timeStr !== '23:59:59' && $timeStr !== '23:59:00') {
+                        $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateStr, $timingRules['end_time']);
+                        if ($punchOutLocal->lt($earlyLeaveCutoff) && $timeStr !== '23:59:59' && $timeStr !== '23:59:00') {
                             $earlyLeaveDays++;
                         }
                     }

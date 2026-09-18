@@ -59,6 +59,11 @@ export default function Index({
         monthly_working_days: settings.monthly_working_days || '',
         month_start_day: settings.month_start_day ?? 25,
         month_end_day: settings.month_end_day ?? 24,
+        casual_leaves: settings.casual_leaves ?? 12,
+        sick_leaves: settings.sick_leaves ?? 12,
+        office_start_time: settings.office_start_time || '09:00',
+        office_end_time: settings.office_end_time || '18:00',
+        login_buffer_minutes: settings.login_buffer_minutes ?? 30,
         beta_menu_items: JSON.parse(settings.beta_menu_items || '[]'),
         hidden_modules: JSON.parse(settings.hidden_modules || '[]'),
     });
@@ -145,6 +150,38 @@ export default function Index({
     const getInitials = (name) => {
         if (!name) return 'U';
         return name.charAt(0).toUpperCase();
+    };
+
+    const formatTime12 = (timeStr) => {
+        if (!timeStr) return '';
+        try {
+            const [h, m] = timeStr.split(':').map(Number);
+            const period = h >= 12 ? 'PM' : 'AM';
+            const hr12 = h % 12 || 12;
+            return `${hr12}:${m.toString().padStart(2, '0')} ${period}`;
+        } catch (e) {
+            return timeStr;
+        }
+    };
+
+    const calculateLateCutoff = (startTime, bufferMins) => {
+        if (!startTime) return { onTimeUntil: '09:30 AM', lateFrom: '09:31 AM' };
+        try {
+            const [h, m] = startTime.split(':').map(Number);
+            const totalMinutes = h * 60 + m + (parseInt(bufferMins, 10) || 0);
+            const cutoffHour = Math.floor(totalMinutes / 60) % 24;
+            const cutoffMinute = totalMinutes % 60;
+
+            const onTimeUntil = formatTime12(`${cutoffHour.toString().padStart(2, '0')}:${cutoffMinute.toString().padStart(2, '0')}`);
+            const lateMinuteTotal = totalMinutes + 1;
+            const lateHour = Math.floor(lateMinuteTotal / 60) % 24;
+            const lateMin = lateMinuteTotal % 60;
+            const lateFrom = formatTime12(`${lateHour.toString().padStart(2, '0')}:${lateMin.toString().padStart(2, '0')}`);
+
+            return { onTimeUntil, lateFrom };
+        } catch (e) {
+            return { onTimeUntil: '09:30 AM', lateFrom: '09:31 AM' };
+        }
     };
 
     return (
@@ -249,6 +286,127 @@ export default function Index({
                                                 max="31"
                                             />
                                             {generalForm.errors.month_end_day && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.month_end_day}</p>}
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Annual Casual Leaves (CL)</label>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-600 rounded-full">Per Employee / Year</span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                value={generalForm.data.casual_leaves}
+                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                                onChange={(e) => generalForm.setData('casual_leaves', e.target.value)}
+                                                min="0"
+                                                max="365"
+                                                placeholder="12"
+                                            />
+                                            {generalForm.errors.casual_leaves && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.casual_leaves}</p>}
+                                            <p className="text-[11px] text-gray-400 font-medium ml-1">Total casual leaves allocated per employee annually for this company.</p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Annual Sick Leaves (SL)</label>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 bg-rose-50 text-rose-600 rounded-full">Per Employee / Year</span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                value={generalForm.data.sick_leaves}
+                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                                onChange={(e) => generalForm.setData('sick_leaves', e.target.value)}
+                                                min="0"
+                                                max="365"
+                                                placeholder="12"
+                                            />
+                                            {generalForm.errors.sick_leaves && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.sick_leaves}</p>}
+                                            <p className="text-[11px] text-gray-400 font-medium ml-1">Total sick leaves allocated per employee annually for this company.</p>
+                                        </div>
+
+                                        {/* Office Hours & Login Buffer Configuration */}
+                                        <div className="md:col-span-2 pt-6 pb-2 border-t border-gray-100">
+                                            <div className="flex items-center gap-2 mb-1">
+                                                <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg">
+                                                    <Clock size={16} />
+                                                </div>
+                                                <h3 className="text-xs font-black text-gray-900 uppercase tracking-widest">Office Working Hours & Login Buffer</h3>
+                                            </div>
+                                            <p className="text-xs text-gray-400 font-medium">Define shift timings and grace period for attendance punches.</p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Office Start Time</label>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-full">
+                                                    {formatTime12(generalForm.data.office_start_time)}
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="time"
+                                                value={generalForm.data.office_start_time}
+                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                                onChange={(e) => generalForm.setData('office_start_time', e.target.value)}
+                                                required
+                                            />
+                                            {generalForm.errors.office_start_time && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.office_start_time}</p>}
+                                            <p className="text-[11px] text-gray-400 font-medium ml-1">Official work shift opening time (e.g., 09:00 or 10:00).</p>
+                                        </div>
+
+                                        <div className="space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Office End Time</label>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 bg-purple-50 text-purple-700 rounded-full">
+                                                    {formatTime12(generalForm.data.office_end_time)}
+                                                </span>
+                                            </div>
+                                            <input
+                                                type="time"
+                                                value={generalForm.data.office_end_time}
+                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                                onChange={(e) => generalForm.setData('office_end_time', e.target.value)}
+                                                required
+                                            />
+                                            {generalForm.errors.office_end_time && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.office_end_time}</p>}
+                                            <p className="text-[11px] text-gray-400 font-medium ml-1">Official work shift closing time (e.g., 18:00 or 18:30). Punches before this are Early Leave.</p>
+                                        </div>
+
+                                        <div className="space-y-2 md:col-span-2">
+                                            <div className="flex items-center justify-between">
+                                                <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Login Grace Buffer Time (Minutes)</label>
+                                                <span className="text-[10px] font-bold px-2 py-0.5 bg-amber-50 text-amber-700 rounded-full">Grace Window</span>
+                                            </div>
+                                            <input
+                                                type="number"
+                                                value={generalForm.data.login_buffer_minutes}
+                                                className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                                onChange={(e) => generalForm.setData('login_buffer_minutes', e.target.value)}
+                                                min="0"
+                                                max="240"
+                                                placeholder="30"
+                                            />
+                                            {generalForm.errors.login_buffer_minutes && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.login_buffer_minutes}</p>}
+
+                                            {/* Live explanation card */}
+                                            {(() => {
+                                                const { onTimeUntil, lateFrom } = calculateLateCutoff(generalForm.data.office_start_time, generalForm.data.login_buffer_minutes);
+                                                return (
+                                                    <div className="p-4 bg-gradient-to-r from-blue-50/80 to-indigo-50/60 border border-blue-100 rounded-2xl flex items-start gap-3 mt-2">
+                                                        <div className="p-2 bg-blue-100 text-blue-700 rounded-xl shrink-0 mt-0.5">
+                                                            <Clock size={16} />
+                                                        </div>
+                                                        <div className="space-y-1 text-xs">
+                                                            <div className="font-bold text-blue-900">
+                                                                Shift: {formatTime12(generalForm.data.office_start_time) || '9:00 AM'} to {formatTime12(generalForm.data.office_end_time) || '6:00 PM'} ({generalForm.data.login_buffer_minutes || 0} mins buffer)
+                                                            </div>
+                                                            <p className="text-slate-600 leading-relaxed">
+                                                                Employees punch-in up to <span className="font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">{onTimeUntil}</span> will be counted as <span className="font-bold text-emerald-700">Present (On-Time)</span>.
+                                                                Punch-in from <span className="font-bold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">{lateFrom}</span> onwards will be recorded as <span className="font-bold text-rose-700">Late Punch</span>.
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })()}
                                         </div>
                                     </>
                                 )}

@@ -215,7 +215,7 @@ export default function UserLeaves() {
             <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Sick Leave (SL)</p>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-black text-gray-800">{parseFloat(props.stats?.SL?.taken || 0)}</span>
-              <span className="text-gray-400 font-bold">/ {props.stats?.SL?.total || 12} Days Taken</span>
+              <span className="text-gray-400 font-bold">/ {props.stats?.SL?.total ?? 12} Days Taken</span>
             </div>
           </div>
           <div className="w-12 h-12 bg-red-50 rounded-2xl flex items-center justify-center text-red-500">
@@ -228,7 +228,7 @@ export default function UserLeaves() {
             <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-1">Casual Leave (CL)</p>
             <div className="flex items-baseline gap-2">
               <span className="text-3xl font-black text-gray-800">{parseFloat(props.stats?.CL?.taken || 0)}</span>
-              <span className="text-gray-400 font-bold">/ {props.stats?.CL?.total || 12} Days Taken</span>
+              <span className="text-gray-400 font-bold">/ {props.stats?.CL?.total ?? 12} Days Taken</span>
             </div>
           </div>
           <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-500">

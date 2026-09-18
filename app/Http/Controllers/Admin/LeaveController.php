@@ -85,10 +85,14 @@ class LeaveController extends Controller
 
         $leaves = $query->orderBy('created_at', 'desc')->paginate(10)->withQueryString();
 
+        $tenantAdmin = \App\Models\Admin::find($tenantAdminId);
+        $casualLeaves = $tenantAdmin ? ($tenantAdmin->casual_leaves ?? 12) : 12;
+        $sickLeaves = $tenantAdmin ? ($tenantAdmin->sick_leaves ?? 12) : 12;
+
         // Stats should be calculated for the selected year (or current year if not selected)
         $statsYear = $year ?: now()->year;
 
-        $leaves->getCollection()->transform(function ($leave) use ($statsYear) {
+        $leaves->getCollection()->transform(function ($leave) use ($statsYear, $sickLeaves, $casualLeaves) {
             if ($leave->user) {
                 $uid = $leave->user_id;
                 $leave->user->leave_stats = [
@@ -102,6 +106,8 @@ class LeaveController extends Controller
                         ->where('status', 'approved')
                         ->whereYear('from_date', $statsYear)
                         ->sum('no_of_days'),
+                    'SL_total' => $sickLeaves,
+                    'CL_total' => $casualLeaves,
                 ];
             }
             return $leave;
@@ -149,7 +155,8 @@ class LeaveController extends Controller
                     ->where('leave_type', 'SL')
                     ->where('status', 'approved')
                     ->sum('no_of_days'),
-                'total' => $userId ? 12 : null,
+                'total' => $userId ? $sickLeaves : null,
+                'quota' => $sickLeaves,
             ],
             'CL' => [
                 'taken' => $applyTenantScope(Leave::query())
@@ -171,7 +178,8 @@ class LeaveController extends Controller
                     ->where('leave_type', 'CL')
                     ->where('status', 'approved')
                     ->sum('no_of_days'),
-                'total' => $userId ? 12 : null,
+                'total' => $userId ? $casualLeaves : null,
+                'quota' => $casualLeaves,
             ],
             'pending' => $applyTenantScope(Leave::query())
                 ->when($year && !$month, fn($q) => $q->whereYear('from_date', $year))
@@ -222,11 +230,15 @@ class LeaveController extends Controller
         ];
 
         return Inertia::render('Admin/Leaves/Index', [
-            'leaves'     => $leaves,
-            'users'      => $users,
-            'stats'      => $stats,
-            'tab_counts' => $tabCounts,
-            'filters'    => [
+            'leaves'       => $leaves,
+            'users'        => $users,
+            'stats'        => $stats,
+            'tab_counts'   => $tabCounts,
+            'leave_quotas' => [
+                'CL' => $casualLeaves,
+                'SL' => $sickLeaves,
+            ],
+            'filters'      => [
                 'year'    => $year,
                 'month'   => $month,
                 'user_id' => $userId,
@@ -298,5 +310,29 @@ class LeaveController extends Controller
         ]);
 
         return back()->with('success', 'Leave record updated successfully');
+    }
+
+    public function updateQuotas(Request $request)
+    {
+        $request->validate([
+            'casual_leaves' => 'required|integer|min:0|max:365',
+            'sick_leaves' => 'required|integer|min:0|max:365',
+        ]);
+
+        $authUser = auth()->user();
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+        $tenantAdmin = \App\Models\Admin::find($tenantAdminId);
+
+        if ($tenantAdmin) {
+            $tenantAdmin->update([
+                'casual_leaves' => (int) $request->casual_leaves,
+                'sick_leaves'   => (int) $request->sick_leaves,
+            ]);
+        }
+
+        \App\Models\Setting::updateOrCreate(['key' => "casual_leaves_{$tenantAdminId}"], ['value' => $request->casual_leaves]);
+        \App\Models\Setting::updateOrCreate(['key' => "sick_leaves_{$tenantAdminId}"], ['value' => $request->sick_leaves]);
+
+        return back()->with('success', 'Company leave quotas updated successfully.');
     }
 }

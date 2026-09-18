@@ -30,6 +30,11 @@ class Admin extends Authenticatable
         'approval_status',
         'month_start_day',
         'month_end_day',
+        'casual_leaves',
+        'sick_leaves',
+        'office_start_time',
+        'office_end_time',
+        'login_buffer_minutes',
     ];
 
     protected $hidden = [
@@ -72,6 +77,9 @@ class Admin extends Authenticatable
             'additional_modules' => 'array',
             'month_start_day' => 'integer',
             'month_end_day' => 'integer',
+            'casual_leaves' => 'integer',
+            'sick_leaves' => 'integer',
+            'login_buffer_minutes' => 'integer',
             'trial_ends_at' => 'datetime',
             'subscribed_at' => 'datetime',
         ];

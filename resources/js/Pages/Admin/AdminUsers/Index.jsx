@@ -38,6 +38,25 @@ const avatarColor = (name = "") => {
   return colors[Math.abs(hash) % colors.length];
 };
 
+const formatTime12 = (timeStr) => {
+  if (!timeStr) return "";
+  const [h, m] = timeStr.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${m < 10 ? "0" + m : m} ${ampm}`;
+};
+
+const calculateLateCutoff = (startTime, bufferMins) => {
+  if (!startTime) return "";
+  const [h, m] = startTime.split(":").map(Number);
+  const totalMinutes = h * 60 + m + (parseInt(bufferMins, 10) || 0);
+  const cutoffH = Math.floor(totalMinutes / 60) % 24;
+  const cutoffM = totalMinutes % 60;
+  const ampm = cutoffH >= 12 ? "PM" : "AM";
+  const h12 = cutoffH % 12 || 12;
+  return `${h12}:${cutoffM < 10 ? "0" + cutoffM : cutoffM} ${ampm}`;
+};
+
 export default function Index() {
   const { admins = [], availableAdditionalModules = [] } = usePage().props;
 
@@ -58,6 +77,11 @@ export default function Index() {
     plan: "basic",
     additional_modules: [],
     approval_status: "approved",
+    casual_leaves: 12,
+    sick_leaves: 12,
+    office_start_time: "09:00",
+    office_end_time: "18:00",
+    login_buffer_minutes: 30,
   });
   const [errors, setErrors] = useState({});
   const [deleteId, setDeleteId] = useState(null);
@@ -75,6 +99,11 @@ export default function Index() {
         plan: admin.plan || "basic",
         additional_modules: Array.isArray(admin.additional_modules) ? admin.additional_modules : [],
         approval_status: admin.approval_status || "approved",
+        casual_leaves: admin.casual_leaves ?? 12,
+        sick_leaves: admin.sick_leaves ?? 12,
+        office_start_time: admin.office_start_time || "09:00",
+        office_end_time: admin.office_end_time || "18:00",
+        login_buffer_minutes: admin.login_buffer_minutes ?? 30,
       });
     } else {
       setEditingAdmin(null);
@@ -87,6 +116,11 @@ export default function Index() {
         plan: "basic",
         additional_modules: [],
         approval_status: "approved",
+        casual_leaves: 12,
+        sick_leaves: 12,
+        office_start_time: "09:00",
+        office_end_time: "18:00",
+        login_buffer_minutes: 30,
       });
     }
     setErrors({});
@@ -339,6 +373,11 @@ export default function Index() {
                           <p className="text-sm text-gray-400 font-medium mt-0.5">
                             {admin.phone || "No phone linked"}
                           </p>
+                          <div className="flex items-center gap-1.5 text-[11px] text-gray-600 font-semibold mt-1 bg-gray-50 px-2 py-0.5 rounded-md w-fit border border-gray-100">
+                            <Clock size={11} className="text-[#1e88e5]" />
+                            <span>{formatTime12(admin.office_start_time || '09:00')} - {formatTime12(admin.office_end_time || '18:00')}</span>
+                            <span className="text-blue-600 font-bold">(+{admin.login_buffer_minutes ?? 30}m)</span>
+                          </div>
                         </div>
                       </td>
                       <td className="py-4 px-6">
@@ -539,12 +578,22 @@ export default function Index() {
                   </span>
                 </div>
 
-                <div className="flex items-center justify-between text-xs text-gray-500 mb-3 bg-gray-50 rounded-xl px-3 py-2 border border-gray-50">
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-2 bg-gray-50 rounded-xl px-3 py-2 border border-gray-50">
                   <div className="font-semibold text-gray-600">
                     Plan: <span className="font-bold text-gray-800 uppercase">{admin.plan}</span>
                   </div>
                   <div>
                     Employees: <span className="font-bold text-gray-800">{admin.users_count || 0}</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-3 bg-gray-50/70 rounded-xl px-3 py-1.5 border border-gray-100">
+                  <div className="flex items-center gap-1 font-semibold text-gray-600">
+                    <Clock size={12} className="text-[#1e88e5]" />
+                    <span>{formatTime12(admin.office_start_time || '09:00')} - {formatTime12(admin.office_end_time || '18:00')}</span>
+                  </div>
+                  <div className="text-[11px] font-bold text-blue-600">
+                    +{admin.login_buffer_minutes ?? 30}m buffer
                   </div>
                 </div>
 
@@ -676,6 +725,107 @@ export default function Index() {
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 text-sm font-medium focus:outline-none focus:border-blue-500"
                     />
                   </div>
+                </div>
+              </div>
+
+              {/* Annual Leave Quotas for this Company */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-gray-50/70 border border-gray-200 rounded-2xl">
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    Annual Casual Leaves (CL)
+                  </label>
+                  <input
+                    type="number"
+                    name="casual_leaves"
+                    min="0"
+                    max="365"
+                    value={form.casual_leaves}
+                    onChange={handleFormChange}
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-sm font-bold bg-white focus:outline-none focus:border-blue-500"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Days / year per employee</p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1">
+                    Annual Sick Leaves (SL)
+                  </label>
+                  <input
+                    type="number"
+                    name="sick_leaves"
+                    min="0"
+                    max="365"
+                    value={form.sick_leaves}
+                    onChange={handleFormChange}
+                    className="w-full px-3.5 py-2 rounded-xl border border-gray-200 text-sm font-bold bg-white focus:outline-none focus:border-blue-500"
+                  />
+                  <p className="text-[10px] text-gray-400 mt-0.5">Days / year per employee</p>
+                </div>
+              </div>
+
+              {/* Office Hours & Login Buffer */}
+              <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-2xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock size={16} className="text-[#1e88e5]" />
+                    <span className="text-xs font-bold text-gray-700 uppercase tracking-wider">Office Hours &amp; Buffer</span>
+                  </div>
+                  <span className="text-[11px] font-semibold text-blue-700 bg-blue-100/70 px-2.5 py-0.5 rounded-full">
+                    Late Cutoff: {calculateLateCutoff(form.office_start_time, form.login_buffer_minutes)}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      name="office_start_time"
+                      value={form.office_start_time}
+                      onChange={handleFormChange}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold bg-white focus:outline-none focus:border-blue-500"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-0.5">e.g. 09:00 AM</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1">
+                      End Time
+                    </label>
+                    <input
+                      type="time"
+                      name="office_end_time"
+                      value={form.office_end_time}
+                      onChange={handleFormChange}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold bg-white focus:outline-none focus:border-blue-500"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-0.5">e.g. 06:00 PM</p>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-600 uppercase tracking-wider mb-1">
+                      Buffer (Minutes)
+                    </label>
+                    <input
+                      type="number"
+                      name="login_buffer_minutes"
+                      min="0"
+                      max="180"
+                      value={form.login_buffer_minutes}
+                      onChange={handleFormChange}
+                      className="w-full px-3 py-2 rounded-xl border border-gray-200 text-sm font-bold bg-white focus:outline-none focus:border-blue-500"
+                    />
+                    <p className="text-[10px] text-gray-400 mt-0.5">Grace period in mins</p>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white border border-blue-100 text-[11px] text-gray-600 flex items-start gap-2">
+                  <span className="text-emerald-600 font-bold">✓ On-Time:</span>
+                  <span>
+                    Punch-in before or at <strong className="text-gray-900">{calculateLateCutoff(form.office_start_time, form.login_buffer_minutes)}</strong> is marked on-time. After that is marked <strong className="text-amber-600">Late Punch</strong>.
+                  </span>
                 </div>
               </div>
 

@@ -29,7 +29,7 @@ class AdminUsersController extends Controller
     {
         $admins = Admin::where('role', 'admin')
             ->latest()
-            ->get(['id', 'name', 'email', 'company_name', 'phone', 'plan', 'subscription_status', 'trial_ends_at', 'subscribed_at', 'additional_modules', 'is_active', 'approval_status', 'created_at']);
+            ->get(['id', 'name', 'email', 'company_name', 'phone', 'plan', 'subscription_status', 'trial_ends_at', 'subscribed_at', 'additional_modules', 'casual_leaves', 'sick_leaves', 'office_start_time', 'office_end_time', 'login_buffer_minutes', 'is_active', 'approval_status', 'created_at']);
 
         // Attach active employee count and trial info for each admin tenant
         $admins->transform(function ($admin) {
@@ -37,6 +37,11 @@ class AdminUsersController extends Controller
             $admin->is_trial = $admin->isInTrial();
             $admin->is_trial_expired = $admin->isTrialExpired();
             $admin->days_left_in_trial = $admin->daysLeftInTrial();
+            $admin->casual_leaves = $admin->casual_leaves ?? 12;
+            $admin->sick_leaves = $admin->sick_leaves ?? 12;
+            $admin->office_start_time = $admin->office_start_time ?: '09:00';
+            $admin->office_end_time = $admin->office_end_time ?: '18:00';
+            $admin->login_buffer_minutes = (int)($admin->login_buffer_minutes ?? 30);
             return $admin;
         });
 
@@ -71,6 +76,11 @@ class AdminUsersController extends Controller
             'plan' => 'required|in:basic,premium',
             'additional_modules' => 'nullable|array',
             'approval_status' => 'required|in:pending,approved,rejected',
+            'casual_leaves' => 'nullable|integer|min:0|max:365',
+            'sick_leaves' => 'nullable|integer|min:0|max:365',
+            'office_start_time' => 'nullable|string|max:10',
+            'office_end_time' => 'nullable|string|max:10',
+            'login_buffer_minutes' => 'nullable|integer|min:0|max:180',
         ]);
 
         $companyName = $validated['company_name'];
@@ -86,6 +96,11 @@ class AdminUsersController extends Controller
             'plan' => $validated['plan'],
             'additional_modules' => $validated['plan'] === 'premium' ? ($validated['additional_modules'] ?? []) : [],
             'phone' => $validated['phone'] ?? null,
+            'casual_leaves' => isset($validated['casual_leaves']) ? (int) $validated['casual_leaves'] : 12,
+            'sick_leaves' => isset($validated['sick_leaves']) ? (int) $validated['sick_leaves'] : 12,
+            'office_start_time' => $validated['office_start_time'] ?? '09:00',
+            'office_end_time' => $validated['office_end_time'] ?? '18:00',
+            'login_buffer_minutes' => isset($validated['login_buffer_minutes']) ? (int) $validated['login_buffer_minutes'] : 30,
             'is_active' => $isApproved,
             'approval_status' => $validated['approval_status'],
         ]);
@@ -109,6 +124,11 @@ class AdminUsersController extends Controller
             'plan' => 'required|in:basic,premium',
             'additional_modules' => 'nullable|array',
             'approval_status' => 'required|in:pending,approved,rejected',
+            'casual_leaves' => 'nullable|integer|min:0|max:365',
+            'sick_leaves' => 'nullable|integer|min:0|max:365',
+            'office_start_time' => 'nullable|string|max:10',
+            'office_end_time' => 'nullable|string|max:10',
+            'login_buffer_minutes' => 'nullable|integer|min:0|max:180',
         ]);
 
         $companyName = $validated['company_name'];
@@ -122,6 +142,11 @@ class AdminUsersController extends Controller
             'plan' => $validated['plan'],
             'additional_modules' => $validated['plan'] === 'premium' ? ($validated['additional_modules'] ?? []) : [],
             'phone' => $validated['phone'] ?? null,
+            'casual_leaves' => isset($validated['casual_leaves']) ? (int) $validated['casual_leaves'] : ($admin->casual_leaves ?? 12),
+            'sick_leaves' => isset($validated['sick_leaves']) ? (int) $validated['sick_leaves'] : ($admin->sick_leaves ?? 12),
+            'office_start_time' => $validated['office_start_time'] ?? ($admin->office_start_time ?: '09:00'),
+            'office_end_time' => $validated['office_end_time'] ?? ($admin->office_end_time ?: '18:00'),
+            'login_buffer_minutes' => isset($validated['login_buffer_minutes']) ? (int) $validated['login_buffer_minutes'] : ($admin->login_buffer_minutes ?? 30),
             'approval_status' => $validated['approval_status'],
             'is_active' => $isApproved,
         ];

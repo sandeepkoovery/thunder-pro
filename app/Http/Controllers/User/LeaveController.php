@@ -47,9 +47,15 @@ class LeaveController extends Controller
 		// Let's keep stats yearly for now as quotas are annual.
 		$statsYear = $year ?: Carbon::now()->year;
 
+		$user = Auth::user();
+		$tenantAdminId = $user->admin_id ?? ($user->role === 'admin' ? $user->id : null);
+		$tenantAdmin = $tenantAdminId ? \App\Models\Admin::find($tenantAdminId) : null;
+		$casualLeaves = $tenantAdmin ? ($tenantAdmin->casual_leaves ?? 12) : 12;
+		$sickLeaves = $tenantAdmin ? ($tenantAdmin->sick_leaves ?? 12) : 12;
+
 		$stats = [
 			'SL' => [
-				'total' => 12,
+				'total' => $sickLeaves,
 				'taken' => Leave::where('user_id', $userId)
 					->where('leave_type', 'SL')
 					->where('status', 'approved')
@@ -57,7 +63,7 @@ class LeaveController extends Controller
 					->sum('no_of_days'),
 			],
 			'CL' => [
-				'total' => 12,
+				'total' => $casualLeaves,
 				'taken' => Leave::where('user_id', $userId)
 					->where('leave_type', 'CL')
 					->where('status', 'approved')

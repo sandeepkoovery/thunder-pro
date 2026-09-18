@@ -27,6 +27,11 @@ class SettingController extends Controller
 
         $settings['month_start_day'] = $admin ? ($admin->month_start_day ?? 25) : 25;
         $settings['month_end_day'] = $admin ? ($admin->month_end_day ?? 24) : 24;
+        $settings['casual_leaves'] = $admin ? ($admin->casual_leaves ?? 12) : 12;
+        $settings['sick_leaves'] = $admin ? ($admin->sick_leaves ?? 12) : 12;
+        $settings['office_start_time'] = $admin ? ($admin->office_start_time ?? '09:00') : '09:00';
+        $settings['office_end_time'] = $admin ? ($admin->office_end_time ?? '18:00') : '18:00';
+        $settings['login_buffer_minutes'] = $admin ? ($admin->login_buffer_minutes ?? 30) : 30;
 
         $adminId = $admin ? $admin->id : 0;
         $settings['admin_email'] = $settings["admin_email_{$adminId}"] ?? ($admin ? $admin->email : ($settings['admin_email'] ?? ($user->email ?? '')));
@@ -139,6 +144,11 @@ class SettingController extends Controller
             'monthly_working_days' => 'nullable|integer|min:0|max:31',
             'month_start_day' => 'nullable|integer|min:1|max:31',
             'month_end_day' => 'nullable|integer|min:1|max:31',
+            'casual_leaves' => 'nullable|integer|min:0|max:365',
+            'sick_leaves' => 'nullable|integer|min:0|max:365',
+            'office_start_time' => 'nullable|string|max:10',
+            'office_end_time' => 'nullable|string|max:10',
+            'login_buffer_minutes' => 'nullable|integer|min:0|max:240',
             'beta_menu_items' => 'nullable|array',
             'hidden_modules' => 'nullable|array',
         ]);
@@ -155,8 +165,13 @@ class SettingController extends Controller
 
         if ($admin) {
             $admin->update([
-                'month_start_day' => $data['month_start_day'] ?? 25,
-                'month_end_day' => $data['month_end_day'] ?? 24,
+                'month_start_day' => $data['month_start_day'] ?? ($admin->month_start_day ?? 25),
+                'month_end_day' => $data['month_end_day'] ?? ($admin->month_end_day ?? 24),
+                'casual_leaves' => isset($data['casual_leaves']) ? (int) $data['casual_leaves'] : ($admin->casual_leaves ?? 12),
+                'sick_leaves' => isset($data['sick_leaves']) ? (int) $data['sick_leaves'] : ($admin->sick_leaves ?? 12),
+                'office_start_time' => !empty($data['office_start_time']) ? substr($data['office_start_time'], 0, 5) : ($admin->office_start_time ?? '09:00'),
+                'office_end_time' => !empty($data['office_end_time']) ? substr($data['office_end_time'], 0, 5) : ($admin->office_end_time ?? '18:00'),
+                'login_buffer_minutes' => isset($data['login_buffer_minutes']) ? (int) $data['login_buffer_minutes'] : ($admin->login_buffer_minutes ?? 30),
             ]);
         }
 
@@ -166,7 +181,7 @@ class SettingController extends Controller
             if (in_array($key, ['month_start_day', 'month_end_day'])) continue;
             
             $saveKey = $key;
-            if (in_array($key, ['admin_email', 'monthly_working_days'])) {
+            if (in_array($key, ['admin_email', 'monthly_working_days', 'casual_leaves', 'sick_leaves', 'office_start_time', 'office_end_time', 'login_buffer_minutes'])) {
                 $saveKey = "{$key}_{$adminId}";
             }
 
