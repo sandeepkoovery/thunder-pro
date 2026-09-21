@@ -124,14 +124,13 @@ class HandleInertiaRequests extends Middleware
             $seenKeys = [];
             $additionalModulesSetting = array_values(array_filter($additionalModulesSetting, function ($m) use (&$seenKeys) {
                 $k = $m['key'] ?? null;
-                if (!$k || isset($seenKeys[$k])) return false;
+                if (!$k || isset($seenKeys[$k]) || $k === 'catering') return false;
                 $seenKeys[$k] = true;
                 return true;
             }));
         } else {
             $additionalModulesSetting = [
                 ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'included' => true],
-                ['key' => 'catering', 'label' => 'Catering Management', 'price' => 499, 'included' => true],
                 ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'included' => true],
                 ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'included' => true],
                 ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'included' => true],
@@ -143,7 +142,7 @@ class HandleInertiaRequests extends Middleware
             'dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 
             'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 
             'drive', 'chat', 'websites', 'reports', 'notifications', 'modules', 
-            'pricing', 'settings', 'ai_assistant', 'catering'
+            'pricing', 'settings', 'ai_assistant'
         ];
 
         if ($user && $user->role === 'superadmin') {
@@ -173,9 +172,9 @@ class HandleInertiaRequests extends Middleware
                 $roleCeiling = [
                     'admin'    => $allModulesList,
                     'manager'  => $allModulesList,
-                    'editor'   => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications', 'ai_assistant', 'catering'],
+                    'editor'   => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications', 'ai_assistant'],
                     'designer' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications', 'ai_assistant'],
-                    'user'     => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications', 'ai_assistant', 'catering'],
+                    'user'     => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications', 'ai_assistant'],
                 ];
                 $ceiling = $roleCeiling[$userRoleKey] ?? $allModulesList;
                 $grantableAdditional = array_intersect($userAdditionalModules, $ceiling);
@@ -287,8 +286,12 @@ class HandleInertiaRequests extends Middleware
             'sharedSettings' => [
                 'beta_menu_items' => json_decode($settingsMap['beta_menu_items'] ?? '[]', true) ?: [],
                 'hidden_modules' => json_decode($settingsMap['hidden_modules'] ?? '[]', true) ?: [],
+                'csv_import_limit' => (int) ($settingsMap['csv_import_limit'] ?? 100),
             ],
             'expiringWebsitesCount' => $expiringCount,
+            'tenantEmployeesCount' => ($admin ? \App\Models\User::where('admin_id', $admin->id)->whereIn('role', ['user', 'manager', 'editor'])->count() : (($user && $user->role === 'admin') ? \App\Models\User::where('admin_id', $user->id)->whereIn('role', ['user', 'manager', 'editor'])->count() : 0)),
+            'unlimitedEmployeesStatus' => $admin ? ($admin->unlimited_employees_status ?? 'none') : (($user && $user->role === 'superadmin') ? 'approved' : 'none'),
+            'hasUnlimitedEmployees' => ($user && $user->role === 'superadmin') || ($admin && $admin->hasUnlimitedEmployees()),
         ];
     }
 }

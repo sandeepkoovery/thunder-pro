@@ -29,7 +29,7 @@ class AdminUsersController extends Controller
     {
         $admins = Admin::where('role', 'admin')
             ->latest()
-            ->get(['id', 'name', 'email', 'company_name', 'phone', 'plan', 'subscription_status', 'trial_ends_at', 'subscribed_at', 'additional_modules', 'casual_leaves', 'sick_leaves', 'office_start_time', 'office_end_time', 'login_buffer_minutes', 'is_active', 'approval_status', 'created_at']);
+            ->get(['id', 'name', 'email', 'company_name', 'phone', 'plan', 'subscription_status', 'trial_ends_at', 'subscribed_at', 'additional_modules', 'casual_leaves', 'sick_leaves', 'office_start_time', 'office_end_time', 'login_buffer_minutes', 'is_active', 'approval_status', 'unlimited_employees_status', 'created_at']);
 
         // Attach active employee count and trial info for each admin tenant
         $admins->transform(function ($admin) {
@@ -42,6 +42,8 @@ class AdminUsersController extends Controller
             $admin->office_start_time = $admin->office_start_time ?: '09:00';
             $admin->office_end_time = $admin->office_end_time ?: '18:00';
             $admin->login_buffer_minutes = (int)($admin->login_buffer_minutes ?? 30);
+            $admin->has_unlimited = $admin->hasUnlimitedEmployees();
+            $admin->unlimited_status = $admin->unlimited_employees_status ?? 'none';
             return $admin;
         });
 
@@ -141,6 +143,7 @@ class AdminUsersController extends Controller
             'trial_days' => 'nullable|integer|min:1|max:365',
             'additional_modules' => 'nullable|array',
             'approval_status' => 'required|in:pending,approved,rejected',
+            'unlimited_employees_status' => 'nullable|in:none,pending,approved,rejected',
             'casual_leaves' => 'nullable|integer|min:0|max:365',
             'sick_leaves' => 'nullable|integer|min:0|max:365',
             'office_start_time' => 'nullable|string|max:10',
@@ -165,6 +168,7 @@ class AdminUsersController extends Controller
             'office_end_time' => $validated['office_end_time'] ?? ($admin->office_end_time ?: '18:00'),
             'login_buffer_minutes' => isset($validated['login_buffer_minutes']) ? (int) $validated['login_buffer_minutes'] : ($admin->login_buffer_minutes ?? 30),
             'approval_status' => $validated['approval_status'],
+            'unlimited_employees_status' => $validated['unlimited_employees_status'] ?? ($admin->unlimited_employees_status ?? 'none'),
             'is_active' => $isApproved,
         ];
 
@@ -272,5 +276,23 @@ class AdminUsersController extends Controller
         $admin->delete();
 
         return back()->with('success', "Admin account '{$adminName}' and associated records removed successfully.");
+    }
+
+    /**
+     * Update unlimited employees approval status for an admin.
+     */
+    public function updateUnlimitedStatus(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'status' => 'required|in:none,pending,approved,rejected',
+        ]);
+
+        $admin = Admin::findOrFail($id);
+        $admin->update([
+            'unlimited_employees_status' => $validated['status'],
+        ]);
+
+        $statusLabel = ucfirst($validated['status']);
+        return back()->with('success', "Unlimited employees status for {$admin->name} updated to {$statusLabel}.");
     }
 }

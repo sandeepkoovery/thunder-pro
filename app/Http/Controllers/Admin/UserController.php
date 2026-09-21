@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Department;
+use App\Services\EmployeeImportService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
@@ -95,20 +96,31 @@ class UserController extends Controller
         $validated['password'] = Hash::make($validated['password']);
         $validated['admin_id'] = $tenantAdminId;
 
-        // Check user limit for Basic Plan
+        // Check user limits
         $role = $validated['role'];
-        if (in_array($role, ['user', 'manager', 'editor'])) {
-            $tenantAdmin = $authUser->role === 'admin' ? $authUser : User::find($tenantAdminId);
-            $plan = $tenantAdmin ? ($tenantAdmin->plan ?? 'basic') : 'basic';
+        if (in_array($role, ['user', 'manager', 'editor']) && $authUser->role !== 'superadmin') {
+            $adminModel = \App\Models\Admin::find($tenantAdminId);
+            $plan = $adminModel ? ($adminModel->plan ?? 'basic') : ($authUser->plan ?? 'basic');
+            $activeEmployees = User::where('admin_id', $tenantAdminId)
+                ->whereIn('role', ['user', 'manager', 'editor'])
+                ->where('is_active', true)
+                ->count();
+
             if ($plan === 'basic') {
-                $activeEmployees = User::where('admin_id', $tenantAdminId)
-                    ->whereIn('role', ['user', 'manager', 'editor'])
-                    ->where('is_active', true)
-                    ->count();
                 if ($activeEmployees >= 10) {
                     return back()->withErrors([
                         'role' => 'You have reached the limit of 10 active employees for the Basic Plan. Upgrade to the Premium Plan to add more.'
                     ])->withInput();
+                }
+            } else {
+                $hasUnlimited = $adminModel ? $adminModel->hasUnlimitedEmployees() : false;
+                if (!$hasUnlimited) {
+                    $maxTotal = (int) (\App\Models\Setting::where('key', 'csv_import_limit')->value('value') ?: 100);
+                    if ($activeEmployees >= $maxTotal) {
+                        return back()->withErrors([
+                            'role' => "You have reached your total plan limit of {$maxTotal} employees ({$activeEmployees} currently active). Please request approval from the Super Administrator for unlimited employees."
+                        ])->withInput();
+                    }
                 }
             }
         }
@@ -133,6 +145,9 @@ class UserController extends Controller
             'joining_date' => 'nullable|date',
             'employment_type' => 'nullable|in:permanent,contract,intern',
         ]);
+
+        // Email cannot change after creation / import
+        $validated['email'] = $user->email;
 
         if ($request->hasFile('image')) {
             $path = public_path('uploads/users');
@@ -238,4 +253,112 @@ class UserController extends Controller
 
         return response()->json(['message' => 'User status updated.']);
     }
+
+    /**
+     * Download sample CSV template.
+     */
+    public function downloadImportTemplate(EmployeeImportService $importService)
+    {
+        $csv = $importService->getSampleCsv();
+
+        return response($csv, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="employee_import_template.csv"',
+            'Pragma' => 'no-cache',
+            'Cache-Control' => 'must-revalidate, post-check=0, pre-check=0',
+            'Expires' => '0',
+        ]);
+    }
+
+    /**
+     * Import employees from CSV/Excel.
+     */
+    public function import(Request $request, EmployeeImportService $importService)
+    {
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+
+        // Check plan: only Premium plan admins (and Super Admin) can import
+        $plan = 'basic';
+        if ($isSuperAdmin) {
+            $plan = 'premium';
+        } else {
+            $admin = ($authUser instanceof \App\Models\Admin) ? $authUser : \App\Models\Admin::where('email', $authUser->email)->first();
+            if (!$admin && !empty($authUser->admin_id)) {
+                $admin = \App\Models\Admin::find($authUser->admin_id);
+            }
+            $plan = $admin ? ($admin->plan ?? 'basic') : ($authUser->plan ?? 'basic');
+        }
+
+        if (!$isSuperAdmin && $plan !== 'premium') {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Employee CSV/Excel Import is an exclusive feature for Premium Plan subscribers. Please upgrade your plan to access this feature.']
+            ], 403);
+        }
+
+        $request->validate([
+            'file' => 'required|file|max:10240',
+        ]);
+
+        $file = $request->file('file');
+        $extension = strtolower($file->getClientOriginalExtension());
+        if (!in_array($extension, ['csv', 'txt', 'xlsx', 'xls'])) {
+            return response()->json([
+                'success' => false,
+                'errors' => ['Invalid file format. Please upload a valid .csv or .xlsx file.'],
+            ], 422);
+        }
+
+        $result = $importService->import($file, $tenantAdminId);
+
+        if (!$result['success']) {
+            return response()->json([
+                'success' => false,
+                'errors' => $result['errors'],
+            ], 422);
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => $result['message'],
+            'count' => $result['count'],
+        ]);
+    }
+
+    /**
+     * Request Super Admin approval for Unlimited Employees.
+     */
+    public function requestUnlimited()
+    {
+        $authUser = auth()->user();
+        $admin = null;
+        if ($authUser instanceof \App\Models\Admin) {
+            $admin = $authUser;
+        } elseif ($authUser->role === 'admin') {
+            $admin = \App\Models\Admin::where('email', $authUser->email)->first();
+        } elseif (!empty($authUser->admin_id)) {
+            $admin = \App\Models\Admin::find($authUser->admin_id);
+        }
+
+        if (!$admin) {
+            return response()->json(['error' => 'Admin account not found.'], 404);
+        }
+
+        if ($admin->unlimited_employees_status === 'approved') {
+            return response()->json([
+                'success' => true,
+                'message' => 'Your account already has Super Admin approval for unlimited employees.'
+            ]);
+        }
+
+        $admin->update(['unlimited_employees_status' => 'pending']);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Request for Unlimited Employees submitted successfully. The Super Administrator will review your request.'
+        ]);
+    }
 }
+

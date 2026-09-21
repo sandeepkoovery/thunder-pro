@@ -637,7 +637,7 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                         Add-On Modules Box
                                     </h2>
                                     <p className="text-slate-700 text-sm mt-1 max-w-xl font-medium">
-                                        Specialized workspace extensions including AI Assistant and Catering Module available for tenant environments.
+                                        Specialized workspace extensions including AI Assistant available for tenant environments.
                                     </p>
                                 </div>
                             </div>
@@ -671,38 +671,6 @@ export default function Index({ settings, admins = [], currentPlan, currentAddit
                                                     </div>
                                                     <p className="text-xs text-slate-600 leading-relaxed font-normal">
                                                         {aiMod.description || 'Malayalam & English Voice AI Assistant for database queries & automated insights'}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        );
-                                    })()}
-
-                                    {/* CATERING MANAGEMENT CARD */}
-                                    {(() => {
-                                        const catMod = (settings.additional_modules || []).find(m => m.key === 'catering') || {
-                                            label: 'Catering Management',
-                                            price: 499,
-                                            description: 'Complete catering management, custom menu planning, event order tracking & kitchen workflows'
-                                        };
-                                        return (
-                                            <div className="p-6 rounded-2xl border border-amber-200 bg-white shadow-sm flex flex-col justify-between">
-                                                <div>
-                                                    <div className="flex items-center gap-3 mb-3">
-                                                        <div className="w-12 h-12 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center font-bold text-xl">
-                                                            🍽️
-                                                        </div>
-                                                        <div>
-                                                            <div className="flex items-center gap-2">
-                                                                <h4 className="font-bold text-slate-900 text-base">{catMod.label || 'Catering Management'}</h4>
-                                                                <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-extrabold uppercase rounded-md">
-                                                                    New Add-on
-                                                                </span>
-                                                            </div>
-                                                            <span className="text-xs font-bold text-emerald-600">₹{catMod.price || 499} / month</span>
-                                                        </div>
-                                                    </div>
-                                                    <p className="text-xs text-slate-600 leading-relaxed font-normal">
-                                                        {catMod.description || 'Complete catering management, custom menu planning, event order tracking & kitchen workflows'}
                                                     </p>
                                                 </div>
                                             </div>

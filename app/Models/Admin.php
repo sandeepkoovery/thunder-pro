@@ -28,6 +28,7 @@ class Admin extends Authenticatable
         'thumb',
         'is_active',
         'approval_status',
+        'unlimited_employees_status',
         'month_start_day',
         'month_end_day',
         'casual_leaves',
@@ -195,5 +196,10 @@ class Admin extends Authenticatable
     public function attendances()
     {
         return $this->hasMany(Attendance::class, 'user_id');
+    }
+
+    public function hasUnlimitedEmployees(): bool
+    {
+        return $this->role === 'superadmin' || $this->unlimited_employees_status === 'approved';
     }
 }

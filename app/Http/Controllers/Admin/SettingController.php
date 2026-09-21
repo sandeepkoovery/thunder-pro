@@ -41,6 +41,8 @@ class SettingController extends Controller
             $settings['designers_task_type_options'] = 'Poster, Thumbnail, Story, Carousel, Grid, Other';
         }
 
+        $settings['csv_import_limit'] = (int) ($settings['csv_import_limit'] ?? 100);
+
         // Automatically calculate working days for current month if not set
         if (!isset($settings['monthly_working_days'])) {
             $settings['monthly_working_days'] = $this->calculateWorkingDays(Carbon::now());
@@ -151,9 +153,13 @@ class SettingController extends Controller
             'login_buffer_minutes' => 'nullable|integer|min:0|max:240',
             'beta_menu_items' => 'nullable|array',
             'hidden_modules' => 'nullable|array',
+            'csv_import_limit' => 'nullable|integer|min:1|max:10000',
         ]);
 
         $user = auth()->user();
+        if ($user->role !== 'superadmin') {
+            unset($data['csv_import_limit']);
+        }
         $admin = null;
         if ($user instanceof \App\Models\Admin) {
             $admin = $user;

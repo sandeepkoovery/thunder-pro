@@ -80,6 +80,7 @@ class User extends Authenticatable
         'employment_type',
         'branch',
         'shift',
+        'is_imported',
     ];
 
     /**

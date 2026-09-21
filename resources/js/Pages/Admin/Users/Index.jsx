@@ -16,13 +16,35 @@ import {
   ChevronRight,
   ShieldAlert,
   KeyRound,
-  X
+  X,
+  FileSpreadsheet,
+  Upload,
+  Download,
+  AlertCircle,
+  CheckCircle2,
+  FileText,
+  Lock,
 } from "lucide-react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
 export default function Index() {
-  const { users, departments = [] } = usePage().props;
+  const {
+    users,
+    departments = [],
+    auth,
+    userPlan,
+    sharedSettings,
+    tenantEmployeesCount = 0,
+    unlimitedEmployeesStatus = 'none',
+    hasUnlimitedEmployees = false,
+  } = usePage().props;
+
+  const isSuperAdmin = auth?.user?.role === 'superadmin';
+  const isPremium = isSuperAdmin || userPlan === 'premium';
+  const totalAllowedLimit = sharedSettings?.csv_import_limit || 100;
+  const currentEmployeeCount = tenantEmployeesCount || users.filter(u => ['user', 'manager', 'editor'].includes(u.role) && u.is_active).length;
+  const remainingSpots = hasUnlimitedEmployees ? 'Unlimited' : Math.max(0, totalAllowedLimit - currentEmployeeCount);
 
   const [search, setSearch] = useState("");
   const [roleFilter, setRoleFilter] = useState("all");
@@ -49,6 +71,120 @@ export default function Index() {
   const [errors, setErrors] = useState({});
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [deleteId, setDeleteId] = useState(null);
+
+  // Import Modal State
+  const [isImportOpen, setIsImportOpen] = useState(false);
+  const [importFile, setImportFile] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState(0);
+  const [importStatusText, setImportStatusText] = useState("");
+  const [importErrors, setImportErrors] = useState([]);
+  const [importSuccess, setImportSuccess] = useState(null);
+  const [upgradeModalOpen, setUpgradeModalOpen] = useState(false);
+  const [requestingUnlimited, setRequestingUnlimited] = useState(false);
+
+  const handleRequestUnlimited = async () => {
+    setRequestingUnlimited(true);
+    try {
+      const response = await axios.post(route('admin.users.request-unlimited'));
+      toast.success(response.data.message || "Request submitted to Super Admin!");
+      router.reload({ only: ['unlimitedEmployeesStatus', 'hasUnlimitedEmployees'] });
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.response?.data?.error || "Failed to submit request.");
+    } finally {
+      setRequestingUnlimited(false);
+    }
+  };
+
+  const openImportModal = () => {
+    setImportFile(null);
+    setImportErrors([]);
+    setImportSuccess(null);
+    setImportProgress(0);
+    setIsImporting(false);
+    setIsImportOpen(true);
+  };
+
+  const closeImportModal = () => {
+    if (isImporting) return;
+    setIsImportOpen(false);
+    setImportFile(null);
+    setImportErrors([]);
+    setImportSuccess(null);
+    setImportProgress(0);
+  };
+
+  const handleFileSelect = (file) => {
+    if (!file) return;
+    const ext = file.name.split('.').pop().toLowerCase();
+    if (!['csv', 'txt', 'xlsx', 'xls'].includes(ext)) {
+      toast.error("Please select a valid .csv or .xlsx file.");
+      return;
+    }
+    setImportFile(file);
+    setImportErrors([]);
+    setImportSuccess(null);
+  };
+
+  const handleDownloadTemplate = () => {
+    window.location.href = route('admin.users.import.template');
+  };
+
+  const handleImportSubmit = async (e) => {
+    e.preventDefault();
+    if (!importFile) {
+      toast.error("Please select a file to import.");
+      return;
+    }
+
+    setIsImporting(true);
+    setImportErrors([]);
+    setImportSuccess(null);
+    setImportProgress(15);
+    setImportStatusText("Uploading file...");
+
+    const formData = new FormData();
+    formData.append("file", importFile);
+
+    try {
+      const response = await axios.post(route("admin.users.import"), formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.total) {
+            const percent = Math.round((progressEvent.loaded * 60) / progressEvent.total);
+            setImportProgress(Math.max(15, percent));
+            if (percent >= 55) {
+              setImportStatusText("Validating employee rows & checking duplicate emails...");
+            }
+          }
+        },
+      });
+
+      setImportProgress(100);
+      setImportStatusText("Import completed successfully!");
+      setImportSuccess(response.data.message);
+      toast.success(response.data.message);
+
+      // Reload users list
+      router.reload({ only: ["users"] });
+    } catch (error) {
+      setImportProgress(0);
+      setIsImporting(false);
+      if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
+        setImportErrors(error.response.data.errors);
+        toast.error(`Import stopped: ${error.response.data.errors.length} error(s) found.`);
+      } else {
+        const errorMsg = error.response?.data?.error || error.response?.data?.message || "An unexpected error occurred during import.";
+        setImportErrors([errorMsg]);
+        toast.error(errorMsg);
+      }
+    } finally {
+      setIsImporting(false);
+    }
+  };
 
   const getLocalYMD = (dateStr) => {
     if (!dateStr) return "";
@@ -340,10 +476,53 @@ export default function Index() {
         {/* Top Header Section */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Employees List</h1>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight">Employees List</h1>
+              {isPremium && (
+                hasUnlimitedEmployees ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200/70 rounded-full text-xs font-bold">
+                    <Sparkles size={12} className="text-emerald-500" />
+                    <span>Unlimited Capacity</span>
+                  </span>
+                ) : (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border ${
+                    remainingSpots > 10
+                      ? 'bg-blue-50 text-blue-700 border-blue-200/70'
+                      : remainingSpots > 0
+                      ? 'bg-amber-50 text-amber-700 border-amber-200/70'
+                      : 'bg-rose-50 text-rose-700 border-rose-200/70'
+                  }`}>
+                    <span>{currentEmployeeCount} / {totalAllowedLimit} Employees</span>
+                  </span>
+                )
+              )}
+            </div>
             <p className="text-sm text-gray-500 mt-1 font-medium">Manage employee profiles, view roles, and handle statuses.</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={() => {
+                if (isPremium) {
+                  openImportModal();
+                } else {
+                  setUpgradeModalOpen(true);
+                }
+              }}
+              className={`px-5 py-3 rounded-full font-semibold uppercase tracking-wider text-xs shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95 border ${
+                isPremium
+                  ? 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200/80 shadow-emerald-600/10'
+                  : 'bg-gray-50 hover:bg-gray-100 text-gray-600 border-gray-200/80'
+              }`}
+            >
+              <FileSpreadsheet size={16} className={isPremium ? 'text-emerald-600' : 'text-amber-500'} />
+              <span>Import Employees</span>
+              {!isPremium && (
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9px] font-black bg-amber-100 text-amber-800 uppercase tracking-tighter ml-1">
+                  <Crown size={10} className="text-amber-600" /> Premium
+                </span>
+              )}
+            </button>
+
             <button
               onClick={() => openModal()}
               className="px-6 py-3 bg-[#1e88e5] hover:bg-[#1565c0] text-white rounded-full font-semibold uppercase tracking-wider text-xs shadow-lg shadow-[#1e88e5]/30 transition-all flex items-center justify-center gap-2 cursor-pointer active:scale-95"
@@ -875,9 +1054,15 @@ export default function Index() {
                     name="employee_id"
                     value={form.employee_id}
                     onChange={handleChange}
-                    className="w-full px-5 py-2.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm"
+                    className={`w-full px-5 py-2.5 bg-gray-50/50 border rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm ${
+                      errors.employee_id ? "border-red-500" : "border-gray-100"
+                    }`}
                     placeholder="Leave blank to auto-generate"
                   />
+                  {errors.employee_id && (
+                    <p className="text-red-500 text-xs font-bold ml-1 mt-1">{errors.employee_id}</p>
+                  )}
+                  <p className="text-[10px] text-gray-400 font-medium ml-1">Can be edited or customized anytime.</p>
                 </div>
 
                 {/* Department */}
@@ -977,6 +1162,357 @@ export default function Index() {
                 >
                   Delete Account
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Premium Upgrade Prompt Modal */}
+        {upgradeModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 animate-in fade-in duration-200">
+            <div className="bg-white rounded-[28px] shadow-2xl border border-gray-100 max-w-md w-full p-8 text-center space-y-5">
+              <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-500 flex items-center justify-center mx-auto border border-amber-100 shadow-sm">
+                <Crown size={32} />
+              </div>
+              <div>
+                <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 bg-amber-50 text-amber-700 rounded-full border border-amber-200">
+                  Premium Plan Exclusive
+                </span>
+                <h3 className="text-xl font-black text-gray-900 tracking-tight mt-3">Excel / CSV Employee Import</h3>
+                <p className="text-sm text-gray-500 mt-2 font-medium leading-relaxed">
+                  Bulk employee import via Excel/CSV is exclusively available for <strong className="text-gray-900">Premium Plan</strong> subscribers. Upgrade now to easily onboard your entire workforce in one click.
+                </p>
+              </div>
+              <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                <button
+                  type="button"
+                  onClick={() => setUpgradeModalOpen(false)}
+                  className="flex-1 py-3 px-5 rounded-2xl border border-gray-200 text-gray-600 font-bold text-xs uppercase tracking-wider hover:bg-gray-50 transition"
+                >
+                  Cancel
+                </button>
+                <Link
+                  href={route('pricing.index')}
+                  className="flex-1 py-3 px-5 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white font-bold text-xs uppercase tracking-wider shadow-lg shadow-amber-500/25 transition text-center"
+                >
+                  Upgrade Plan
+                </Link>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Employee Import Modal */}
+        {isImportOpen && (
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto animate-in fade-in duration-200">
+            <div className="bg-white rounded-[28px] shadow-2xl border border-gray-100 max-w-2xl w-full my-8 overflow-hidden">
+              {/* Modal Header */}
+              <div className="p-7 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center border border-emerald-100 shadow-sm flex-shrink-0">
+                    <FileSpreadsheet size={24} />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-xl font-black text-gray-900 tracking-tight">Import Employees</h2>
+                      <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-0.5 bg-emerald-50 text-emerald-700 rounded-full border border-emerald-200">
+                        CSV / Excel
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-500 font-medium mt-0.5">
+                      Add multiple employees at once by uploading a formatted spreadsheet.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  disabled={isImporting}
+                  onClick={closeImportModal}
+                  className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition disabled:opacity-30"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-7 space-y-6">
+                {/* Capacity & Template Info Banner */}
+                <div className="p-4 bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-100 rounded-2xl space-y-3">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-blue-950 uppercase tracking-wider">
+                          {hasUnlimitedEmployees
+                            ? "Employee Capacity: Unlimited Scale"
+                            : `Plan Limit: ${currentEmployeeCount} of ${totalAllowedLimit} Used`}
+                        </span>
+                        {hasUnlimitedEmployees ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full">
+                            <Sparkles size={11} className="text-emerald-600" /> Unlimited Approved
+                          </span>
+                        ) : unlimitedEmployeesStatus === 'pending' ? (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 bg-amber-100 text-amber-800 rounded-full">
+                            <Clock size={11} className="text-amber-600" /> Pending Approval
+                          </span>
+                        ) : (
+                          <span className={`inline-flex items-center gap-1 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${
+                            remainingSpots > 10 ? 'bg-blue-100 text-blue-800' : remainingSpots > 0 ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {remainingSpots} spots remaining
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-blue-800 font-medium">
+                        {hasUnlimitedEmployees
+                          ? "Super Administrator has approved unlimited employees for your company account."
+                          : `Total plan limit is ${totalAllowedLimit} employees. You can import up to ${remainingSpots} more in this batch.`}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleDownloadTemplate}
+                      className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-white hover:bg-blue-50 text-blue-700 border border-blue-200 rounded-xl text-xs font-bold shadow-xs transition active:scale-95 whitespace-nowrap flex-shrink-0"
+                    >
+                      <Download size={14} /> Download Sample CSV
+                    </button>
+                  </div>
+
+                  {!hasUnlimitedEmployees && !isSuperAdmin && (
+                    <div className="pt-2.5 border-t border-blue-200/60 flex flex-wrap items-center justify-between gap-2">
+                      <span className="text-[11px] text-blue-800 font-medium">
+                        Need more than {totalAllowedLimit} employees?
+                      </span>
+                      {unlimitedEmployeesStatus === 'pending' ? (
+                        <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-3 py-1 rounded-xl border border-amber-200 flex items-center gap-1.5">
+                          <Clock size={13} className="text-amber-600" />
+                          <span>Unlimited request pending Super Admin review</span>
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={requestingUnlimited}
+                          onClick={handleRequestUnlimited}
+                          className="text-[11px] font-bold text-white bg-slate-900 hover:bg-black px-3 py-1.5 rounded-xl shadow-xs transition active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
+                        >
+                          <Crown size={12} className="text-amber-400" />
+                          <span>{requestingUnlimited ? "Submitting..." : "Request Unlimited Capacity from Super Admin"}</span>
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Dropzone Area */}
+                {!importSuccess && (
+                  <div>
+                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-2 ml-1">
+                      Upload File (.csv or .xlsx)
+                    </label>
+                    <div
+                      onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                      onDragLeave={() => setIsDragging(false)}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        setIsDragging(false);
+                        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+                          handleFileSelect(e.dataTransfer.files[0]);
+                        }
+                      }}
+                      className={`border-2 border-dashed rounded-2xl p-6 text-center transition-all ${
+                        isDragging
+                          ? 'border-emerald-500 bg-emerald-50/40'
+                          : importFile
+                          ? 'border-emerald-400 bg-emerald-50/20'
+                          : 'border-gray-200 hover:border-gray-300 bg-gray-50/50'
+                      }`}
+                    >
+                      {importFile ? (
+                        <div className="flex items-center justify-between gap-4 bg-white p-3.5 rounded-xl border border-emerald-100 shadow-xs">
+                          <div className="flex items-center gap-3 text-left truncate">
+                            <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl flex-shrink-0">
+                              <FileText size={22} />
+                            </div>
+                            <div className="truncate">
+                              <p className="text-sm font-bold text-gray-900 truncate">{importFile.name}</p>
+                              <p className="text-xs text-gray-400 font-medium">
+                                {(importFile.size / 1024).toFixed(1)} KB • Ready to import
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            disabled={isImporting}
+                            onClick={() => setImportFile(null)}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition"
+                            title="Remove file"
+                          >
+                            <X size={18} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-gray-100 text-gray-500 flex items-center justify-center mx-auto">
+                            <Upload size={22} />
+                          </div>
+                          <div>
+                            <p className="text-sm font-bold text-gray-800">
+                              Drag and drop your spreadsheet here, or{" "}
+                              <label className="text-blue-600 hover:text-blue-700 underline cursor-pointer font-bold">
+                                browse
+                                <input
+                                  type="file"
+                                  accept=".csv,.txt,.xlsx,.xls"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                      handleFileSelect(e.target.files[0]);
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </p>
+                            <p className="text-xs text-gray-400 font-medium mt-1">
+                              Supports .CSV and .XLSX (up to 10MB)
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                {/* Progress Bar */}
+                {isImporting && (
+                  <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100 space-y-3 animate-in fade-in duration-150">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-bold text-gray-700 flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-blue-600 animate-ping"></span>
+                        {importStatusText || "Processing file..."}
+                      </span>
+                      <span className="font-black text-blue-600">{importProgress}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-indigo-600 h-2.5 rounded-full transition-all duration-300"
+                        style={{ width: `${importProgress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Validation Errors Box */}
+                {importErrors.length > 0 && (
+                  <div className="p-5 bg-rose-50 border border-rose-200 rounded-2xl space-y-2.5 animate-in fade-in duration-150">
+                    <div className="flex items-center gap-2 text-rose-800 font-bold text-sm">
+                      <AlertCircle size={18} className="text-rose-600 flex-shrink-0" />
+                      <span>The import was stopped due to {importErrors.length} error(s):</span>
+                    </div>
+                    <ul className="text-xs text-rose-700 space-y-1.5 max-h-48 overflow-y-auto pl-6 list-disc font-medium">
+                      {importErrors.map((err, idx) => (
+                        <li key={idx} className="leading-relaxed">{err}</li>
+                      ))}
+                    </ul>
+                    <p className="text-[11px] text-rose-600 pt-1 border-t border-rose-200/60 font-semibold">
+                      Please correct the duplicate email addresses or invalid rows in your spreadsheet and try again.
+                    </p>
+                    {!hasUnlimitedEmployees && !isSuperAdmin && (
+                      <div className="pt-2 flex flex-wrap items-center justify-between gap-2 border-t border-rose-200/60">
+                        <span className="text-xs text-rose-800 font-bold">Need to scale past {totalAllowedLimit} users?</span>
+                        {unlimitedEmployeesStatus === 'pending' ? (
+                          <span className="text-[11px] font-bold text-amber-800 bg-amber-50 px-2.5 py-1 rounded-lg border border-amber-200">
+                            ⏳ Unlimited scale request pending Super Admin review
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={requestingUnlimited}
+                            onClick={handleRequestUnlimited}
+                            className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-[11px] font-bold transition active:scale-95 flex items-center gap-1.5 shadow-xs"
+                          >
+                            <Crown size={12} className="text-amber-300" />
+                            <span>Request Unlimited Capacity from Super Admin</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Success Message Box */}
+                {importSuccess && (
+                  <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-center space-y-3 animate-in zoom-in-95 duration-150">
+                    <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto shadow-sm">
+                      <CheckCircle2 size={28} />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-bold text-emerald-900">Import Completed</h4>
+                      <p className="text-xs text-emerald-700 font-medium mt-1">{importSuccess}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Field Rules Guide */}
+                {!importSuccess && (
+                  <div className="bg-gray-50/80 rounded-2xl p-4 border border-gray-100 text-xs text-gray-600 space-y-2">
+                    <div className="font-bold text-gray-800 text-[11px] uppercase tracking-wider">
+                      Spreadsheet Column Format:
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px]">
+                      <div>• <strong className="text-gray-800">employee name</strong> (Required)</div>
+                      <div>• <strong className="text-gray-800">email id</strong> (Required, Unique)</div>
+                      <div>• <strong className="text-gray-800">employee id</strong> (Auto-generated if blank or already in use)</div>
+                      <div>• <strong className="text-gray-800">password</strong> (Default: 12345678)</div>
+                      <div>• <strong className="text-gray-800">role</strong> (Default: user)</div>
+                      <div>• <strong className="text-gray-800">status</strong> (Default: active)</div>
+                    </div>
+                    <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-xl border border-amber-100 font-medium mt-2">
+                      ⚠️ Note: Employee Email ID cannot be modified once imported. Employee ID is auto-generated if blank or already taken, and can be edited in future.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-5 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+                {importSuccess ? (
+                  <button
+                    type="button"
+                    onClick={closeImportModal}
+                    className="px-6 py-3 bg-slate-900 hover:bg-black text-white rounded-xl text-xs font-bold uppercase tracking-wider transition active:scale-95"
+                  >
+                    Close & View Employees
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      disabled={isImporting}
+                      onClick={closeImportModal}
+                      className="px-5 py-3 text-xs font-bold text-gray-500 hover:text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 transition active:scale-95 disabled:opacity-40"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={!importFile || isImporting}
+                      onClick={handleImportSubmit}
+                      className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold uppercase tracking-wider shadow-lg shadow-emerald-600/20 transition active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
+                    >
+                      {isImporting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                          <span>Importing...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={15} />
+                          <span>Import Employees</span>
+                        </>
+                      )}
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           </div>

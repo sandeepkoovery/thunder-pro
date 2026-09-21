@@ -39,7 +39,8 @@ const avatarColor = (name = "") => {
 };
 
 export default function Index() {
-  const { admins = [], availableAdditionalModules = [] } = usePage().props;
+  const { admins = [], availableAdditionalModules = [], sharedSettings = {} } = usePage().props;
+  const csvImportLimit = Number(sharedSettings?.csv_import_limit) || 100;
 
   const [search, setSearch] = useState("");
   const [approvalFilter, setApprovalFilter] = useState("all");
@@ -60,6 +61,7 @@ export default function Index() {
     trial_days: 30,
     additional_modules: [],
     approval_status: "approved",
+    unlimited_employees_status: "none",
   });
   const [errors, setErrors] = useState({});
   const [deleteId, setDeleteId] = useState(null);
@@ -79,6 +81,7 @@ export default function Index() {
         trial_days: (admin.days_left_in_trial && admin.days_left_in_trial > 0) ? admin.days_left_in_trial : 30,
         additional_modules: Array.isArray(admin.additional_modules) ? admin.additional_modules : [],
         approval_status: admin.approval_status || "approved",
+        unlimited_employees_status: admin.unlimited_status || admin.unlimited_employees_status || "none",
       });
     } else {
       setEditingAdmin(null);
@@ -93,6 +96,7 @@ export default function Index() {
         trial_days: 30,
         additional_modules: [],
         approval_status: "approved",
+        unlimited_employees_status: "none",
       });
     }
     setErrors({});
@@ -154,6 +158,20 @@ export default function Index() {
       onError: (err) => {
         console.error("Approval change error:", err);
         toast.error("Failed to update approval status.");
+      },
+    });
+  };
+
+  // Change unlimited employee capacity status inline
+  const handleUnlimitedStatus = (id, newStatus) => {
+    router.patch(route("admin.admin-users.unlimited", id), { status: newStatus }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success(`Unlimited capacity status set to ${newStatus}!`);
+      },
+      onError: (err) => {
+        console.error("Unlimited status change error:", err);
+        toast.error("Failed to update unlimited capacity status.");
       },
     });
   };
@@ -312,7 +330,7 @@ export default function Index() {
                   <th className="py-4 px-6">Workspace / Admin</th>
                   <th className="py-4 px-6">Contact Details</th>
                   <th className="py-4 px-6">Plan &amp; Modules</th>
-                  <th className="py-4 px-6 text-center">Employees</th>
+                  <th className="py-4 px-6 text-center">Employees / Capacity</th>
                   <th className="py-4 px-6">Status</th>
                   <th className="py-4 px-6 text-center">Actions</th>
                 </tr>
@@ -386,11 +404,54 @@ export default function Index() {
                           )}
                         </div>
                       </td>
-                      <td className="py-4 px-6 text-center text-[14px] text-gray-600 font-mono font-semibold">
-                        <span className="bg-gray-50 border border-gray-100 px-3 py-1 rounded-lg text-gray-600 text-[13px] inline-flex items-center gap-1">
-                          <UsersIcon size={13} className="text-gray-400" />
-                          {admin.users_count || 0}
-                        </span>
+                      <td className="py-4 px-6 text-center">
+                        <div className="inline-flex flex-col items-center gap-1.5">
+                          <span
+                            className={`px-3 py-1 rounded-xl text-[13px] font-mono font-bold inline-flex items-center gap-1.5 ${
+                              admin.has_unlimited
+                                ? "bg-purple-50 text-purple-700 border border-purple-200/80"
+                                : (admin.users_count >= csvImportLimit)
+                                ? "bg-rose-50 text-rose-700 border border-rose-200"
+                                : "bg-gray-50 text-gray-700 border border-gray-200/60"
+                            }`}
+                          >
+                            <UsersIcon size={14} className={admin.has_unlimited ? "text-purple-600" : "text-gray-400"} />
+                            {admin.users_count || 0}{" "}
+                            <span className="text-gray-400 font-normal">
+                              {admin.has_unlimited ? "(Unlimited)" : `/ ${csvImportLimit}`}
+                            </span>
+                          </span>
+
+                          {admin.unlimited_status === "pending" && (
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-300 animate-pulse">
+                                Unlimited Requested
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => handleUnlimitedStatus(admin.id, "approved")}
+                                className="px-2 py-0.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold shadow-xs cursor-pointer transition-colors"
+                                title="Approve Unlimited Employee Limit"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleUnlimitedStatus(admin.id, "rejected")}
+                                className="px-2 py-0.5 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11px] font-bold border border-rose-200 cursor-pointer transition-colors"
+                                title="Reject Unlimited Limit"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+
+                          {admin.unlimited_status === "approved" && (
+                            <span className="text-[10px] font-bold text-purple-600 uppercase tracking-wider">
+                              Approved Unlimited
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="py-4 px-6">
                         {isApproved ? (
@@ -549,10 +610,40 @@ export default function Index() {
                   <div className="font-semibold text-gray-600">
                     Plan: <span className="font-bold text-gray-800 uppercase">{admin.plan}</span>
                   </div>
-                  <div>
-                    Employees: <span className="font-bold text-gray-800">{admin.users_count || 0}</span>
+                  <div className="text-right">
+                    Employees:{" "}
+                    <span className="font-bold text-gray-800">
+                      {admin.users_count || 0}{" "}
+                      <span className="text-gray-400 font-normal">
+                        {admin.has_unlimited ? "(Unlimited)" : `/ ${csvImportLimit}`}
+                      </span>
+                    </span>
                   </div>
                 </div>
+
+                {admin.unlimited_status === "pending" && (
+                  <div className="mb-3 p-2.5 bg-amber-50 border border-amber-200 rounded-xl flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-amber-800">
+                      Unlimited Capacity Requested
+                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleUnlimitedStatus(admin.id, "approved")}
+                        className="px-2 py-1 bg-emerald-600 text-white rounded-lg text-xs font-bold shadow-xs cursor-pointer"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleUnlimitedStatus(admin.id, "rejected")}
+                        className="px-2 py-1 bg-rose-50 text-rose-600 border border-rose-200 rounded-lg text-xs font-bold cursor-pointer"
+                      >
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-2">
                   <button
@@ -828,6 +919,27 @@ export default function Index() {
                   <option value="pending">Pending Approval (Blocked Login)</option>
                   <option value="rejected">Disabled / Rejected</option>
                 </select>
+              </div>
+
+              {/* Unlimited Employee Capacity Status */}
+              <div>
+                <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-1.5">
+                  Employee Capacity &amp; CSV Import Limit
+                </label>
+                <select
+                  name="unlimited_employees_status"
+                  value={form.unlimited_employees_status || "none"}
+                  onChange={handleFormChange}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm font-bold text-gray-800 bg-white focus:outline-none focus:border-purple-500 cursor-pointer"
+                >
+                  <option value="none">Standard Limit ({csvImportLimit} Total Employees)</option>
+                  <option value="approved">Approved Unlimited Employees (Super Admin Override)</option>
+                  <option value="pending">Pending Approval (Review Requested)</option>
+                  <option value="rejected">Rejected (Strict {csvImportLimit} Limit Enforced)</option>
+                </select>
+                <p className="text-[11px] text-gray-400 mt-1 font-medium">
+                  When approved, this tenant admin can import and add unlimited employees beyond the standard {csvImportLimit} cap.
+                </p>
               </div>
 
               {/* Submit Button */}

@@ -64,6 +64,7 @@ export default function Index({
         office_start_time: settings.office_start_time || '09:00',
         office_end_time: settings.office_end_time || '18:00',
         login_buffer_minutes: settings.login_buffer_minutes ?? 30,
+        csv_import_limit: settings.csv_import_limit ?? 100,
         beta_menu_items: JSON.parse(settings.beta_menu_items || '[]'),
         hidden_modules: JSON.parse(settings.hidden_modules || '[]'),
     });
@@ -235,7 +236,7 @@ export default function Index({
 
                         <form onSubmit={submitGeneral} className="space-y-8">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className={`space-y-2 ${isSuperAdmin ? 'md:col-span-2' : ''}`}>
+                                <div className="space-y-2">
                                     <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Admin Email Address</label>
                                     <input
                                         type="email"
@@ -246,6 +247,26 @@ export default function Index({
                                     />
                                     {generalForm.errors.admin_email && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.admin_email}</p>}
                                 </div>
+
+                                {isSuperAdmin && (
+                                    <div className="space-y-2">
+                                        <div className="flex items-center justify-between">
+                                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Premium Plan Total Employee Limit</label>
+                                            <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full">Super Admin Setting</span>
+                                        </div>
+                                        <input
+                                            type="number"
+                                            value={generalForm.data.csv_import_limit}
+                                            className="w-full px-5 py-4 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800"
+                                            onChange={(e) => generalForm.setData('csv_import_limit', e.target.value)}
+                                            min="1"
+                                            max="10000"
+                                            placeholder="100"
+                                        />
+                                        {generalForm.errors.csv_import_limit && <p className="text-xs text-red-500 font-bold ml-1">{generalForm.errors.csv_import_limit}</p>}
+                                        <p className="text-[11px] text-gray-400 font-medium ml-1">Total ceiling of employees a Premium admin can have (e.g. 100). If an admin has 90, only 10 more can be added/imported unless approved for unlimited employees by Super Admin.</p>
+                                    </div>
+                                )}
 
                                 {!isSuperAdmin && (
                                     <>

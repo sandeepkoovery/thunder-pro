@@ -207,6 +207,12 @@ Route::middleware(['auth', 'is_admin'])
                 ->name('users.toggle');
             Route::patch('users/toggle-desktop/{user}', [AdminUserController::class, 'toggleDesktop'])
                 ->name('users.toggle.desktop');
+            Route::get('users/import/template', [AdminUserController::class, 'downloadImportTemplate'])
+                ->name('users.import.template');
+            Route::post('users/import', [AdminUserController::class, 'import'])
+                ->name('users.import');
+            Route::post('users/request-unlimited', [AdminUserController::class, 'requestUnlimited'])
+                ->name('users.request-unlimited');
             Route::resource('users', AdminUserController::class);
             Route::resource('departments', AdminDepartmentController::class);
 
@@ -266,6 +272,7 @@ Route::middleware(['auth', 'is_admin'])
             Route::post('admin-users', [\App\Http\Controllers\Admin\AdminUsersController::class, 'store'])->name('admin-users.store');
             Route::put('admin-users/{id}', [\App\Http\Controllers\Admin\AdminUsersController::class, 'update'])->name('admin-users.update');
             Route::match(['post', 'patch'], 'admin-users/{id}/approval', [\App\Http\Controllers\Admin\AdminUsersController::class, 'updateApproval'])->name('admin-users.approval');
+            Route::match(['post', 'patch'], 'admin-users/{id}/unlimited', [\App\Http\Controllers\Admin\AdminUsersController::class, 'updateUnlimitedStatus'])->name('admin-users.unlimited');
             Route::match(['post', 'patch'], 'admin-users/{id}/toggle', [\App\Http\Controllers\Admin\AdminUsersController::class, 'toggleStatus'])->name('admin-users.toggle');
             Route::delete('admin-users/{id}', [\App\Http\Controllers\Admin\AdminUsersController::class, 'destroy'])->name('admin-users.destroy');
 

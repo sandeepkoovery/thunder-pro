@@ -132,14 +132,13 @@ class PricingController extends Controller
             $seen = [];
             $additionalModules = array_values(array_filter($additionalModules, function ($mod) use (&$seen) {
                 $key = $mod['key'] ?? null;
-                if (!$key || isset($seen[$key])) return false;
+                if (!$key || isset($seen[$key]) || $key === 'catering') return false;
                 $seen[$key] = true;
                 return true;
             }));
         } else {
             $additionalModules = [
                 ['key' => 'ai_assistant', 'label' => 'AI Voice Assistant', 'price' => 499, 'description' => 'Malayalam & English Voice AI Assistant for database queries', 'included' => true],
-                ['key' => 'catering', 'label' => 'Catering Management', 'price' => 499, 'description' => 'Catering management, menu planning & order processing', 'included' => true],
                 ['key' => 'content_calendar', 'label' => 'Content Calendar', 'price' => 499, 'description' => 'Plan & schedule social content campaigns', 'included' => true],
                 ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'description' => 'Track & manage daily property/item listings', 'included' => true],
                 ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'description' => 'Manage creative tasks & designer workflows', 'included' => true],
@@ -208,12 +207,14 @@ class PricingController extends Controller
         if ($isSuperAdmin) {
             $admins = \App\Models\Admin::where('role', 'admin')
                 ->orderBy('name')
-                ->get(['id', 'name', 'email', 'plan', 'subscription_status', 'trial_ends_at', 'subscribed_at', 'additional_modules', 'company_name', 'phone', 'is_active']);
+                ->get(['id', 'name', 'email', 'plan', 'subscription_status', 'trial_ends_at', 'subscribed_at', 'additional_modules', 'company_name', 'phone', 'is_active', 'unlimited_employees_status']);
             
             $admins->transform(function ($adm) {
                 $adm->is_trial = $adm->isInTrial();
                 $adm->is_trial_expired = $adm->isTrialExpired();
                 $adm->days_left_in_trial = $adm->daysLeftInTrial();
+                $adm->has_unlimited = $adm->hasUnlimitedEmployees();
+                $adm->unlimited_status = $adm->unlimited_employees_status ?? 'none';
                 return $adm;
             });
         }
