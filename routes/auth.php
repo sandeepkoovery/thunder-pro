@@ -11,6 +11,8 @@ use App\Http\Controllers\Auth\RegisteredUserController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\PasskeyController;
 use App\Http\Controllers\Auth\AdminAuthenticatedSessionController;
+use App\Http\Controllers\Auth\AdminPasswordResetLinkController;
+use App\Http\Controllers\Auth\AdminNewPasswordController;
 use App\Http\Controllers\Auth\FirstTimePasswordController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +22,18 @@ Route::middleware('guest')->group(function () {
 
     Route::post('admin/login', [AdminAuthenticatedSessionController::class, 'store'])
         ->name('admin.login.store');
+
+    Route::get('admin/forgot-password', [AdminPasswordResetLinkController::class, 'create'])
+        ->name('admin.password.request');
+
+    Route::post('admin/forgot-password', [AdminPasswordResetLinkController::class, 'store'])
+        ->name('admin.password.email');
+
+    Route::get('admin/reset-password/{token}', [AdminNewPasswordController::class, 'create'])
+        ->name('admin.password.reset');
+
+    Route::post('admin/reset-password', [AdminNewPasswordController::class, 'store'])
+        ->name('admin.password.store');
 
     Route::get('register', [RegisteredUserController::class, 'create'])
         ->name('register');
