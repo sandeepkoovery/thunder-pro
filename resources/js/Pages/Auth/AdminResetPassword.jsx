@@ -60,9 +60,9 @@ export default function AdminResetPassword({ token, email }) {
                         type="email"
                         name="email"
                         value={data.email}
-                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all text-slate-800"
+                        readOnly={true}
+                        className="w-full px-4 py-3 bg-slate-100/90 border border-slate-200 rounded-xl text-slate-500 font-medium cursor-not-allowed select-none focus:ring-0 focus:border-slate-200"
                         autoComplete="username"
-                        onChange={(e) => setData('email', e.target.value)}
                         placeholder="admin@company.com"
                     />
                     <InputError message={errors.email} className="mt-1.5 ml-1" />

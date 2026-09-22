@@ -60,9 +60,9 @@ export default function ResetPassword({ token, email }) {
                         type="email"
                         name="email"
                         value={data.email}
-                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white transition-all text-gray-800"
+                        readOnly={true}
+                        className="w-full px-4 py-3 bg-gray-100/90 border border-gray-200 rounded-xl text-gray-500 font-medium cursor-not-allowed select-none focus:ring-0 focus:border-gray-200"
                         autoComplete="username"
-                        onChange={(e) => setData('email', e.target.value)}
                         placeholder="Enter your email address"
                     />
 

@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Reset Password Notification</title>
 </head>
+@php
+    $appName = (config('app.name') && !in_array(config('app.name'), ['Laravel', 'Thunder ERP', 'Thunder'])) ? config('app.name') : 'WorkNest';
+@endphp
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; margin: 0; padding: 30px 15px; color: #1e293b;">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 560px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);">
         
@@ -12,7 +15,7 @@
         <tr>
             <td style="padding: 32px 32px 20px 32px; text-align: center; border-bottom: 1px solid #f1f5f9;">
                 <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #0f172a; letter-spacing: -0.5px;">
-                    {{ config('app.name', 'Thunder ERP') }}
+                    {{ $appName }}
                 </h2>
             </td>
         </tr>
@@ -50,7 +53,7 @@
 
                 <p style="margin-top: 24px; margin-bottom: 0; font-size: 14px; color: #334155; font-weight: 600;">
                     Regards,<br>
-                    {{ config('app.name', 'Thunder ERP') }}
+                    {{ $appName }}
                 </p>
             </td>
         </tr>
@@ -70,7 +73,7 @@
 
     <!-- Footer -->
     <div style="text-align: center; margin-top: 24px; font-size: 12px; color: #94a3b8;">
-        &copy; {{ date('Y') }} {{ config('app.name', 'Thunder ERP') }}. All rights reserved.
+        &copy; {{ date('Y') }} {{ $appName }}. All rights reserved.
     </div>
 </body>
 </html>
