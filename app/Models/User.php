@@ -251,5 +251,16 @@ class User extends Authenticatable
     {
         return $this->passkeys()->exists();
     }
+
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\ResetPasswordNotification($token));
+    }
 }
 

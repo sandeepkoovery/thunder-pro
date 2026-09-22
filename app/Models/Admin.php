@@ -202,4 +202,15 @@ class Admin extends Authenticatable
     {
         return $this->role === 'superadmin' || $this->unlimited_employees_status === 'approved';
     }
+
+    /**
+     * Send the password reset notification.
+     *
+     * @param  string  $token
+     * @return void
+     */
+    public function sendPasswordResetNotification($token): void
+    {
+        $this->notify(new \App\Notifications\ResetPasswordNotification($token));
+    }
 }
