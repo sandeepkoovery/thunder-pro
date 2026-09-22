@@ -3,14 +3,33 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, useForm } from '@inertiajs/react';
+import { useState } from 'react';
+import { Check, X, Eye, EyeOff, Lock, KeyRound } from 'lucide-react';
 
 export default function ResetPassword({ token, email }) {
     const { data, setData, post, processing, errors, reset } = useForm({
         token: token,
-        email: email,
+        email: email || '',
         password: '',
         password_confirmation: '',
     });
+
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+    // Validation rules checks
+    const hasMinLength = data.password.length >= 8;
+    const hasUppercase = /[A-Z]/.test(data.password);
+    const hasDigit = /[0-9]/.test(data.password);
+    const hasSpecialChar = /[^a-zA-Z0-9]/.test(data.password);
+    const passwordsMatch = data.password.length > 0 && data.password === data.password_confirmation;
+
+    const allRulesSatisfied =
+        hasMinLength &&
+        hasUppercase &&
+        hasDigit &&
+        hasSpecialChar &&
+        passwordsMatch;
 
     const submit = (e) => {
         e.preventDefault();
@@ -25,78 +44,129 @@ export default function ResetPassword({ token, email }) {
             <Head title="Reset Password" />
 
             <div className="mb-8 text-center">
-                <h2 className="text-3xl font-black text-[#2d3436] mb-2">New Password</h2>
-                <p className="text-[#636e72] font-medium">Set your new account password</p>
+                <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-3 text-primary">
+                    <KeyRound className="w-6 h-6" />
+                </div>
+                <h2 className="text-2xl font-bold text-gray-800 mb-1">Set New Password</h2>
+                <p className="text-sm text-gray-500 font-light">Choose a strong password for your account</p>
             </div>
 
-            <form onSubmit={submit} className="space-y-6">
+            <form onSubmit={submit} className="space-y-5">
                 <div>
-                    <InputLabel htmlFor="email" value="Email Address" className="text-[#2d3436] font-bold mb-2 ml-1" />
+                    <InputLabel htmlFor="email" value="Email Address" className="text-gray-700 font-medium mb-1.5 ml-1" />
 
                     <TextInput
                         id="email"
                         type="email"
                         name="email"
                         value={data.email}
-                        className="w-full px-5 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-[#ff4081] transition-all font-medium text-[#2d3436]"
+                        className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white transition-all text-gray-800"
                         autoComplete="username"
                         onChange={(e) => setData('email', e.target.value)}
                         placeholder="Enter your email address"
                     />
 
-                    <InputError message={errors.email} className="mt-2 ml-1" />
+                    <InputError message={errors.email} className="mt-1.5 ml-1" />
                 </div>
 
                 <div>
-                    <InputLabel htmlFor="password" value="New Password" className="text-[#2d3436] font-bold mb-2 ml-1" />
+                    <InputLabel htmlFor="password" value="New Password" className="text-gray-700 font-medium mb-1.5 ml-1" />
 
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="w-full px-5 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-[#ff4081] transition-all font-medium text-[#2d3436]"
-                        autoComplete="new-password"
-                        isFocused={true}
-                        onChange={(e) => setData('password', e.target.value)}
-                        placeholder="••••••••"
-                    />
+                    <div className="relative">
+                        <TextInput
+                            id="password"
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            value={data.password}
+                            className="w-full pl-4 pr-11 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white transition-all text-gray-800"
+                            autoComplete="new-password"
+                            isFocused={true}
+                            onChange={(e) => setData('password', e.target.value)}
+                            placeholder="••••••••"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                        >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
 
-                    <InputError message={errors.password} className="mt-2 ml-1" />
+                    <InputError message={errors.password} className="mt-1.5 ml-1" />
                 </div>
 
                 <div>
                     <InputLabel
                         htmlFor="password_confirmation"
                         value="Confirm New Password"
-                        className="text-[#2d3436] font-bold mb-2 ml-1"
+                        className="text-gray-700 font-medium mb-1.5 ml-1"
                     />
 
-                    <TextInput
-                        type="password"
-                        id="password_confirmation"
-                        name="password_confirmation"
-                        value={data.password_confirmation}
-                        className="w-full px-5 py-4 bg-gray-50 border-none rounded-2xl focus:ring-2 focus:ring-[#ff4081] transition-all font-medium text-[#2d3436]"
-                        autoComplete="new-password"
-                        onChange={(e) =>
-                            setData('password_confirmation', e.target.value)
-                        }
-                        placeholder="••••••••"
-                    />
+                    <div className="relative">
+                        <TextInput
+                            type={showConfirmPassword ? 'text' : 'password'}
+                            id="password_confirmation"
+                            name="password_confirmation"
+                            value={data.password_confirmation}
+                            className="w-full pl-4 pr-11 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white transition-all text-gray-800"
+                            autoComplete="new-password"
+                            onChange={(e) =>
+                                setData('password_confirmation', e.target.value)
+                            }
+                            placeholder="••••••••"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                        >
+                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
 
                     <InputError
                         message={errors.password_confirmation}
-                        className="mt-2 ml-1"
+                        className="mt-1.5 ml-1"
                     />
+                </div>
+
+                {/* Password Requirements Checklist */}
+                <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200/80 space-y-2 text-xs">
+                    <p className="font-semibold text-gray-700">Password requirements:</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        <div className={`flex items-center gap-1.5 ${hasMinLength ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
+                            {hasMinLength ? <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <X className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
+                            <span>At least 8 characters</span>
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${hasUppercase ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
+                            {hasUppercase ? <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <X className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
+                            <span>At least 1 uppercase letter</span>
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${hasDigit ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
+                            {hasDigit ? <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <X className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
+                            <span>At least 1 digit (0-9)</span>
+                        </div>
+                        <div className={`flex items-center gap-1.5 ${hasSpecialChar ? 'text-emerald-600 font-medium' : 'text-gray-500'}`}>
+                            {hasSpecialChar ? <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <X className="w-3.5 h-3.5 text-gray-400 shrink-0" />}
+                            <span>At least 1 special character</span>
+                        </div>
+                    </div>
+                    {data.password_confirmation.length > 0 && (
+                        <div className={`pt-1 border-t border-gray-200/60 flex items-center gap-1.5 ${passwordsMatch ? 'text-emerald-600 font-medium' : 'text-rose-600'}`}>
+                            {passwordsMatch ? <Check className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <X className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
+                            <span>{passwordsMatch ? 'Passwords match' : 'Passwords do not match'}</span>
+                        </div>
+                    )}
                 </div>
 
                 <button
                     type="submit"
-                    disabled={processing}
-                    className="w-full py-4 bg-[#ff4081] text-white rounded-2xl font-black text-lg hover:bg-[#e91e63] transition-all shadow-xl shadow-[#ff4081]/20 active:scale-[0.98] disabled:opacity-50"
+                    disabled={processing || !allRulesSatisfied}
+                    className="w-full py-3.5 bg-primary hover:bg-primary-dark text-white rounded-xl font-bold text-base transition-all shadow-md active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                    {processing ? 'RESETTING...' : 'RESET PASSWORD'}
+                    <Lock className="w-4 h-4" />
+                    {processing ? 'Resetting Password...' : 'Reset Password'}
                 </button>
             </form>
         </GuestLayout>

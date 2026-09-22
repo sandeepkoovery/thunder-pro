@@ -37,7 +37,16 @@ class NewPasswordController extends Controller
         $request->validate([
             'token' => 'required',
             'email' => 'required|email',
-            'password' => ['required', 'confirmed', Rules\Password::defaults()],
+            'password' => [
+                'required',
+                'confirmed',
+                Rules\Password::min(8)->letters()->mixedCase()->numbers()->symbols(),
+            ],
+        ], [
+            'password.min' => 'Password must be at least 8 characters long.',
+            'password.mixed' => 'Password must contain at least one uppercase letter.',
+            'password.numbers' => 'Password must contain at least one number.',
+            'password.symbols' => 'Password must contain at least one special character.',
         ]);
 
         // Here we will attempt to reset the user's password. If it is successful we
@@ -46,10 +55,14 @@ class NewPasswordController extends Controller
         $status = Password::reset(
             $request->only('email', 'password', 'password_confirmation', 'token'),
             function ($user) use ($request) {
-                $user->forceFill([
+                $updateData = [
                     'password' => Hash::make($request->password),
                     'remember_token' => Str::random(60),
-                ])->save();
+                ];
+                if (isset($user->must_change_password)) {
+                    $updateData['must_change_password'] = false;
+                }
+                $user->forceFill($updateData)->save();
 
                 event(new PasswordReset($user));
             }
