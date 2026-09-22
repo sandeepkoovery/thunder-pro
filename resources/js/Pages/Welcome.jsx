@@ -107,7 +107,7 @@ export default function Welcome({ canLogin, canRegister }) {
                     <div className="max-w-[1512px] mx-auto px-4 sm:px-5 lg:px-6 flex justify-between items-center">
                         {/* Logo left side styled in violet/purple */}
                         <div className="flex items-center gap-3 sm:gap-5">
-                            <img src={getAssetUrl('images/worknest_logo.png?v=4')} alt="WorkNest" className="w-16 h-16 sm:w-32 sm:h-32 rounded-3xl object-contain" />
+                            <img src={getAssetUrl('images/worknest_logo.png?v=15')} alt="WorkNest" className="w-16 h-16 sm:w-32 sm:h-32 rounded-3xl object-contain" />
                             <span className="text-2xl sm:text-4xl font-black tracking-widest text-[#7460ee] uppercase">
                                 WorkNest
                             </span>
@@ -334,7 +334,7 @@ export default function Welcome({ canLogin, canRegister }) {
                         {/* Box */}
                         <div className="space-y-4 col-span-2 md:col-span-1">
                             <div className="flex items-center gap-3">
-                                <img src={getAssetUrl('images/worknest_logo.png?v=4')} alt="WorkNest" className="w-10 h-10 rounded-xl object-contain" />
+                                <img src={getAssetUrl('images/worknest_logo.png?v=15')} alt="WorkNest" className="w-10 h-10 rounded-xl object-contain" />
                                 <span className="text-lg font-black tracking-tight text-[#2b1440]">
                                     WorkNest
                                 </span>

@@ -226,7 +226,7 @@ export default function Pricing({ settings, currentPlan, currentAdditionalModule
                     <div className="max-w-[1512px] mx-auto px-4 sm:px-5 lg:px-6 flex justify-between items-center">
                         {/* Logo left side matching landing page */}
                         <Link href={route('home')} className="flex items-center gap-3 sm:gap-5 group">
-                            <img src={getAssetUrl('images/worknest_logo.png?v=4')} alt="WorkNest" className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl object-contain" />
+                            <img src={getAssetUrl('images/worknest_logo.png?v=15')} alt="WorkNest" className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl object-contain" />
                             <span className="text-2xl sm:text-4xl font-black tracking-widest text-[#7460ee] uppercase">
                                 WorkNest
                             </span>

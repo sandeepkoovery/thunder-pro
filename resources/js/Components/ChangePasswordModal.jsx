@@ -15,6 +15,26 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+const getAssetUrl = (path) => {
+    try {
+        let base = "";
+        if (typeof window !== 'undefined' && window.Ziggy && window.Ziggy.url) {
+            base = window.Ziggy.url;
+        } else if (typeof window !== 'undefined') {
+            const origin = window.location.origin;
+            if (window.location.pathname.includes('/erp_pro/public')) {
+                base = origin + '/erp_pro/public';
+            } else {
+                base = origin;
+            }
+        }
+        const baseSlash = base.endsWith('/') ? base : base + '/';
+        return baseSlash + (path.startsWith('/') ? path.substring(1) : path);
+    } catch (e) {
+        return '/' + path;
+    }
+};
+
 export default function ChangePasswordModal({ isOpen = true, user = null }) {
     if (!isOpen) return null;
 
@@ -92,9 +112,11 @@ export default function ChangePasswordModal({ isOpen = true, user = null }) {
             <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 shadow-2xl border border-slate-100 animate-in fade-in zoom-in duration-300 relative pointer-events-auto my-auto text-left">
                 {/* Header */}
                 <div className="text-center mb-6">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 text-white flex items-center justify-center mx-auto mb-4 shadow-lg shadow-emerald-500/25">
-                        <ShieldCheck size={32} />
-                    </div>
+                    <img
+                        src={getAssetUrl('images/worknest_logo.png?v=15')}
+                        alt="WorkNest Logo"
+                        className="w-14 h-14 rounded-2xl mx-auto mb-3 object-contain shadow-sm"
+                    />
 
                     <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold mb-2">
                         <KeyRound size={12} />
