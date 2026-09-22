@@ -4,6 +4,7 @@ import { Menu, Search, Moon, Sun, ChevronDown, LogOut, Settings, User, CreditCar
 import NotificationDropdown from "@/Components/NotificationDropdown";
 import ThemeCustomizer from "@/Components/ThemeCustomizer";
 import AskWorkNestVoiceAssistant from "@/Components/AskWorkNestVoiceAssistant";
+import ChangePasswordModal from "@/Components/ChangePasswordModal";
 import { Toaster, toast } from "react-hot-toast";
 
 export function NavItem({ href, icon: Icon, label, visible, badge, beta, routeName, collapsed, isMobileOpen }) {
@@ -600,6 +601,12 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
           </div>
         </div>
       )}
+
+      {/* FULL-SCREEN MANDATORY CHANGE PASSWORD POPUP MODAL */}
+      <ChangePasswordModal
+        isOpen={Boolean(auth?.user?.must_change_password)}
+        user={auth?.user}
+      />
     </>
   );
 }

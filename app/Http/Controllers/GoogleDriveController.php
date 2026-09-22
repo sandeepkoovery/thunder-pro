@@ -15,12 +15,19 @@ class GoogleDriveController extends Controller
     public function index(Request $request)
     {
         try {
+            $service = $this->getService();
+            if (!$service->isConnected()) {
+                return response()->json([
+                    'error' => 'No Google Drive account is connected for this company. Please click "Connect Account" to link your Google Drive.'
+                ], 404);
+            }
+
             $folderId = $request->query('folder_id');
-            $files = $this->getService()->listFiles($folderId);
+            $files = $service->listFiles($folderId);
             return response()->json($files);
         } catch (\Exception $e) {
             $status = 500;
-            if (str_contains(strtolower($e->getMessage()), 're-authenticate') || str_contains(strtolower($e->getMessage()), 'expired')) {
+            if (str_contains(strtolower($e->getMessage()), 're-authenticate') || str_contains(strtolower($e->getMessage()), 'expired') || str_contains(strtolower($e->getMessage()), 'not connected') || str_contains(strtolower($e->getMessage()), 'not initialized')) {
                 $status = 401;
             }
             return response()->json(['error' => $e->getMessage()], $status);

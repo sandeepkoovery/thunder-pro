@@ -95,6 +95,7 @@ class UserController extends Controller
 
         $validated['password'] = Hash::make($validated['password']);
         $validated['admin_id'] = $tenantAdminId;
+        $validated['must_change_password'] = true;
 
         // Check user limits
         $role = $validated['role'];
@@ -174,6 +175,7 @@ class UserController extends Controller
 
         if (!empty($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
+            $validated['must_change_password'] = true;
         } else {
             unset($validated['password']);
         }

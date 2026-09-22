@@ -257,6 +257,7 @@ class HandleInertiaRequests extends Middleware
                     'has_passkey' => ($user instanceof \App\Models\User) ? $user->hasPasskeys() : false,
                     'approval_status' => $approvalStatus,
                     'is_pending_approval' => $isPendingApproval,
+                    'must_change_password' => (bool) ($user->must_change_password ?? false),
                 ]) : null,
             ],
             'appUrl' => config('app.url'),

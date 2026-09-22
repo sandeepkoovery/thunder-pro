@@ -80,6 +80,10 @@ class AdminAuthenticatedSessionController extends Controller
 
         $request->session()->regenerate();
 
+        if ($admin && ($admin->must_change_password ?? false)) {
+            return redirect()->route('password.first_change');
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 }

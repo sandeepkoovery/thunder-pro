@@ -81,6 +81,7 @@ class User extends Authenticatable
         'branch',
         'shift',
         'is_imported',
+        'must_change_password',
     ];
 
     /**
@@ -104,6 +105,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'is_active' => 'boolean',
             'desktop_only' => 'boolean',
+            'must_change_password' => 'boolean',
             'date_of_birth' => 'date',
             'joining_date' => 'date',
         ];

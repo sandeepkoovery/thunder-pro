@@ -279,6 +279,7 @@ class EmployeeImportService
                     'is_active' => $item['is_active'],
                     'is_imported' => true,
                     'admin_id' => $tenantAdminId,
+                    'must_change_password' => true,
                 ]);
 
                 $createdCount++;

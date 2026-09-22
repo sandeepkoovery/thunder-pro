@@ -40,16 +40,26 @@ class GoogleDriveService
                 return $user;
             }
 
-            $admin = Admin::where('email', $user->email)->first()
-                ?? Admin::find($user->admin_id ?? 0);
+            if ($user instanceof \App\Models\User) {
+                $tenantAdminId = $user->admin_id ?? ($user->role === 'admin' ? $user->id : null);
+                if ($tenantAdminId) {
+                    $admin = Admin::find($tenantAdminId);
+                    if ($admin) {
+                        return $admin;
+                    }
+                }
 
-            if ($admin) {
-                return $admin;
+                $admin = Admin::where('email', $user->email)->first();
+                if ($admin) {
+                    return $admin;
+                }
             }
+
+            // In an authenticated session, NEVER fall back to another company's admin!
+            return null;
         }
 
-        // Fallback for background tasks, CLI commands, and cron jobs:
-        // Find the admin who owns the GoogleDriveConnection, or fallback to superadmin / first admin
+        // Fallback ONLY for background tasks, CLI commands, and cron jobs when no user session is active:
         $connection = GoogleDriveConnection::whereNotNull('refresh_token')->latest()->first();
         if ($connection && $connection->admin_id) {
             $admin = Admin::find($connection->admin_id);
@@ -66,7 +76,17 @@ class GoogleDriveService
         try {
             $this->connection = $this->admin ? $this->admin->googleDriveConnection : null;
 
-            $refreshToken = $this->connection?->refresh_token ?: config('services.google.refresh_token');
+            // In a multi-tenant environment, each tenant MUST use their own connected Google Drive account.
+            // Do NOT fall back to global .env credentials for tenant organizations!
+            if ($this->admin) {
+                $refreshToken = $this->connection?->refresh_token;
+                $this->folderId = $this->connection?->root_folder_id;
+            } else {
+                // Background/system CLI fallback when no admin context exists
+                $refreshToken = config('services.google.refresh_token');
+                $this->folderId = config('services.google.folder_id');
+            }
+
             $clientId = $this->connection?->client_id 
                 ?: Setting::where('key', 'google_drive_client_id')->value('value') 
                 ?: Setting::where('key', 'google_client_id')->value('value') 
@@ -75,10 +95,9 @@ class GoogleDriveService
                 ?: Setting::where('key', 'google_drive_client_secret')->value('value') 
                 ?: Setting::where('key', 'google_client_secret')->value('value') 
                 ?: config('services.google.client_secret');
-            $this->folderId = $this->connection?->root_folder_id ?: config('services.google.folder_id');
 
             if (!$refreshToken) {
-                \Log::info('Google Drive: No connected account in database or environment for Admin ID: ' . ($this->admin->id ?? 'unknown'));
+                \Log::info('Google Drive: No connected account for Admin: ' . ($this->admin->name ?? $this->admin->company_name ?? 'unknown') . ' (ID: ' . ($this->admin->id ?? 'none') . ')');
                 $this->client = null;
                 $this->service = null;
                 return;
