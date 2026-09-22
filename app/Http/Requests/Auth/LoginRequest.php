@@ -47,34 +47,21 @@ class LoginRequest extends FormRequest
 
         // Prevent Admin users from logging in via standard /login route
         if (\App\Models\Admin::where('email', $credentials['email'])->exists()) {
-            RateLimiter::hit($this->throttleKey());
-
-            throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
-            ]);
+            $this->recordFailedAttemptAndThrow();
         }
 
         // Attempt login strictly as standard User (users table)
         if (Auth::guard('web')->attempt($credentials, $remember)) {
             Auth::shouldUse('web');
         } else {
-            RateLimiter::hit($this->throttleKey());
-
-            throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
-            ]);
+            $this->recordFailedAttemptAndThrow();
         }
 
         // Additional safeguard: If a user record in `users` table has an admin role
         $user = Auth::guard('web')->user();
         if ($user && in_array($user->role, ['superadmin', 'admin'])) {
             Auth::guard('web')->logout();
-
-            RateLimiter::hit($this->throttleKey());
-
-            throw ValidationException::withMessages([
-                'email' => trans('auth.failed'),
-            ]);
+            $this->recordFailedAttemptAndThrow();
         }
 
         // Check if account is active or rejected
@@ -176,13 +163,30 @@ class LoginRequest extends FormRequest
 
         event(new Lockout($this));
 
-        $seconds = RateLimiter::availableIn($this->throttleKey());
+        throw ValidationException::withMessages([
+            'email' => 'Too many failed login attempts. Please contact administrator or please try after 24 hours.',
+        ]);
+    }
+
+    /**
+     * Record a failed login attempt with 24-hour decay and throw a detailed validation exception.
+     *
+     * @throws \Illuminate\Validation\ValidationException
+     */
+    protected function recordFailedAttemptAndThrow(): never
+    {
+        RateLimiter::hit($this->throttleKey(), 86400);
+
+        $retriesLeft = RateLimiter::retriesLeft($this->throttleKey(), 5);
+
+        if ($retriesLeft > 0) {
+            $message = "Invalid login credentials. You have {$retriesLeft} attempt" . ($retriesLeft === 1 ? '' : 's') . " remaining out of 5.";
+        } else {
+            $message = 'Too many failed login attempts. Please contact administrator or please try after 24 hours.';
+        }
 
         throw ValidationException::withMessages([
-            'email' => trans('auth.throttle', [
-                'seconds' => $seconds,
-                'minutes' => ceil($seconds / 60),
-            ]),
+            'email' => $message,
         ]);
     }
 

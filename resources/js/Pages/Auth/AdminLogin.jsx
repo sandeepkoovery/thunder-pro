@@ -4,7 +4,7 @@ import InputLabel from '@/Components/InputLabel';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ShieldCheck, Lock, Building2 } from 'lucide-react';
+import { ShieldCheck, Lock, Building2, ShieldAlert } from 'lucide-react';
 
 export default function AdminLogin({ status }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -37,6 +37,18 @@ export default function AdminLogin({ status }) {
             {status && (
                 <div className="mb-6 p-4 bg-green-50 rounded-xl text-sm font-medium text-green-600 border border-green-100">
                     {status}
+                </div>
+            )}
+
+            {errors.email && errors.email.includes('Too many failed login attempts') && (
+                <div className="mb-6 p-4 bg-rose-50 rounded-xl text-sm font-medium text-rose-700 border border-rose-200 flex items-start gap-3">
+                    <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-semibold text-rose-800">Account Temporarily Locked</p>
+                        <p className="mt-0.5 text-xs text-rose-600 leading-relaxed">
+                            {errors.email}
+                        </p>
+                    </div>
                 </div>
             )}
 
