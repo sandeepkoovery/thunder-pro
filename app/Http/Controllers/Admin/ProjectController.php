@@ -118,12 +118,12 @@ class ProjectController extends Controller
     private function authorizeProject(Project $project): void
     {
         $authUser = auth()->user();
-        if ($authUser->role === 'superadmin') {
+        if (!$authUser || $authUser->role === 'superadmin') {
             return;
         }
 
         $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
-        if ($project->admin_id !== $tenantAdminId) {
+        if ($tenantAdminId !== null && (int)$project->admin_id !== (int)$tenantAdminId) {
             abort(403, 'Unauthorized access to this project.');
         }
     }

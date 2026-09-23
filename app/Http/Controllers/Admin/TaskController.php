@@ -81,16 +81,17 @@ class TaskController extends Controller
     private function getTenantAdminId(): ?int
     {
         $authUser = auth()->user();
-        if ($authUser->role === 'superadmin') {
+        if (!$authUser || $authUser->role === 'superadmin') {
             return null;
         }
-        return $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+        $id = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+        return $id ? (int) $id : null;
     }
 
     private function authorizeTask(Task $task): void
     {
         $tenantAdminId = $this->getTenantAdminId();
-        if ($tenantAdminId !== null && $task->project && $task->project->admin_id !== $tenantAdminId) {
+        if ($tenantAdminId !== null && $task->project && (int)$task->project->admin_id !== (int)$tenantAdminId) {
             abort(403, 'Unauthorized access to this task.');
         }
     }
@@ -115,15 +116,15 @@ class TaskController extends Controller
         ]);
 
         $authUser = auth()->user();
-        $isSuperAdmin = $authUser->role === 'superadmin';
+        $isSuperAdmin = $authUser && $authUser->role === 'superadmin';
         $tenantAdminId = $this->getTenantAdminId();
 
         $project = Project::findOrFail($validated['project_id']);
-        if (!$isSuperAdmin && $project->admin_id !== $tenantAdminId) {
+        if (!$isSuperAdmin && $tenantAdminId !== null && (int)$project->admin_id !== (int)$tenantAdminId) {
             abort(403, 'Unauthorized access to this project.');
         }
 
-        // Create the task with current authenticated user as owner
+        // Create the task (tasks table does not have user_id; assignees are tracked via task_user pivot)
         $taskData = $request->only([
             'name',
             'caption',
@@ -135,7 +136,8 @@ class TaskController extends Controller
             'status',
             'priority',
         ]);
-        $taskData['user_id'] = auth()->id();
+        $taskData['start_date'] = $taskData['start_date'] ?? now()->toDateString();
+        $taskData['end_date'] = $taskData['end_date'] ?? $taskData['start_date'];
 
         $task = Task::create($taskData);
 
@@ -177,13 +179,13 @@ class TaskController extends Controller
         ]);
 
         $authUser = auth()->user();
-        $isSuperAdmin = $authUser->role === 'superadmin';
+        $isSuperAdmin = $authUser && $authUser->role === 'superadmin';
         $tenantAdminId = $this->getTenantAdminId();
 
         $this->authorizeTask($task);
 
         $project = Project::findOrFail($validated['project_id']);
-        if (!$isSuperAdmin && $project->admin_id !== $tenantAdminId) {
+        if (!$isSuperAdmin && $tenantAdminId !== null && (int)$project->admin_id !== (int)$tenantAdminId) {
             abort(403, 'Unauthorized access to this project.');
         }
 
