@@ -28,10 +28,7 @@ class DepartmentController extends Controller
         $query = Department::withCount('employees');
 
         if (!$isSuperAdmin && $adminId) {
-            $query->where(function ($q) use ($adminId) {
-                $q->where('admin_id', $adminId)
-                  ->orWhereNull('admin_id');
-            });
+            $query->where('admin_id', $adminId);
         }
 
         if ($search = $request->input('search')) {
@@ -72,6 +69,14 @@ class DepartmentController extends Controller
 
     public function update(Request $request, Department $department)
     {
+        $user = auth()->user();
+        $isSuperAdmin = $user && isset($user->role) && $user->role === 'superadmin';
+        $adminId = $this->getTenantAdminId();
+
+        if (!$isSuperAdmin && $department->admin_id !== $adminId) {
+            abort(403, 'Unauthorized action.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'code' => 'nullable|string|max:50',
@@ -88,6 +93,14 @@ class DepartmentController extends Controller
 
     public function destroy(Department $department)
     {
+        $user = auth()->user();
+        $isSuperAdmin = $user && isset($user->role) && $user->role === 'superadmin';
+        $adminId = $this->getTenantAdminId();
+
+        if (!$isSuperAdmin && $department->admin_id !== $adminId) {
+            abort(403, 'Unauthorized action.');
+        }
+
         // Unassign employees from this department before deleting
         $department->employees()->update(['department_id' => null]);
         $department->delete();

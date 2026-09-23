@@ -23,10 +23,19 @@ class ProfileController extends Controller
             $user->load('department');
         }
 
+        $tenantAdminId = $user instanceof \App\Models\Admin
+            ? ($user->role === 'superadmin' ? null : $user->id)
+            : ($user->admin_id ?? null);
+
+        $departmentsQuery = \App\Models\Department::query();
+        if ($tenantAdminId !== null) {
+            $departmentsQuery->where('admin_id', $tenantAdminId);
+        }
+
         return Inertia::render('Profile/Edit', [
             'mustVerifyEmail' => $user instanceof MustVerifyEmail,
             'status' => session('status'),
-            'departments' => \App\Models\Department::orderBy('name')->get(),
+            'departments' => $departmentsQuery->orderBy('name')->get(),
         ]);
     }
 
@@ -47,7 +56,20 @@ class ProfileController extends Controller
         $user->emergency_contact_name = $request->emergency_contact_name;
         $user->emergency_contact_number = $request->emergency_contact_number;
         if ($request->has('department_id')) {
-            $user->department_id = $request->department_id;
+            $tenantAdminId = $user instanceof \App\Models\Admin
+                ? ($user->role === 'superadmin' ? null : $user->id)
+                : ($user->admin_id ?? null);
+
+            if ($request->department_id && $tenantAdminId !== null) {
+                $isValidDept = \App\Models\Department::where('id', $request->department_id)
+                    ->where('admin_id', $tenantAdminId)
+                    ->exists();
+                if ($isValidDept) {
+                    $user->department_id = $request->department_id;
+                }
+            } else {
+                $user->department_id = $request->department_id;
+            }
         }
 
         if ($request->hasFile('thumb')) {

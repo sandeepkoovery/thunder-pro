@@ -26,18 +26,21 @@ class UserController extends Controller
     {
         $authUser = auth()->user();
         $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
 
         $query = User::with(['department', 'reportingManager', 'passkeys'])
             ->withCount('passkeys')
             ->whereIn('role', ['user', 'manager', 'editor']);
 
+        $departmentsQuery = Department::query();
+
         if (!$isSuperAdmin) {
-            $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
             $query->where('admin_id', $tenantAdminId);
+            $departmentsQuery->where('admin_id', $tenantAdminId);
         }
 
         $users = $query->get();
-        $departments = Department::orderBy('name')->get();
+        $departments = $departmentsQuery->orderBy('name')->get();
 
         $admins = [];
         if ($isSuperAdmin) {
@@ -57,6 +60,15 @@ class UserController extends Controller
 
     public function show(User $user)
     {
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        if (!$isSuperAdmin) {
+            $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+            if ($user->admin_id !== $tenantAdminId) {
+                abort(403, 'Unauthorized.');
+            }
+        }
+
         return inertia('Admin/Users/Show', [
             'user' => $user->load(['department', 'reportingManager', 'passkeys'])->loadCount('passkeys'),
         ]);
@@ -97,6 +109,15 @@ class UserController extends Controller
         $validated['admin_id'] = $tenantAdminId;
         $validated['must_change_password'] = true;
 
+        if (!empty($validated['department_id']) && $authUser->role !== 'superadmin') {
+            $deptValid = Department::where('id', $validated['department_id'])
+                ->where('admin_id', $tenantAdminId)
+                ->exists();
+            if (!$deptValid) {
+                return back()->withErrors(['department_id' => 'The selected department is invalid for this company.'])->withInput();
+            }
+        }
+
         // Check user limits
         $role = $validated['role'];
         if (in_array($role, ['user', 'manager', 'editor']) && $authUser->role !== 'superadmin') {
@@ -133,6 +154,14 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+
+        if (!$isSuperAdmin && $user->admin_id !== $tenantAdminId) {
+            abort(403, 'Unauthorized.');
+        }
+
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
@@ -146,6 +175,15 @@ class UserController extends Controller
             'joining_date' => 'nullable|date',
             'employment_type' => 'nullable|in:permanent,contract,intern',
         ]);
+
+        if (!empty($validated['department_id']) && !$isSuperAdmin) {
+            $deptValid = Department::where('id', $validated['department_id'])
+                ->where('admin_id', $tenantAdminId)
+                ->exists();
+            if (!$deptValid) {
+                return back()->withErrors(['department_id' => 'The selected department is invalid for this company.'])->withInput();
+            }
+        }
 
         // Email cannot change after creation / import
         $validated['email'] = $user->email;
@@ -167,7 +205,7 @@ class UserController extends Controller
             $filename = uniqid('user_') . '.' . $file->getClientOriginalExtension();
             $file->move($path, $filename);
             $validated['thumb'] = 'uploads/users/' . $filename;
-            $validated['image'] = null;
+            unset($validated['image']);
         } else {
             // If no new image, keep the old one
             unset($validated['image']);
@@ -183,8 +221,6 @@ class UserController extends Controller
         // Check user limit for Basic Plan on update
         $role = $validated['role'];
         if (in_array($role, ['user', 'manager', 'editor']) && $user->role === 'admin') {
-            $authUser = auth()->user();
-            $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
             $tenantAdmin = $authUser->role === 'admin' ? $authUser : User::find($tenantAdminId);
             $plan = $tenantAdmin ? ($tenantAdmin->plan ?? 'basic') : 'basic';
             if ($plan === 'basic') {
@@ -208,6 +244,15 @@ class UserController extends Controller
 
     public function destroy(User $user)
     {
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        if (!$isSuperAdmin) {
+            $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+            if ($user->admin_id !== $tenantAdminId) {
+                abort(403, 'Unauthorized.');
+            }
+        }
+
         if ($user->image && Storage::disk('public')->exists($user->image)) {
             Storage::disk('public')->delete($user->image);
         }
@@ -218,6 +263,15 @@ class UserController extends Controller
 
     public function toggleDesktop(User $user)
     {
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        if (!$isSuperAdmin) {
+            $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+            if ($user->admin_id !== $tenantAdminId) {
+                abort(403, 'Unauthorized.');
+            }
+        }
+
         $user->desktop_only = !$user->desktop_only;
         $user->save();
 
@@ -229,11 +283,16 @@ class UserController extends Controller
 
     public function toggle(User $user)
     {
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+        if (!$isSuperAdmin && $user->admin_id !== $tenantAdminId) {
+            abort(403, 'Unauthorized.');
+        }
+
         if (!$user->is_active) {
             // Toggling active from false to true: check limit
             if (in_array($user->role, ['user', 'manager', 'editor'])) {
-                $authUser = auth()->user();
-                $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
                 $tenantAdmin = $authUser->role === 'admin' ? $authUser : User::find($tenantAdminId);
                 $plan = $tenantAdmin ? ($tenantAdmin->plan ?? 'basic') : 'basic';
                 if ($plan === 'basic') {
