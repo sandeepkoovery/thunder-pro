@@ -115,8 +115,23 @@ class ProjectController extends Controller
             ->with('success', 'Project created successfully!');
     }
 
+    private function authorizeProject(Project $project): void
+    {
+        $authUser = auth()->user();
+        if ($authUser->role === 'superadmin') {
+            return;
+        }
+
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+        if ($project->admin_id !== $tenantAdminId) {
+            abort(403, 'Unauthorized access to this project.');
+        }
+    }
+
     public function edit(Project $project)
     {
+        $this->authorizeProject($project);
+
         return Inertia::render('Admin/Projects/Edit', [
             'project' => $project,
         ]);
@@ -124,6 +139,8 @@ class ProjectController extends Controller
 
     public function update(Request $request, Project $project)
     {
+        $this->authorizeProject($project);
+
         $request->validate([
             'name' => 'required',
             'client_name' => 'nullable|string|max:255',
@@ -154,6 +171,8 @@ class ProjectController extends Controller
 
     public function destroy(Project $project)
     {
+        $this->authorizeProject($project);
+
         \Illuminate\Support\Facades\Log::info('AdminProjectController::destroy called', ['project_id' => $project->id]);
         $project->delete();
 
@@ -163,13 +182,26 @@ class ProjectController extends Controller
 
     public function show(Project $project)
     {
+        $this->authorizeProject($project);
+
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+
         // ✅ Updated: use 'assignees' instead of old 'assignee'
         $tasks = Task::with(['assignees'])
             ->withCount('comments')
             ->where('project_id', $project->id)
             ->get();
 
-        $users = User::where('role', 'user')->where('is_active', true)->get()->map(function ($user) {
+        $targetAdminId = $project->admin_id ?: (!$isSuperAdmin ? $tenantAdminId : null);
+        $usersQuery = User::where('is_active', true);
+
+        if ($targetAdminId) {
+            $usersQuery->where('admin_id', $targetAdminId);
+        }
+
+        $users = $usersQuery->orderBy('name')->get()->map(function ($user) {
             $user->image_url = $user->image
                 ? asset('storage/' . $user->image)
                 : null;
@@ -185,6 +217,8 @@ class ProjectController extends Controller
 
     public function reorder(Request $request, Project $project)
     {
+        $this->authorizeProject($project);
+
         foreach ($request->all() as $status => $taskIds) {
             foreach ($taskIds as $index => $taskId) {
                 Task::where('id', $taskId)

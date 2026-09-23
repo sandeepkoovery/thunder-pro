@@ -78,9 +78,22 @@ class TaskController extends Controller
         ]);
     }
 
-    // In TaskController.php
+    private function getTenantAdminId(): ?int
+    {
+        $authUser = auth()->user();
+        if ($authUser->role === 'superadmin') {
+            return null;
+        }
+        return $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+    }
 
-    // ... (Other methods)
+    private function authorizeTask(Task $task): void
+    {
+        $tenantAdminId = $this->getTenantAdminId();
+        if ($tenantAdminId !== null && $task->project && $task->project->admin_id !== $tenantAdminId) {
+            abort(403, 'Unauthorized access to this task.');
+        }
+    }
 
     /**
      * Store a newly created task in storage.
@@ -95,11 +108,20 @@ class TaskController extends Controller
             'project_id' => 'required|exists:projects,id',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'status' => 'required|string|in:not started,in progress,on hold,completed', // Use the values from your JS: not started, in progress, on hold, completed
+            'status' => 'required|string|in:not started,in progress,on hold,completed',
             'priority' => 'required|string|in:low,medium,high',
             'assignee_ids' => 'nullable|array',
             'assignee_ids.*' => 'exists:users,id',
         ]);
+
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $this->getTenantAdminId();
+
+        $project = Project::findOrFail($validated['project_id']);
+        if (!$isSuperAdmin && $project->admin_id !== $tenantAdminId) {
+            abort(403, 'Unauthorized access to this project.');
+        }
 
         // Create the task with current authenticated user as owner
         $taskData = $request->only([
@@ -117,9 +139,14 @@ class TaskController extends Controller
 
         $task = Task::create($taskData);
 
-        // Detach and sync assignees
+        // Detach and sync assignees (scoped to the project's tenant)
         if (!empty($validated['assignee_ids'])) {
-            $task->assignees()->sync($validated['assignee_ids']);
+            $targetAdminId = $project->admin_id ?: $tenantAdminId;
+            $assigneesQuery = User::whereIn('id', $validated['assignee_ids']);
+            if ($targetAdminId && !$isSuperAdmin) {
+                $assigneesQuery->where('admin_id', $targetAdminId);
+            }
+            $task->assignees()->sync($assigneesQuery->pluck('id')->all());
         }
 
         if ($request->header('referer') && str_contains($request->header('referer'), '/calendar')) {
@@ -128,14 +155,7 @@ class TaskController extends Controller
 
         return redirect()->route('admin.projects.show', $validated['project_id'])
             ->with('success', 'Task created successfully.');
-
-        // Alternatively, use Inertia::render if the original page is the Project Show page:
-        // return Inertia::render('Admin/Projects/Show', [ 
-        //     'tasks' => $updatedTasks,
-        // ])->with('success', 'Task created successfully.');
     }
-
-    // ... (Other methods)
 
     /**
      * Update the specified task in storage.
@@ -150,11 +170,22 @@ class TaskController extends Controller
             'project_id' => 'required|exists:projects,id',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
-            'status' => 'required|string|in:not started,in progress,on hold,completed', // Use the values from your JS
+            'status' => 'required|string|in:not started,in progress,on hold,completed',
             'priority' => 'required|string|in:low,medium,high',
             'assignee_ids' => 'nullable|array',
             'assignee_ids.*' => 'exists:users,id',
         ]);
+
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $this->getTenantAdminId();
+
+        $this->authorizeTask($task);
+
+        $project = Project::findOrFail($validated['project_id']);
+        if (!$isSuperAdmin && $project->admin_id !== $tenantAdminId) {
+            abort(403, 'Unauthorized access to this project.');
+        }
 
         // Update base task details
         $task->update($request->only([
@@ -169,9 +200,15 @@ class TaskController extends Controller
             'priority',
         ]));
 
-        // Update pivot assignees
-        // sync() handles adding/removing/updating the user IDs in the pivot table
-        $task->assignees()->sync($validated['assignee_ids'] ?? []);
+        // Update pivot assignees (scoped to the project's tenant)
+        if (isset($validated['assignee_ids'])) {
+            $targetAdminId = $project->admin_id ?: $tenantAdminId;
+            $assigneesQuery = User::whereIn('id', $validated['assignee_ids']);
+            if ($targetAdminId && !$isSuperAdmin) {
+                $assigneesQuery->where('admin_id', $targetAdminId);
+            }
+            $task->assignees()->sync($assigneesQuery->pluck('id')->all());
+        }
 
         if ($request->header('referer') && str_contains($request->header('referer'), '/calendar')) {
             return redirect()->route('calendar.index')->with('success', 'Task updated successfully.');
@@ -186,9 +223,25 @@ class TaskController extends Controller
      */
     public function edit(Task $task)
     {
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser->role === 'superadmin';
+        $tenantAdminId = $this->getTenantAdminId();
+
+        $this->authorizeTask($task);
         $task->load(['project', 'assignees']);
-        $projects = Project::all();
-        $users = User::where('is_active', true)->get();
+
+        $projectsQuery = Project::query();
+        $usersQuery = User::where('is_active', true);
+
+        if (!$isSuperAdmin) {
+            $projectsQuery->where('admin_id', $tenantAdminId);
+            $usersQuery->where('admin_id', $tenantAdminId);
+        } elseif ($task->project && $task->project->admin_id) {
+            $usersQuery->where('admin_id', $task->project->admin_id);
+        }
+
+        $projects = $projectsQuery->get();
+        $users = $usersQuery->get();
 
         return Inertia::render('Admin/Tasks/Edit', [
             'task' => $task,
@@ -202,6 +255,8 @@ class TaskController extends Controller
      */
     public function destroy(Task $task)
     {
+        $this->authorizeTask($task);
+
         \Illuminate\Support\Facades\Log::info('AdminTaskController::destroy called', ['task_id' => $task->id, 'project_id' => $task->project_id]);
         $projectId = $task->project_id;
 
@@ -217,6 +272,7 @@ class TaskController extends Controller
         // This prevents Inertia from making a DELETE request to the redirect URL
         return \Inertia\Inertia::location(route('admin.projects.show', $projectId));
     }
+
     public function status(Request $request, $id)
     {
         $request->validate([
@@ -224,6 +280,8 @@ class TaskController extends Controller
         ]);
 
         $task = Task::findOrFail($id);
+        $this->authorizeTask($task);
+
         $task->status = $request->status;
         $task->save();
 
@@ -236,6 +294,8 @@ class TaskController extends Controller
     {
         $task = Task::with(['project', 'assignees', 'comments.user'])
             ->findOrFail($id);
+
+        $this->authorizeTask($task);
 
         return Inertia::render('Admin/Tasks/Show', [
             'task' => $task
@@ -250,6 +310,7 @@ class TaskController extends Controller
         ]);
 
         $task = Task::findOrFail($taskId);
+        $this->authorizeTask($task);
 
         $task->comments()->create([
             'user_id' => auth()->id(),
@@ -263,9 +324,12 @@ class TaskController extends Controller
     public function destroyComment($id)
     {
         $comment = Comment::findOrFail($id);
+        if ($comment->task) {
+            $this->authorizeTask($comment->task);
+        }
 
         // Authorization check (already inside admin middleware group, but good to be explicit)
-        if (!in_array(auth()->user()->role, ['admin', 'manager', 'editor'])) {
+        if (!in_array(auth()->user()->role, ['admin', 'manager', 'editor', 'superadmin'])) {
             abort(403, 'Unauthorized.');
         }
 
