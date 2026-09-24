@@ -148,6 +148,22 @@ class HandleInertiaRequests extends Middleware
         if ($user && $user->role === 'superadmin') {
             // Super Admin gets all core modules but NOT AI Assistant (which is for tenant admins)
             $allowedModules = array_values(array_diff($allModulesList, ['ai_assistant']));
+        } elseif ($user && $user->role === 'manager') {
+            // Manager role: strictly honor the exact modules assigned to this manager
+            $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;
+            $rolePermissions = $rolePermissionsJson ? json_decode($rolePermissionsJson, true) : null;
+
+            if (is_array($user->module_permissions)) {
+                $allowedModules = array_values($user->module_permissions);
+            } elseif (is_array($rolePermissions) && isset($rolePermissions['manager_' . $user->id]) && is_array($rolePermissions['manager_' . $user->id])) {
+                $allowedModules = array_values($rolePermissions['manager_' . $user->id]);
+            } elseif (is_array($rolePermissions) && isset($rolePermissions['manager']) && is_array($rolePermissions['manager'])) {
+                $allowedModules = array_values($rolePermissions['manager']);
+            } else {
+                $allowedModules = [];
+            }
+            // Do NOT auto-merge add-ons or plan ceiling for managers.
+            // Only what is checked by the admin will be visible!
         } else {
             $userRoleKey = $user ? ($user->role ?? 'user') : 'user';
             $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;
@@ -157,7 +173,6 @@ class HandleInertiaRequests extends Middleware
                 $allowedModules = $rolePermissions[$userRoleKey];
             } else {
                 $defaultRolePermissions = [
-                    'manager'  => $allModulesList,
                     'editor'   => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications'],
                     'designer' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications'],
                     'user'     => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications'],
@@ -171,7 +186,6 @@ class HandleInertiaRequests extends Middleware
                 // Per-role ceiling: the maximum modules this role can ever see
                 $roleCeiling = [
                     'admin'    => $allModulesList,
-                    'manager'  => $allModulesList,
                     'editor'   => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications', 'ai_assistant'],
                     'designer' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications', 'ai_assistant'],
                     'user'     => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications', 'ai_assistant'],
@@ -202,7 +216,6 @@ class HandleInertiaRequests extends Middleware
                 }
             }
 
-            // Strictly intersect with the tenant's actual subscription plan + add-ons + core admin modules
             $tenantMaxModules = array_unique(array_merge(
                 $plan === 'premium' ? $premiumModules : $basicModules,
                 is_array($userAdditionalModules) ? $userAdditionalModules : [],

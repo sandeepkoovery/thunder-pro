@@ -99,13 +99,15 @@ class ModuleController extends Controller
             return $a['order'] <=> $b['order'];
         });
 
-        // Roles list specifically excluding superadmin
-        $roles = [
-            ['key' => 'admin', 'name' => 'Admin', 'is_locked' => true, 'badge' => 'Full Access'],
-            ['key' => 'manager', 'name' => 'Users Manager', 'is_locked' => false],
-            ['key' => 'editor', 'name' => 'Editor', 'is_locked' => false],
-            ['key' => 'user', 'name' => 'User / Employee', 'is_locked' => false],
-        ];
+        $authUser = auth()->user();
+        $isSuperAdmin = $authUser && $authUser->role === 'superadmin';
+        $tenantAdminId = $authUser ? ($authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id)) : null;
+
+        $managersQuery = \App\Models\User::where('role', 'manager');
+        if (!$isSuperAdmin && $tenantAdminId) {
+            $managersQuery->where('admin_id', $tenantAdminId);
+        }
+        $managers = $managersQuery->orderBy('name')->get();
 
         $allModuleKeys = array_column($modules, 'key');
 
@@ -115,7 +117,7 @@ class ModuleController extends Controller
         // Ensure defaults if not set
         $defaultPermissions = [
             'admin' => $allModuleKeys,
-            'manager' => $allModuleKeys,
+            'manager' => [],
             'editor' => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications', 'ai_assistant'],
             'user' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications', 'ai_assistant'],
         ];
@@ -124,11 +126,8 @@ class ModuleController extends Controller
             if ($rKey === 'admin') {
                 $rolePermissions['admin'] = $allModuleKeys; // Admin always gets all modules
             } elseif (!isset($rolePermissions[$rKey]) || !is_array($rolePermissions[$rKey])) {
-                // Role has no saved permissions at all — use defaults
                 $rolePermissions[$rKey] = $defVal;
             } else {
-                // Role has saved permissions — add back any default modules missing from the saved list
-                // (handles DB saved before new modules like content_calendar, daily_listings, drive were added)
                 $missing = array_diff($defVal, $rolePermissions[$rKey]);
                 if (!empty($missing)) {
                     $rolePermissions[$rKey] = array_values(array_unique(array_merge($rolePermissions[$rKey], $missing)));
@@ -136,11 +135,38 @@ class ModuleController extends Controller
             }
         }
 
+        // Roles for the Full Matrix view (base system roles only).
+        // Individual managers are managed separately in the dedicated "Managers Assignment" tab.
+        $roles = [
+            ['key' => 'admin', 'name' => 'Admin', 'is_locked' => true, 'badge' => 'Full Access'],
+            ['key' => 'editor', 'name' => 'Editor', 'is_locked' => false],
+            ['key' => 'user', 'name' => 'User / Employee', 'is_locked' => false],
+        ];
+
+        // Populate individual manager permissions for the Managers Assignment tab.
+        // If a manager's permissions are an array (even empty [] when cleared), strictly preserve it.
+        // If not set yet, default to empty [] (no modules selected by default).
+        foreach ($managers as $mgr) {
+            if (is_array($mgr->module_permissions)) {
+                $rolePermissions['manager_' . $mgr->id] = array_values($mgr->module_permissions);
+            } else {
+                $rolePermissions['manager_' . $mgr->id] = [];
+            }
+        }
+
+        $departmentsQuery = \App\Models\Department::query();
+        if (!$isSuperAdmin && $tenantAdminId) {
+            $departmentsQuery->where('admin_id', $tenantAdminId);
+        }
+        $departments = $departmentsQuery->orderBy('name')->get();
+
         return Inertia::render('Admin/Modules/Index', [
             'modules' => $modules,
             'roles' => $roles,
             'rolePermissions' => $rolePermissions,
             'moduleOrder' => $moduleOrder,
+            'managers' => $managers,
+            'departments' => $departments,
         ]);
     }
 
@@ -175,18 +201,31 @@ class ModuleController extends Controller
         // Enforce rule: Admin role always gets ALL modules and cannot be modified
         $permissions['admin'] = $modules;
 
-        // Clean arrays
-        foreach ($permissions as $role => &$mods) {
-            if (is_array($mods)) {
-                $mods = array_values(array_intersect($mods, $modules));
+        $rolePermissionsToSave = [];
+
+        // Clean and dispatch permissions
+        foreach ($permissions as $roleKey => $mods) {
+            $cleanMods = is_array($mods) ? array_values(array_intersect($mods, $modules)) : [];
+
+            if (str_starts_with($roleKey, 'manager_')) {
+                $mgrId = (int) str_replace('manager_', '', $roleKey);
+                \App\Models\User::where('id', $mgrId)->update([
+                    'module_permissions' => $cleanMods,
+                ]);
             } else {
-                $mods = [];
+                $rolePermissionsToSave[$roleKey] = $cleanMods;
             }
+        }
+
+        if (!isset($rolePermissionsToSave['manager'])) {
+            $existingGeneral = Setting::where('key', 'role_module_permissions')->value('value');
+            $existingDecoded = $existingGeneral ? json_decode($existingGeneral, true) : [];
+            $rolePermissionsToSave['manager'] = $existingDecoded['manager'] ?? [];
         }
 
         Setting::updateOrCreate(
             ['key' => 'role_module_permissions'],
-            ['value' => json_encode($permissions)]
+            ['value' => json_encode($rolePermissionsToSave)]
         );
 
         if (!empty($validated['module_order']) && is_array($validated['module_order'])) {
@@ -245,5 +284,36 @@ class ModuleController extends Controller
         Cache::forget('global_settings_map');
 
         return back()->with('success', 'Module settings saved successfully.');
+    }
+
+    public function addManager(Request $request)
+    {
+        $validated = $request->validate([
+            'designation' => 'required|string|max:255',
+            'module_permissions' => 'nullable|array',
+            'module_permissions.*' => 'string',
+        ]);
+
+        $authUser = auth()->user();
+        $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
+
+        $designation = trim($validated['designation']);
+        $slug = \Illuminate\Support\Str::slug($designation, '_');
+        $uniqueSuffix = time() . '_' . rand(100, 999);
+        $email = $slug . '_' . $uniqueSuffix . '@company.local';
+
+        $manager = \App\Models\User::create([
+            'name' => $designation,
+            'email' => $email,
+            'password' => \Illuminate\Support\Facades\Hash::make(\Illuminate\Support\Str::random(16)),
+            'role' => 'manager',
+            'designation' => $designation,
+            'admin_id' => $tenantAdminId,
+            'module_permissions' => $validated['module_permissions'] ?? [],
+            'is_active' => true,
+            'must_change_password' => false,
+        ]);
+
+        return redirect()->back()->with('success', "Manager '{$designation}' created successfully!");
     }
 }

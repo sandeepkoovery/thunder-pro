@@ -142,29 +142,41 @@ class CheckModuleAccess
             $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;
             $rolePermissions = $rolePermissionsJson ? json_decode($rolePermissionsJson, true) : null;
 
-            if (is_array($rolePermissions) && isset($rolePermissions[$userRoleKey]) && is_array($rolePermissions[$userRoleKey])) {
-                $roleAllowed = $rolePermissions[$userRoleKey];
-                if ($userRoleKey === 'admin') {
-                    $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'departments'];
-                    $roleAllowed = array_unique(array_merge($roleAllowed, $coreAlwaysAllowed));
+            if ($user && $user->role === 'manager') {
+                if (is_array($user->module_permissions)) {
+                    $allowed = array_values($user->module_permissions);
+                } elseif (is_array($rolePermissions) && isset($rolePermissions['manager_' . $user->id]) && is_array($rolePermissions['manager_' . $user->id])) {
+                    $allowed = array_values($rolePermissions['manager_' . $user->id]);
+                } elseif (is_array($rolePermissions) && isset($rolePermissions['manager']) && is_array($rolePermissions['manager'])) {
+                    $allowed = array_values($rolePermissions['manager']);
+                } else {
+                    $allowed = [];
                 }
             } else {
-                $roleAllowed = $plan === 'premium' ? $premiumModules : $basicModules;
+                if (is_array($rolePermissions) && isset($rolePermissions[$userRoleKey]) && is_array($rolePermissions[$userRoleKey])) {
+                    $roleAllowed = $rolePermissions[$userRoleKey];
+                    if ($userRoleKey === 'admin') {
+                        $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'departments'];
+                        $roleAllowed = array_unique(array_merge($roleAllowed, $coreAlwaysAllowed));
+                    }
+                } else {
+                    $roleAllowed = $plan === 'premium' ? $premiumModules : $basicModules;
+                }
+
+                $additionalMapped = !empty($additional) && is_array($additional) 
+                    ? array_map(function($m) { return $m === 'domains' ? 'websites' : $m; }, $additional)
+                    : [];
+
+                $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'departments'];
+
+                $tenantMaxModules = array_unique(array_merge(
+                    $plan === 'premium' ? $premiumModules : $basicModules,
+                    $additionalMapped,
+                    $coreAlwaysAllowed
+                ));
+
+                $allowed = array_values(array_intersect($roleAllowed, $tenantMaxModules));
             }
-
-            $additionalMapped = !empty($additional) && is_array($additional) 
-                ? array_map(function($m) { return $m === 'domains' ? 'websites' : $m; }, $additional)
-                : [];
-
-            $coreAlwaysAllowed = ['dashboard', 'pricing', 'settings', 'modules', 'notifications', 'departments'];
-
-            $tenantMaxModules = array_unique(array_merge(
-                $plan === 'premium' ? $premiumModules : $basicModules,
-                $additionalMapped,
-                $coreAlwaysAllowed
-            ));
-
-            $allowed = array_values(array_intersect($roleAllowed, $tenantMaxModules));
 
             if (!in_array($module, $allowed)) {
                 if ($request->expectsJson()) {

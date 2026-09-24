@@ -38,7 +38,14 @@ export default function Index() {
     tenantEmployeesCount = 0,
     unlimitedEmployeesStatus = 'none',
     hasUnlimitedEmployees = false,
+    allModules = [],
+    managerTypes = [],
   } = usePage().props;
+
+  const addedManagerTypes = Array.from(new Set([
+    ...(managerTypes || []),
+    ...(users || []).filter(u => u.role === 'manager' && u.designation).map(u => u.designation)
+  ])).filter(Boolean);
 
   const isSuperAdmin = auth?.user?.role === 'superadmin';
   const isPremium = isSuperAdmin || userPlan === 'premium';
@@ -67,6 +74,7 @@ export default function Index() {
     designation: "",
     joining_date: "",
     employment_type: "",
+    module_permissions: [],
   });
   const [errors, setErrors] = useState({});
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -216,6 +224,7 @@ export default function Index() {
         designation: user.designation || "",
         joining_date: getLocalYMD(user.joining_date),
         employment_type: user.employment_type || "",
+        module_permissions: Array.isArray(user.module_permissions) ? user.module_permissions : [],
       });
     } else {
       setEditingUser(null);
@@ -232,6 +241,7 @@ export default function Index() {
         designation: "",
         joining_date: "",
         employment_type: "",
+        module_permissions: (allModules || []).map(m => m.key),
       });
     }
     setErrors({});
@@ -243,8 +253,13 @@ export default function Index() {
   // Handle input change
   const handleChange = (e) => {
     const { name, value, files, type, checked } = e.target;
+    let newDesignation = form.designation;
+    if (name === 'role' && value === 'manager' && !form.designation) {
+      newDesignation = addedManagerTypes.length > 0 ? addedManagerTypes[0] : '';
+    }
     setForm({
       ...form,
+      designation: newDesignation,
       [name]: files ? files[0] : type === 'checkbox' ? (checked ? 1 : 0) : value,
     });
   };
@@ -436,7 +451,7 @@ export default function Index() {
   };
 
   // Helper for role display with custom icons & colors as seen in the screenshot
-  const renderRole = (role) => {
+  const renderRole = (role, u = null) => {
     const formatted = role.charAt(0).toUpperCase() + role.slice(1);
     if (role === "admin" || role === "superadmin") {
       return (
@@ -448,10 +463,17 @@ export default function Index() {
     }
     if (role === "manager") {
       return (
-        <span className="inline-flex items-center gap-2 text-[15px] text-gray-700">
-          <Crown size={17} className="text-blue-500" strokeWidth={1.8} />
-          {formatted}
-        </span>
+        <div>
+          <span className="inline-flex items-center gap-2 text-[15px] text-gray-700 font-bold">
+            <Crown size={17} className="text-blue-500" strokeWidth={1.8} />
+            {formatted}
+          </span>
+          {u && Array.isArray(u.module_permissions) && (
+            <div className="text-[11px] font-bold text-blue-600 mt-0.5">
+              {u.module_permissions.length} modules assigned
+            </div>
+          )}
+        </div>
       );
     }
     if (role === "editor") {
@@ -672,7 +694,7 @@ export default function Index() {
                         <span className="text-gray-300">—</span>
                       )}
                     </td>
-                    <td className="py-4 px-6">{renderRole(user.role)}</td>
+                    <td className="py-4 px-6">{renderRole(user.role, user)}</td>
                     <td className="py-4 px-6 text-[15px] text-gray-700 font-medium">
                       {user.designation || "-"}
                     </td>
@@ -1008,7 +1030,6 @@ export default function Index() {
                     <option value="user">User</option>
                     <option value="manager">Manager</option>
                     <option value="editor">Editor</option>
-                    <option value="admin">Admin</option>
                   </select>
                 </div>
 
@@ -1028,6 +1049,77 @@ export default function Index() {
                     </label>
                   </div>
                 </div>
+
+                {/* Manager Type Selector (only shows managers added in the system) */}
+                {form.role === "manager" && (
+                  <div className="md:col-span-2 p-5 bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-100 rounded-2xl space-y-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                        <Crown size={16} />
+                      </div>
+                      <div>
+                        <label className="text-xs font-black text-gray-900 uppercase tracking-wider block">
+                          Manager Type ({addedManagerTypes.length})
+                        </label>
+                        <p className="text-[11px] text-gray-500 font-medium">
+                          Select from the managers configured for your company in the Modules page.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-1 max-w-md">
+                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block ml-1">
+                        Select Manager Role
+                      </label>
+                      <select
+                        value={
+                          addedManagerTypes.includes(form.designation)
+                            ? form.designation
+                            : (form.designation ? "custom" : (addedManagerTypes[0] || ""))
+                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (val === "custom") {
+                            setForm(prev => ({ ...prev, designation: "" }));
+                          } else {
+                            const matched = (users || []).find(u => u.role === 'manager' && u.designation === val && Array.isArray(u.module_permissions));
+                            setForm(prev => ({ 
+                              ...prev, 
+                              designation: val,
+                              module_permissions: matched?.module_permissions || prev.module_permissions
+                            }));
+                          }
+                        }}
+                        className="w-full pl-5 pr-10 py-2.5 bg-white border border-blue-200/80 rounded-xl text-sm font-bold text-gray-800 focus:outline-none focus:border-blue-500 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_14px_center] bg-[size:18px] bg-no-repeat shadow-xs"
+                      >
+                        {addedManagerTypes.length === 0 && (
+                          <option value="">No managers created yet</option>
+                        )}
+                        {addedManagerTypes.map((type) => (
+                          <option key={type} value={type}>{type}</option>
+                        ))}
+                        <option value="custom">+ Other / Custom Manager...</option>
+                      </select>
+
+                      {(!addedManagerTypes.includes(form.designation) || form.designation === "") && (
+                        <div className="space-y-1 pt-1">
+                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block ml-1">
+                            Custom Manager Title
+                          </label>
+                          <input
+                            type="text"
+                            name="designation"
+                            value={form.designation}
+                            onChange={handleChange}
+                            placeholder="Enter custom manager title"
+                            className="w-full px-4 py-2.5 bg-white border border-blue-200/80 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm shadow-xs"
+                            autoFocus
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 {/* Profile Photo */}
                 <div className="md:col-span-2 space-y-1">
@@ -1081,18 +1173,20 @@ export default function Index() {
                   </select>
                 </div>
 
-                {/* Designation */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Designation</label>
-                  <input
-                    type="text"
-                    name="designation"
-                    value={form.designation}
-                    onChange={handleChange}
-                    className="w-full px-5 py-2.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm"
-                    placeholder="Designation"
-                  />
-                </div>
+                {/* Designation (shown for non-manager roles since managers select type above) */}
+                {form.role !== "manager" && (
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Designation</label>
+                    <input
+                      type="text"
+                      name="designation"
+                      value={form.designation}
+                      onChange={handleChange}
+                      className="w-full px-5 py-2.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm"
+                      placeholder="Designation"
+                    />
+                  </div>
+                )}
 
                 {/* Employment Type */}
                 <div className="space-y-1">

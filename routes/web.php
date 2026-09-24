@@ -255,6 +255,7 @@ Route::middleware(['auth', 'is_admin'])
             // -------------------------
             Route::get('modules', [\App\Http\Controllers\Admin\ModuleController::class, 'index'])->name('modules.index');
             Route::post('modules', [\App\Http\Controllers\Admin\ModuleController::class, 'update'])->name('modules.update');
+            Route::post('modules/add-manager', [\App\Http\Controllers\Admin\ModuleController::class, 'addManager'])->name('modules.add-manager');
 
             // -------------------------
             // ✅ PRICING ROUTES

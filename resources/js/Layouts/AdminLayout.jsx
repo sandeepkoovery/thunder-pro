@@ -123,7 +123,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
       {
         key: 'designers_worklist',
         order: getModuleOrder('designers_worklist', 10),
-        element: <NavItem key="designers_worklist" href={route("designers-worklist.index")} icon={Palette} label="Designers Worklist" routeName="designers-worklist" visible={isVisible("designers_worklist") && isDesignerDepartment} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="designers_worklist" href={route("designers-worklist.index")} icon={Palette} label="Designers Worklist" routeName="designers-worklist" visible={isVisible("designers_worklist") && (isManagementAdmin || isDesignerDepartment)} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'drive',

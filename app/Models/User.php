@@ -82,6 +82,7 @@ class User extends Authenticatable
         'shift',
         'is_imported',
         'must_change_password',
+        'module_permissions',
     ];
 
     /**
@@ -108,6 +109,7 @@ class User extends Authenticatable
             'must_change_password' => 'boolean',
             'date_of_birth' => 'date',
             'joining_date' => 'date',
+            'module_permissions' => 'array',
         ];
     }
 

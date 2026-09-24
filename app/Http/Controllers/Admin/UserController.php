@@ -15,10 +15,23 @@ class UserController extends Controller
     public function __construct()
     {
         $this->middleware(function ($request, $next) {
-            if (auth()->check() && !in_array(auth()->user()->role, ['superadmin', 'admin'])) {
-                abort(403, 'Unauthorized action.');
+            $user = auth()->user();
+            if (!$user) abort(403);
+            if (in_array($user->role, ['superadmin', 'admin'])) {
+                return $next($request);
             }
-            return $next($request);
+            if ($user->role === 'manager') {
+                $userMods = $user->module_permissions;
+                if (is_array($userMods) && in_array('users', $userMods)) {
+                    return $next($request);
+                }
+                $rolePermsJson = \App\Models\Setting::where('key', 'role_module_permissions')->value('value');
+                $rolePerms = $rolePermsJson ? json_decode($rolePermsJson, true) : [];
+                if (isset($rolePerms['manager']) && in_array('users', $rolePerms['manager'])) {
+                    return $next($request);
+                }
+            }
+            abort(403, 'Unauthorized action.');
         });
     }
 
@@ -50,11 +63,45 @@ class UserController extends Controller
                 ->get();
         }
 
+        $allModules = [
+            ['key' => 'dashboard', 'name' => 'Dashboard'],
+            ['key' => 'projects', 'name' => 'Projects'],
+            ['key' => 'users', 'name' => 'Employees & Users'],
+            ['key' => 'departments', 'name' => 'Departments'],
+            ['key' => 'attendance', 'name' => 'Attendance'],
+            ['key' => 'leaves', 'name' => 'Leaves'],
+            ['key' => 'calendar', 'name' => 'Calendar'],
+            ['key' => 'content_calendar', 'name' => 'Content Calendar'],
+            ['key' => 'daily_listings', 'name' => 'Daily Listings'],
+            ['key' => 'designers_worklist', 'name' => 'Designers Worklist'],
+            ['key' => 'drive', 'name' => 'Drive'],
+            ['key' => 'chat', 'name' => 'Chat & Messaging'],
+            ['key' => 'websites', 'name' => 'Websites & Domains'],
+            ['key' => 'reports', 'name' => 'Reports'],
+            ['key' => 'notifications', 'name' => 'Notifications'],
+            ['key' => 'ai_assistant', 'name' => 'AI Voice Assistant'],
+            ['key' => 'modules', 'name' => 'Modules List'],
+            ['key' => 'pricing', 'name' => 'Pricing'],
+            ['key' => 'settings', 'name' => 'Settings'],
+        ];
+
+        $managerTypesQuery = User::where('role', 'manager')
+            ->whereNotNull('designation')
+            ->where('designation', '!=', '');
+
+        if (!$isSuperAdmin) {
+            $managerTypesQuery->where('admin_id', $tenantAdminId);
+        }
+
+        $managerTypes = $managerTypesQuery->pluck('designation')->unique()->values()->all();
+
         return inertia('Admin/Users/Index', [
             'users' => $users,
             'departments' => $departments,
             'admins' => $admins,
             'isSuperAdmin' => $isSuperAdmin,
+            'allModules' => $allModules,
+            'managerTypes' => $managerTypes,
         ]);
     }
 
@@ -91,6 +138,8 @@ class UserController extends Controller
             'designation' => 'nullable|string|max:255',
             'joining_date' => 'nullable|date',
             'employment_type' => 'nullable|in:permanent,contract,intern',
+            'module_permissions' => 'nullable|array',
+            'module_permissions.*' => 'string',
         ]);
 
         if ($request->hasFile('image')) {
@@ -149,7 +198,7 @@ class UserController extends Controller
 
         User::create($validated);
 
-        return redirect()->route('admin.users.index')->with('success', 'User created successfully.');
+        return redirect()->back()->with('success', 'User created successfully.');
     }
 
     public function update(Request $request, User $user)
@@ -163,17 +212,19 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users,email,' . $user->id,
+            'name' => 'sometimes|required|string|max:255',
+            'email' => 'sometimes|required|string|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:6|confirmed',
-            'role' => 'required|in:user,manager,editor,admin',
-            'desktop_only' => 'boolean',
+            'role' => 'sometimes|required|in:user,manager,editor,admin',
+            'desktop_only' => 'nullable|boolean',
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'employee_id' => 'nullable|string|max:255|unique:users,employee_id,' . $user->id,
             'department_id' => 'nullable|exists:departments,id',
             'designation' => 'nullable|string|max:255',
             'joining_date' => 'nullable|date',
             'employment_type' => 'nullable|in:permanent,contract,intern',
+            'module_permissions' => 'nullable|array',
+            'module_permissions.*' => 'string',
         ]);
 
         if (!empty($validated['department_id']) && !$isSuperAdmin) {
@@ -219,7 +270,7 @@ class UserController extends Controller
         }
 
         // Check user limit for Basic Plan on update
-        $role = $validated['role'];
+        $role = $validated['role'] ?? $user->role;
         if (in_array($role, ['user', 'manager', 'editor']) && $user->role === 'admin') {
             $tenantAdmin = $authUser->role === 'admin' ? $authUser : User::find($tenantAdminId);
             $plan = $tenantAdmin ? ($tenantAdmin->plan ?? 'basic') : 'basic';
@@ -239,7 +290,7 @@ class UserController extends Controller
 
         $user->update($validated);
 
-        return redirect()->route('admin.users.index')->with('success', 'User updated successfully.');
+        return redirect()->back()->with('success', 'User updated successfully.');
     }
 
     public function destroy(User $user)
