@@ -147,11 +147,15 @@ class CheckModuleAccess
                     $allowed = array_values($user->module_permissions);
                 } elseif (is_array($rolePermissions) && isset($rolePermissions['manager_' . $user->id]) && is_array($rolePermissions['manager_' . $user->id])) {
                     $allowed = array_values($rolePermissions['manager_' . $user->id]);
-                } elseif (is_array($rolePermissions) && isset($rolePermissions['manager']) && is_array($rolePermissions['manager'])) {
-                    $allowed = array_values($rolePermissions['manager']);
                 } else {
-                    $allowed = [];
+                    $allowed = ['dashboard'];
                 }
+
+                // Dashboard is ALWAYS active and accessible
+                if (!in_array('dashboard', $allowed)) {
+                    array_unshift($allowed, 'dashboard');
+                }
+                $allowed = array_values(array_unique($allowed));
             } else {
                 if (is_array($rolePermissions) && isset($rolePermissions[$userRoleKey]) && is_array($rolePermissions[$userRoleKey])) {
                     $roleAllowed = $rolePermissions[$userRoleKey];

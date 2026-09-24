@@ -39,7 +39,7 @@ export default function Index({
     const [isAddManagerOpen, setIsAddManagerOpen] = useState(false);
     const [addManagerForm, setAddManagerForm] = useState({
         designation: 'Production Manager',
-        module_permissions: [],
+        module_permissions: ['dashboard'],
     });
     const [addManagerProcessing, setAddManagerProcessing] = useState(false);
     const [addManagerErrors, setAddManagerErrors] = useState({});
@@ -95,6 +95,7 @@ export default function Index({
 
     const isChecked = (roleKey, moduleKey) => {
         if (roleKey === 'admin') return true; // Admin always has full access
+        if (moduleKey === 'dashboard') return true; // Dashboard is ALWAYS active and cannot be unchecked
         const roleMods = data.permissions[roleKey] || [];
         return roleMods.includes(moduleKey);
     };
@@ -105,12 +106,22 @@ export default function Index({
             return;
         }
 
+        if (moduleKey === 'dashboard') {
+            toast.error("Dashboard is required and cannot be unchecked.");
+            return;
+        }
+
         const currentMods = data.permissions[roleKey] ? [...data.permissions[roleKey]] : [];
         let updatedMods = [];
         if (currentMods.includes(moduleKey)) {
             updatedMods = currentMods.filter((m) => m !== moduleKey);
         } else {
             updatedMods = [...currentMods, moduleKey];
+        }
+
+        // Always keep dashboard
+        if (!updatedMods.includes('dashboard')) {
+            updatedMods.unshift('dashboard');
         }
 
         setData('permissions', {
@@ -132,6 +143,9 @@ export default function Index({
     const selectAllForRole = (roleKey) => {
         if (roleKey === 'admin') return;
         const allKeys = validModules.map((m) => m.key);
+        if (!allKeys.includes('dashboard')) {
+            allKeys.unshift('dashboard');
+        }
         setData('permissions', {
             ...data.permissions,
             [roleKey]: allKeys,
@@ -143,9 +157,9 @@ export default function Index({
         if (roleKey === 'admin') return;
         setData('permissions', {
             ...data.permissions,
-            [roleKey]: [],
+            [roleKey]: ['dashboard'],
         });
-        toast.success(`Cleared all modules for ${getRoleName(roleKey)}`);
+        toast.success(`Cleared other modules for ${getRoleName(roleKey)} (Dashboard retained)`);
     };
 
     const getRoleName = (roleKey) => {
@@ -184,7 +198,7 @@ export default function Index({
                 setIsAddManagerOpen(false);
                 setAddManagerForm({
                     designation: 'Production Manager',
-                    module_permissions: [],
+                    module_permissions: ['dashboard'],
                 });
             },
             onError: (errs) => {
@@ -417,8 +431,9 @@ export default function Index({
                                                             </td>
 
                                                             {roles.map((role) => {
-                                                                const checked = isChecked(role.key, mod.key);
-                                                                const isLocked = role.is_locked;
+                                                                const isDashboard = mod.key === 'dashboard';
+                                                                const checked = isDashboard || isChecked(role.key, mod.key);
+                                                                const isLocked = role.is_locked || isDashboard;
 
                                                                 return (
                                                                     <td key={role.key} className="py-4 px-4 text-center align-middle">
@@ -430,7 +445,9 @@ export default function Index({
                                                                                         : 'cursor-pointer hover:bg-gray-100'
                                                                                 }`}
                                                                                 title={
-                                                                                    isLocked
+                                                                                    isDashboard
+                                                                                        ? "Dashboard is required and always enabled for all roles."
+                                                                                        : isLocked
                                                                                         ? "Admin has access to all modules and cannot be changed."
                                                                                         : `Toggle ${mod.name} for ${role.short_name || role.name}`
                                                                                 }
@@ -650,28 +667,47 @@ export default function Index({
                                             {/* Modules Checklist Grid */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                                                 {validModules.map((mod) => {
-                                                    const checked = isChecked(currentSelectedRoleKey, mod.key);
+                                                    const isDashboard = mod.key === 'dashboard';
+                                                    const checked = isDashboard || isChecked(currentSelectedRoleKey, mod.key);
 
                                                     return (
                                                         <div
                                                             key={mod.key}
-                                                            onClick={() => togglePermission(currentSelectedRoleKey, mod.key)}
-                                                            className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex items-start gap-3 select-none ${
-                                                                checked
-                                                                    ? 'bg-blue-50/50 border-blue-300 ring-1 ring-blue-400/30'
-                                                                    : 'bg-gray-50/40 border-gray-100 hover:border-gray-200 hover:bg-gray-50'
+                                                            onClick={() => {
+                                                                if (isDashboard) {
+                                                                    toast.error("Dashboard is required and cannot be unchecked.");
+                                                                    return;
+                                                                }
+                                                                togglePermission(currentSelectedRoleKey, mod.key);
+                                                            }}
+                                                            className={`p-3.5 rounded-2xl border transition-all flex items-start gap-3 select-none ${
+                                                                isDashboard
+                                                                    ? 'bg-amber-50/60 border-amber-200 cursor-not-allowed'
+                                                                    : checked
+                                                                    ? 'bg-blue-50/50 border-blue-300 ring-1 ring-blue-400/30 cursor-pointer'
+                                                                    : 'bg-gray-50/40 border-gray-100 hover:border-gray-200 hover:bg-gray-50 cursor-pointer'
                                                             }`}
+                                                            title={isDashboard ? "Dashboard is required and cannot be unchecked" : `Toggle ${mod.name}`}
                                                         >
                                                             <div className="mt-0.5 shrink-0">
-                                                                {checked ? (
+                                                                {isDashboard ? (
+                                                                    <CheckSquare size={20} className="text-amber-600 fill-amber-100" />
+                                                                ) : checked ? (
                                                                     <CheckSquare size={20} className="text-blue-600 fill-blue-50" />
                                                                 ) : (
                                                                     <Square size={20} className="text-gray-300" />
                                                                 )}
                                                             </div>
-                                                            <div className="min-w-0">
-                                                                <div className={`font-bold text-xs truncate ${checked ? 'text-blue-900' : 'text-gray-800'}`}>
-                                                                    {mod.name}
+                                                            <div className="min-w-0 flex-1">
+                                                                <div className="flex items-center justify-between gap-1">
+                                                                    <span className={`font-bold text-xs truncate ${isDashboard ? 'text-amber-900' : checked ? 'text-blue-900' : 'text-gray-800'}`}>
+                                                                        {mod.name}
+                                                                    </span>
+                                                                    {isDashboard && (
+                                                                        <span className="text-[10px] font-black uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded-md shrink-0">
+                                                                            Required
+                                                                        </span>
+                                                                    )}
                                                                 </div>
                                                                 {mod.description && (
                                                                     <div className="text-[11px] text-gray-400 line-clamp-2 mt-0.5">
@@ -772,7 +808,11 @@ export default function Index({
                                         <div className="flex items-center gap-2 text-xs font-semibold">
                                             <button
                                                 type="button"
-                                                onClick={() => setAddManagerForm({ ...addManagerForm, module_permissions: validModules.map(m => m.key) })}
+                                                onClick={() => {
+                                                    const allKeys = validModules.map(m => m.key);
+                                                    if (!allKeys.includes('dashboard')) allKeys.unshift('dashboard');
+                                                    setAddManagerForm({ ...addManagerForm, module_permissions: allKeys });
+                                                }}
                                                 className="text-blue-600 hover:underline cursor-pointer"
                                             >
                                                 Select All
@@ -780,7 +820,7 @@ export default function Index({
                                             <span className="text-gray-300">|</span>
                                             <button
                                                 type="button"
-                                                onClick={() => setAddManagerForm({ ...addManagerForm, module_permissions: [] })}
+                                                onClick={() => setAddManagerForm({ ...addManagerForm, module_permissions: ['dashboard'] })}
                                                 className="text-gray-500 hover:underline cursor-pointer"
                                             >
                                                 Clear All
@@ -790,29 +830,40 @@ export default function Index({
 
                                     <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-gray-50 rounded-xl border border-gray-100">
                                         {validModules.map((mod) => {
-                                            const isChecked = addManagerForm.module_permissions.includes(mod.key);
+                                            const isDashboard = mod.key === 'dashboard';
+                                            const isChecked = isDashboard || addManagerForm.module_permissions.includes(mod.key);
                                             return (
                                                 <label
                                                     key={mod.key}
-                                                    className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-semibold cursor-pointer transition-all ${
-                                                        isChecked
-                                                            ? 'bg-white border-blue-400 text-blue-900 shadow-xs'
-                                                            : 'bg-white/60 border-gray-200 text-gray-600 hover:border-gray-300'
+                                                    className={`flex items-center gap-2 p-2 rounded-lg border text-xs font-semibold transition-all ${
+                                                        isDashboard
+                                                            ? 'bg-amber-50/60 border-amber-200 text-amber-900 cursor-not-allowed'
+                                                            : isChecked
+                                                            ? 'bg-white border-blue-400 text-blue-900 shadow-xs cursor-pointer'
+                                                            : 'bg-white/60 border-gray-200 text-gray-600 hover:border-gray-300 cursor-pointer'
                                                     }`}
                                                 >
                                                     <input
                                                         type="checkbox"
                                                         checked={isChecked}
+                                                        disabled={isDashboard}
                                                         onChange={() => {
+                                                            if (isDashboard) return;
                                                             const current = [...addManagerForm.module_permissions];
-                                                            const updated = isChecked
+                                                            let updated = isChecked
                                                                 ? current.filter(k => k !== mod.key)
                                                                 : [...current, mod.key];
+                                                            if (!updated.includes('dashboard')) {
+                                                                updated.unshift('dashboard');
+                                                            }
                                                             setAddManagerForm({ ...addManagerForm, module_permissions: updated });
                                                         }}
                                                         className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                                                     />
-                                                    <span className="truncate">{mod.name}</span>
+                                                    <span className="truncate flex-1">{mod.name}</span>
+                                                    {isDashboard && (
+                                                        <span className="text-[9px] font-bold uppercase text-amber-700 bg-amber-100 px-1 py-0.2 rounded">Req</span>
+                                                    )}
                                                 </label>
                                             );
                                         })}

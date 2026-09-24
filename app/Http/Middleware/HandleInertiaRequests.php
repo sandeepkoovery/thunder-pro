@@ -157,13 +157,17 @@ class HandleInertiaRequests extends Middleware
                 $allowedModules = array_values($user->module_permissions);
             } elseif (is_array($rolePermissions) && isset($rolePermissions['manager_' . $user->id]) && is_array($rolePermissions['manager_' . $user->id])) {
                 $allowedModules = array_values($rolePermissions['manager_' . $user->id]);
-            } elseif (is_array($rolePermissions) && isset($rolePermissions['manager']) && is_array($rolePermissions['manager'])) {
-                $allowedModules = array_values($rolePermissions['manager']);
             } else {
-                $allowedModules = [];
+                $allowedModules = ['dashboard'];
             }
+
+            // Dashboard is ALWAYS active and visible for managers
+            if (!in_array('dashboard', $allowedModules)) {
+                array_unshift($allowedModules, 'dashboard');
+            }
+            $allowedModules = array_values(array_unique($allowedModules));
             // Do NOT auto-merge add-ons or plan ceiling for managers.
-            // Only what is checked by the admin will be visible!
+            // Only what is checked by the admin (plus dashboard) will be visible!
         } else {
             $userRoleKey = $user ? ($user->role ?? 'user') : 'user';
             $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;

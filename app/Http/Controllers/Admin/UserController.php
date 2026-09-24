@@ -196,6 +196,24 @@ class UserController extends Controller
             }
         }
 
+        if ($validated['role'] === 'manager') {
+            if (empty($validated['module_permissions'])) {
+                $targetDesig = $validated['designation'] ?? '';
+                $existingMgr = User::where('admin_id', $tenantAdminId)
+                    ->where('role', 'manager')
+                    ->where('designation', $targetDesig)
+                    ->whereNotNull('module_permissions')
+                    ->first();
+                $validated['module_permissions'] = ($existingMgr && is_array($existingMgr->module_permissions))
+                    ? $existingMgr->module_permissions
+                    : ['dashboard'];
+            }
+            if (!in_array('dashboard', $validated['module_permissions'])) {
+                array_unshift($validated['module_permissions'], 'dashboard');
+            }
+            $validated['module_permissions'] = array_values(array_unique($validated['module_permissions']));
+        }
+
         User::create($validated);
 
         return redirect()->back()->with('success', 'User created successfully.');
@@ -286,6 +304,27 @@ class UserController extends Controller
                     ])->withInput();
                 }
             }
+        }
+
+        $finalRole = $validated['role'] ?? $user->role;
+        if ($finalRole === 'manager') {
+            $userPerms = $validated['module_permissions'] ?? $user->module_permissions;
+            if (empty($userPerms) || !is_array($userPerms)) {
+                $targetDesig = $validated['designation'] ?? $user->designation;
+                $existingMgr = User::where('admin_id', $tenantAdminId)
+                    ->where('role', 'manager')
+                    ->where('id', '!=', $user->id)
+                    ->where('designation', $targetDesig)
+                    ->whereNotNull('module_permissions')
+                    ->first();
+                $userPerms = ($existingMgr && is_array($existingMgr->module_permissions))
+                    ? $existingMgr->module_permissions
+                    : ['dashboard'];
+            }
+            if (!in_array('dashboard', $userPerms)) {
+                array_unshift($userPerms, 'dashboard');
+            }
+            $validated['module_permissions'] = array_values(array_unique($userPerms));
         }
 
         $user->update($validated);

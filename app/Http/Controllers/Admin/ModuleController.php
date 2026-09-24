@@ -144,14 +144,22 @@ class ModuleController extends Controller
         ];
 
         // Populate individual manager permissions for the Managers Assignment tab.
-        // If a manager's permissions are an array (even empty [] when cleared), strictly preserve it.
-        // If not set yet, default to empty [] (no modules selected by default).
+        // If a manager's permissions are an array, ensure 'dashboard' is present.
+        // If not set yet, check Setting for manager_{id}, else default to ['dashboard'].
         foreach ($managers as $mgr) {
+            $mods = null;
             if (is_array($mgr->module_permissions)) {
-                $rolePermissions['manager_' . $mgr->id] = array_values($mgr->module_permissions);
+                $mods = $mgr->module_permissions;
+            } elseif (isset($rolePermissions['manager_' . $mgr->id]) && is_array($rolePermissions['manager_' . $mgr->id])) {
+                $mods = $rolePermissions['manager_' . $mgr->id];
             } else {
-                $rolePermissions['manager_' . $mgr->id] = [];
+                $mods = ['dashboard'];
             }
+
+            if (!in_array('dashboard', $mods)) {
+                array_unshift($mods, 'dashboard');
+            }
+            $rolePermissions['manager_' . $mgr->id] = array_values(array_unique($mods));
         }
 
         $departmentsQuery = \App\Models\Department::query();
@@ -209,19 +217,29 @@ class ModuleController extends Controller
 
             if (str_starts_with($roleKey, 'manager_')) {
                 $mgrId = (int) str_replace('manager_', '', $roleKey);
-                \App\Models\User::where('id', $mgrId)->update([
-                    'module_permissions' => $cleanMods,
-                ]);
+
+                // Dashboard is ALWAYS required for managers
+                if (!in_array('dashboard', $cleanMods)) {
+                    array_unshift($cleanMods, 'dashboard');
+                }
+                $cleanMods = array_values(array_unique($cleanMods));
+
+                // 1. Save directly to User model
+                $mgrUser = \App\Models\User::find($mgrId);
+                if ($mgrUser) {
+                    $mgrUser->module_permissions = $cleanMods;
+                    $mgrUser->save();
+                }
+
+                // 2. Also save to Setting role_module_permissions so it survives any database state
+                $rolePermissionsToSave[$roleKey] = $cleanMods;
             } else {
                 $rolePermissionsToSave[$roleKey] = $cleanMods;
             }
         }
 
-        if (!isset($rolePermissionsToSave['manager'])) {
-            $existingGeneral = Setting::where('key', 'role_module_permissions')->value('value');
-            $existingDecoded = $existingGeneral ? json_decode($existingGeneral, true) : [];
-            $rolePermissionsToSave['manager'] = $existingDecoded['manager'] ?? [];
-        }
+        // CRITICAL: Overwrite legacy generic 'manager' key so it never falls back to 19 modules
+        $rolePermissionsToSave['manager'] = ['dashboard'];
 
         Setting::updateOrCreate(
             ['key' => 'role_module_permissions'],
@@ -302,6 +320,12 @@ class ModuleController extends Controller
         $uniqueSuffix = time() . '_' . rand(100, 999);
         $email = $slug . '_' . $uniqueSuffix . '@company.local';
 
+        $initialMods = $validated['module_permissions'] ?? [];
+        if (!in_array('dashboard', $initialMods)) {
+            array_unshift($initialMods, 'dashboard');
+        }
+        $initialMods = array_values(array_unique($initialMods));
+
         $manager = \App\Models\User::create([
             'name' => $designation,
             'email' => $email,
@@ -309,10 +333,21 @@ class ModuleController extends Controller
             'role' => 'manager',
             'designation' => $designation,
             'admin_id' => $tenantAdminId,
-            'module_permissions' => $validated['module_permissions'] ?? [],
+            'module_permissions' => $initialMods,
             'is_active' => true,
             'must_change_password' => false,
         ]);
+
+        // Also save to Setting
+        $settingRow = Setting::where('key', 'role_module_permissions')->first();
+        if ($settingRow) {
+            $curPerms = json_decode($settingRow->value, true) ?: [];
+            $curPerms['manager_' . $manager->id] = $initialMods;
+            $curPerms['manager'] = ['dashboard'];
+            $settingRow->value = json_encode($curPerms);
+            $settingRow->save();
+            Cache::forget('global_settings_map');
+        }
 
         return redirect()->back()->with('success', "Manager '{$designation}' created successfully!");
     }
