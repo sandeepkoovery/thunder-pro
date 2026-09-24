@@ -56,6 +56,7 @@ class HandleInertiaRequests extends Middleware
         if ($user) {
             if ($user->role === 'superadmin') {
                 $plan = 'premium';
+                $admin = ($user instanceof \App\Models\Admin) ? $user : \App\Models\Admin::where('email', $user->email)->first();
             } elseif ($user->role === 'admin' || $user instanceof \App\Models\Admin) {
                 $admin = ($user instanceof \App\Models\Admin) ? $user : \App\Models\Admin::where('email', $user->email)->first();
                 $plan = $admin ? ($admin->plan ?? 'basic') : ($user->plan ?? 'basic');
@@ -266,6 +267,32 @@ class HandleInertiaRequests extends Middleware
             }
         }
 
+        $companyName = $admin?->company_name ?: ($user?->company_name ?: ($admin?->name ?: ($user?->name ?: 'WorkNest')));
+        $companyAddress = $admin?->address ?: ($user?->address ?: null);
+        $companyPhone = $admin?->phone ?: ($user?->mobile ?: ($user?->phone ?: null));
+        $companyEmail = $admin?->email ?: ($user?->email ?: null);
+        $companyGst = $admin?->gst_no ?: ($user?->gst_no ?: null);
+
+        $hasCustomLogo = false;
+        $companyLogo = null;
+        if ($admin && (!empty($admin->thumb) || !empty($admin->image))) {
+            $hasCustomLogo = true;
+            $companyLogo = $admin->image_url;
+        } elseif ($user && (!empty($user->thumb) || !empty($user->image)) && ($user->role === 'admin' || !empty($user->company_name) || $user instanceof \App\Models\Admin)) {
+            $hasCustomLogo = true;
+            $companyLogo = $user->image_url;
+        }
+
+        $companyData = [
+            'name' => $companyName,
+            'address' => ($companyAddress && trim($companyAddress) !== '#') ? trim($companyAddress) : null,
+            'phone' => ($companyPhone && trim($companyPhone) !== '#') ? trim($companyPhone) : null,
+            'email' => ($companyEmail && trim($companyEmail) !== '#') ? trim($companyEmail) : null,
+            'gst_no' => ($companyGst && trim($companyGst) !== '#') ? trim($companyGst) : null,
+            'logo' => $hasCustomLogo ? $companyLogo : null,
+            'has_logo' => $hasCustomLogo,
+        ];
+
         return [
             ...parent::share($request),
             'auth' => [
@@ -282,6 +309,7 @@ class HandleInertiaRequests extends Middleware
                     'must_change_password' => (bool) ($user->must_change_password ?? false),
                 ]) : null,
             ],
+            'company' => $companyData,
             'appUrl' => config('app.url'),
             'flash' => [
                 'success' => $request->session()->get('success'),

@@ -277,6 +277,45 @@ class AttendanceController extends Controller
         return $user->admin_id ?? 0;
     }
 
+    private function getCompanyDetails(): array
+    {
+        $user = auth()->user();
+        $adminId = $this->getTenantAdminId();
+        $admin = $adminId > 0 ? \App\Models\Admin::find($adminId) : null;
+        if (!$admin && $user instanceof \App\Models\Admin) {
+            $admin = $user;
+        }
+        if (!$admin && $user) {
+            $admin = \App\Models\Admin::where('email', $user->email)->first();
+        }
+
+        $companyName = $admin?->company_name ?: ($user?->company_name ?: ($admin?->name ?: ($user?->name ?: 'WorkNest')));
+        $companyAddress = $admin?->address ?: ($user?->address ?: null);
+        $companyPhone = $admin?->phone ?: ($user?->mobile ?: ($user?->phone ?: null));
+        $companyEmail = $admin?->email ?: ($user?->email ?: null);
+        $companyGst = $admin?->gst_no ?: ($user?->gst_no ?: null);
+
+        $hasCustomLogo = false;
+        $companyLogo = null;
+        if ($admin && (!empty($admin->thumb) || !empty($admin->image))) {
+            $hasCustomLogo = true;
+            $companyLogo = $admin->image_url;
+        } elseif ($user && (!empty($user->thumb) || !empty($user->image)) && ($user->role === 'admin' || !empty($user->company_name) || $user instanceof \App\Models\Admin)) {
+            $hasCustomLogo = true;
+            $companyLogo = $user->image_url;
+        }
+
+        return [
+            'name' => $companyName,
+            'address' => ($companyAddress && trim($companyAddress) !== '#') ? trim($companyAddress) : null,
+            'phone' => ($companyPhone && trim($companyPhone) !== '#') ? trim($companyPhone) : null,
+            'email' => ($companyEmail && trim($companyEmail) !== '#') ? trim($companyEmail) : null,
+            'gst_no' => ($companyGst && trim($companyGst) !== '#') ? trim($companyGst) : null,
+            'logo' => $hasCustomLogo ? $companyLogo : null,
+            'has_logo' => $hasCustomLogo,
+        ];
+    }
+
     private function getOfficeTimingRules($tenantAdminId = null, $user = null)
     {
         $adminId = $tenantAdminId;
@@ -581,6 +620,7 @@ class AttendanceController extends Controller
                     'timingRules' => $timingRules,
                     'exportPreviewData' => $exportPreviewData,
                     'correctionRequests' => $correctionRequests,
+                    'company' => $this->getCompanyDetails(),
                 ]);
             } else {
                 // All Users Monthly View
@@ -667,6 +707,7 @@ class AttendanceController extends Controller
                     'timingRules' => $timingRules,
                     'exportPreviewData' => $exportPreviewData,
                     'correctionRequests' => $correctionRequests,
+                    'company' => $this->getCompanyDetails(),
                 ]);
             }
         }
@@ -798,6 +839,7 @@ class AttendanceController extends Controller
             'timingRules' => $timingRules,
             'exportPreviewData' => $exportPreviewData,
             'correctionRequests' => $correctionRequests,
+            'company' => $this->getCompanyDetails(),
         ]);
     }
 
@@ -1248,6 +1290,7 @@ class AttendanceController extends Controller
             'exportPreviewData' => $exportPreviewData,
             'leaves' => $leaves,
             'leaveStats' => $leaveStats,
+            'company' => $this->getCompanyDetails(),
             'filters' => [
                 'user_id' => $userId ? (string)$userId : '',
                 'leave_user_id' => $leaveUserId ? (string)$leaveUserId : '',
@@ -1296,9 +1339,13 @@ class AttendanceController extends Controller
 
         $leaves = $leaveQuery->orderBy('created_at', 'desc')->get();
 
+        $companyDetails = $this->getCompanyDetails();
+        $companySlug = \Illuminate\Support\Str::slug($companyDetails['name'] ?? 'leave');
+        $csvFilename = "{$companySlug}_leave_report_{$monthStr}.csv";
+
         $headers = [
             "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=leave_report_{$monthStr}.csv",
+            "Content-Disposition" => "attachment; filename={$csvFilename}",
             "Pragma" => "no-cache",
             "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
             "Expires" => "0"
@@ -1373,9 +1420,13 @@ class AttendanceController extends Controller
         }
         $users = $query->orderBy('name')->get();
 
+        $companyDetails = $this->getCompanyDetails();
+        $companySlug = \Illuminate\Support\Str::slug($companyDetails['name'] ?? 'attendance');
+        $csvFilename = "{$companySlug}_attendance_report_{$monthStr}.csv";
+
         $headers = [
             "Content-type" => "text/csv",
-            "Content-Disposition" => "attachment; filename=attendance_export_{$monthStr}.csv",
+            "Content-Disposition" => "attachment; filename={$csvFilename}",
             "Pragma" => "no-cache",
             "Cache-Control" => "must-revalidate, post-check=0, pre-check=0",
             "Expires" => "0"

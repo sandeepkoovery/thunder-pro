@@ -1,13 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import AdminLayout from '@/Layouts/AdminLayout';
-import { Head, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import {
     Download, FileText, Calendar, Home, Search,
     CheckCircle2, Clock, XCircle, ChevronRight, UserCheck, Filter
 } from 'lucide-react';
 import MonthPicker from '@/Components/MonthPicker';
 
-export default function Report({ users = [], exportPreviewData = [], leaves = [], leaveStats = {}, filters = {} }) {
+export default function Report({ users = [], exportPreviewData = [], leaves = [], leaveStats = {}, filters = {}, company = null }) {
+    const { auth, company: sharedCompany } = usePage().props;
+    const companyInfo = company || sharedCompany || {
+        name: auth?.user?.company_name || 'WorkNest',
+        address: (auth?.user?.address && auth.user.address !== '#') ? auth.user.address : null,
+        phone: (auth?.user?.phone && auth.user.phone !== '#') ? auth.user.phone : ((auth?.user?.mobile && auth.user.mobile !== '#') ? auth.user.mobile : null),
+        email: (auth?.user?.email && auth.user.email !== '#') ? auth.user.email : null,
+        gst_no: (auth?.user?.gst_no && auth.user.gst_no !== '#') ? auth.user.gst_no : null,
+        logo: (auth?.user?.thumb || auth?.user?.image) ? auth?.user?.image_url : null,
+        has_logo: Boolean((auth?.user?.thumb || auth?.user?.image) && auth?.user?.image_url),
+    };
+    const companyName = companyInfo?.name || auth?.user?.company_name || 'WorkNest';
+
     const [activeTab, setActiveTab] = useState(filters.active_tab || 'attendance');
     const [selectedUserIds, setSelectedUserIds] = useState([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -600,14 +612,37 @@ export default function Report({ users = [], exportPreviewData = [], leaves = []
 
             {/* Printable PDF Template */}
             <div className="print-only-report">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '12px', marginBottom: '16px' }}>
-                    <div>
-                        <h1 style={{ fontSize: '20px', fontWeight: '800', margin: 0, textTransform: 'uppercase', color: '#0f172a' }}>
-                            WorkNest - {activeTab === 'attendance' ? 'Monthly Attendance Report' : 'Monthly Leave Report'}
-                        </h1>
-                        <p style={{ fontSize: '12px', margin: '4px 0 0 0', color: '#475569' }}>
-                            Report Month: <strong>{formatMonthLabel(currentMonth)}</strong> &bull; Generated On: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
-                        </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '14px', marginBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                        {companyInfo?.has_logo && companyInfo?.logo && (
+                            <img
+                                src={companyInfo.logo}
+                                alt={companyName}
+                                style={{ maxHeight: '48px', maxWidth: '160px', objectFit: 'contain', display: 'block' }}
+                                onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                            />
+                        )}
+                        <div>
+                            <h1 style={{ fontSize: '18px', fontWeight: '800', margin: 0, textTransform: 'uppercase', color: '#0f172a', letterSpacing: '-0.01em' }}>
+                                {companyName} - {activeTab === 'attendance' ? 'Monthly Attendance Report' : 'Monthly Leave Report'}
+                            </h1>
+                            <p style={{ fontSize: '11px', margin: '4px 0 0 0', color: '#475569' }}>
+                                Report Month: <strong>{formatMonthLabel(currentMonth)}</strong> &bull; Generated On: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            </p>
+                        </div>
+                    </div>
+                    <div style={{ textAlign: 'right', fontSize: '11px', color: '#334155' }}>
+                        {activeTab === 'attendance' ? (
+                            <>
+                                <p style={{ margin: 0 }}>Selected Employees: <strong>{selectedUserIds.length}</strong></p>
+                                <p style={{ margin: '2px 0 0 0' }}>Total Work Hours: <strong>{formatDuration(totalExportWorkMinutes)}</strong></p>
+                            </>
+                        ) : (
+                            <>
+                                <p style={{ margin: 0 }}>Total Requests: <strong>{filteredLeaves?.length || 0}</strong></p>
+                                <p style={{ margin: '2px 0 0 0' }}>Approved: <strong>{filteredLeaves?.filter(l => l.status === 'approved').length || 0}</strong></p>
+                            </>
+                        )}
                     </div>
                 </div>
 
@@ -668,6 +703,30 @@ export default function Report({ users = [], exportPreviewData = [], leaves = []
                         </tbody>
                     </table>
                 )}
+
+                {/* Professional Letterhead Footer (No graphics needed) */}
+                <div className="print-footer" style={{ marginTop: '24px', paddingTop: '12px', borderTop: '1.5px solid #cbd5e1', fontSize: '10px', color: '#475569', textAlign: 'center', lineHeight: '1.6' }}>
+                    <div style={{ fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.04em', marginBottom: '3px' }}>
+                        {companyName}
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '4px 14px', color: '#334155' }}>
+                        {companyInfo?.address && (
+                            <span><strong>Address:</strong> {companyInfo.address}</span>
+                        )}
+                        {companyInfo?.phone && (
+                            <span><strong>Phone:</strong> {companyInfo.phone}</span>
+                        )}
+                        {companyInfo?.email && (
+                            <span><strong>Email:</strong> {companyInfo.email}</span>
+                        )}
+                        {companyInfo?.gst_no && (
+                            <span><strong>GSTIN:</strong> {companyInfo.gst_no}</span>
+                        )}
+                    </div>
+                    <div style={{ marginTop: '6px', fontSize: '9px', color: '#94a3b8' }}>
+                        Confidential &bull; Generated via {companyName} HRMS &bull; Computer generated report, signature not required.
+                    </div>
+                </div>
             </div>
 
             <style dangerouslySetInnerHTML={{
@@ -702,8 +761,9 @@ export default function Report({ users = [], exportPreviewData = [], leaves = []
                         top: 0 !important;
                         width: 100% !important;
                         background: #ffffff !important;
-                        padding: 24px !important;
+                        padding: 20px 24px !important;
                         z-index: 999999 !important;
+                        box-sizing: border-box !important;
                     }
                     .print-table {
                         width: 100% !important;
@@ -712,7 +772,7 @@ export default function Report({ users = [], exportPreviewData = [], leaves = []
                     }
                     .print-table th, .print-table td {
                         border: 1px solid #cbd5e1 !important;
-                        padding: 8px 10px !important;
+                        padding: 7px 9px !important;
                         font-size: 11px !important;
                         text-align: center !important;
                     }
@@ -724,6 +784,13 @@ export default function Report({ users = [], exportPreviewData = [], leaves = []
                     }
                     .print-table th:first-child, .print-table td:first-child {
                         text-align: left !important;
+                    }
+                    .print-footer {
+                        width: 100% !important;
+                        margin-top: 24px !important;
+                        padding-top: 12px !important;
+                        border-top: 1.5px solid #94a3b8 !important;
+                        page-break-inside: avoid !important;
                     }
                 }
                 @media screen {
