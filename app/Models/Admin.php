@@ -23,6 +23,8 @@ class Admin extends Authenticatable
         'subscribed_at',
         'additional_modules',
         'company_name',
+        'address',
+        'gst_no',
         'phone',
         'image',
         'thumb',

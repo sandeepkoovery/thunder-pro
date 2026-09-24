@@ -83,6 +83,8 @@ class User extends Authenticatable
         'is_imported',
         'must_change_password',
         'module_permissions',
+        'company_name',
+        'gst_no',
     ];
 
     /**

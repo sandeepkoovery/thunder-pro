@@ -270,6 +270,11 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
             'auth' => [
                 'user' => $user ? array_merge($user->toArray(), [
+                    'company_name' => $user->company_name ?? ($admin?->company_name ?? ''),
+                    'gst_no' => $user->gst_no ?? ($admin?->gst_no ?? ''),
+                    'address' => $user->address ?? ($admin?->address ?? ''),
+                    'phone' => ($user instanceof \App\Models\Admin ? ($user->phone ?? '') : ($user->mobile ?? ($user->phone ?? ($admin?->phone ?? '')))),
+                    'mobile' => ($user instanceof \App\Models\Admin ? ($user->phone ?? '') : ($user->mobile ?? ($user->phone ?? ($admin?->phone ?? '')))),
                     'department' => ($user instanceof \App\Models\User && $user->department_id) ? $user->department : null,
                     'has_passkey' => ($user instanceof \App\Models\User) ? $user->hasPasskeys() : false,
                     'approval_status' => $approvalStatus,
