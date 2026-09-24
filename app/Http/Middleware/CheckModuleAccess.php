@@ -33,7 +33,7 @@ class CheckModuleAccess
         // Unrestricted system routes that any logged in user can access
         $unrestrictedRoutes = [
             'dashboard', 'admin.settings.', 'admin.modules.', 'admin.pricing.', 
-            'admin.users.', 'profile.', 'notifications.'
+            'profile.', 'notifications.'
         ];
         foreach ($unrestrictedRoutes as $unrestricted) {
             if ($route === $unrestricted || str_starts_with($route, $unrestricted)) {
@@ -48,6 +48,8 @@ class CheckModuleAccess
             'admin.projects.' => 'projects',
             'projects.' => 'projects',
             'admin.users.' => 'users',
+            'admin.departments.' => 'departments',
+            'departments.' => 'departments',
             'admin.leaves.' => 'leaves',
             'leave.' => 'leaves',
             'admin.attendance.' => 'attendance',

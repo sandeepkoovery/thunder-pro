@@ -177,7 +177,7 @@ class HandleInertiaRequests extends Middleware
                 $allowedModules = $rolePermissions[$userRoleKey];
             } else {
                 $defaultRolePermissions = [
-                    'editor'   => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications'],
+                    'editor'   => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications'],
                     'designer' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications'],
                     'user'     => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications'],
                 ];
@@ -190,7 +190,7 @@ class HandleInertiaRequests extends Middleware
                 // Per-role ceiling: the maximum modules this role can ever see
                 $roleCeiling = [
                     'admin'    => $allModulesList,
-                    'editor'   => ['dashboard', 'projects', 'departments', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications', 'ai_assistant'],
+                    'editor'   => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications', 'ai_assistant'],
                     'designer' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications', 'ai_assistant'],
                     'user'     => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications', 'ai_assistant'],
                 ];

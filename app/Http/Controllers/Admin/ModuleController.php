@@ -162,6 +162,14 @@ class ModuleController extends Controller
             $rolePermissions['manager_' . $mgr->id] = array_values(array_unique($mods));
         }
 
+        $adminOnlyModules = ['departments', 'users', 'settings', 'modules', 'pricing', 'websites'];
+        if (isset($rolePermissions['editor']) && is_array($rolePermissions['editor'])) {
+            $rolePermissions['editor'] = array_values(array_diff($rolePermissions['editor'], $adminOnlyModules));
+        }
+        if (isset($rolePermissions['user']) && is_array($rolePermissions['user'])) {
+            $rolePermissions['user'] = array_values(array_diff($rolePermissions['user'], $adminOnlyModules));
+        }
+
         $departmentsQuery = \App\Models\Department::query();
         if (!$isSuperAdmin && $tenantAdminId) {
             $departmentsQuery->where('admin_id', $tenantAdminId);
@@ -234,6 +242,10 @@ class ModuleController extends Controller
                 // 2. Also save to Setting role_module_permissions so it survives any database state
                 $rolePermissionsToSave[$roleKey] = $cleanMods;
             } else {
+                if (in_array($roleKey, ['editor', 'user'])) {
+                    $adminOnlyModules = ['departments', 'users', 'settings', 'modules', 'pricing', 'websites'];
+                    $cleanMods = array_values(array_diff($cleanMods, $adminOnlyModules));
+                }
                 $rolePermissionsToSave[$roleKey] = $cleanMods;
             }
         }

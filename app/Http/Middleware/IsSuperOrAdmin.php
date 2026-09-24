@@ -15,7 +15,7 @@ class IsSuperOrAdmin
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (!auth()->check() || !in_array(auth()->user()->role, ['superadmin', 'admin', 'manager', 'editor'])) {
+        if (!auth()->check() || !in_array(auth()->user()->role, ['superadmin', 'admin', 'manager'])) {
             abort(403, 'Unauthorized action.');
         }
 

@@ -33,7 +33,7 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
   const userDesignation = user?.designation?.toLowerCase() || '';
   const deptName = user?.department?.name?.toLowerCase() || '';
 
-  const isManagementAdmin = ['admin', 'superadmin', 'manager', 'editor'].includes(userRole);
+  const isManagementAdmin = ['admin', 'superadmin', 'manager'].includes(userRole);
   const isAttendanceAdmin = ['admin', 'superadmin', 'manager'].includes(userRole);
   const isDesignerDepartment = 
     isManagementAdmin ||
@@ -89,12 +89,12 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
       {
         key: 'users',
         order: getModuleOrder('users', 3),
-        element: <NavItem key="users" href={route("admin.users.index")} icon={UsersIcon} label="Employees" routeName="admin.users" visible={isVisible("users")} beta={betaMenuItems.includes("users")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="users" href={route("admin.users.index")} icon={UsersIcon} label="Employees" routeName="admin.users" visible={isVisible("users") && isManagementAdmin} beta={betaMenuItems.includes("users")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'departments',
         order: getModuleOrder('departments', 4),
-        element: <NavItem key="departments" href={route("admin.departments.index")} icon={Building2} label="Departments" routeName="admin.departments" visible={isVisible("departments")} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+        element: <NavItem key="departments" href={route("admin.departments.index")} icon={Building2} label="Departments" routeName="admin.departments" visible={isVisible("departments") && isManagementAdmin} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'attendance',
