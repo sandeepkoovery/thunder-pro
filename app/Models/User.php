@@ -80,6 +80,7 @@ class User extends Authenticatable
         'employment_type',
         'branch',
         'shift',
+        'shift_id',
         'is_imported',
         'must_change_password',
         'module_permissions',
@@ -236,6 +237,11 @@ class User extends Authenticatable
     public function tenantUsers(): \Illuminate\Database\Eloquent\Relations\HasMany
     {
         return $this->hasMany(User::class, 'admin_id');
+    }
+
+    public function shift(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Shift::class, 'shift_id');
     }
 
     public function getEffectiveAdminIdAttribute(): ?int

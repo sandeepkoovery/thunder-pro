@@ -41,7 +41,10 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
     const officeStartTime = timingRules?.start_time || settings?.office_start_time || '09:00';
     const officeEndTime = timingRules?.end_time || settings?.office_end_time || '18:00';
     const officeBufferMinutes = timingRules?.buffer_minutes ?? (settings?.login_buffer_minutes ? parseInt(settings.login_buffer_minutes, 10) : 30);
-    const officeHoursLabel = `${formatTime12(officeStartTime)} - ${formatTime12(officeEndTime)} IST`;
+    const isShiftBased = Boolean(timingRules?.is_shift_based);
+    const officeHoursLabel = isShiftBased
+        ? `${timingRules.shift_name} (${formatTime12(officeStartTime)} - ${formatTime12(officeEndTime)}${timingRules.is_night_shift ? ' Next Day' : ''})`
+        : `${formatTime12(officeStartTime)} - ${formatTime12(officeEndTime)} IST`;
 
     const isSuperAdmin = auth?.user?.role === 'superadmin';
 

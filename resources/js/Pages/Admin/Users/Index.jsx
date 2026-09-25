@@ -40,6 +40,8 @@ export default function Index() {
     hasUnlimitedEmployees = false,
     allModules = [],
     managerTypes = [],
+    shifts = [],
+    shiftsEnabled = false,
   } = usePage().props;
 
   const addedManagerTypes = Array.from(new Set([
@@ -71,6 +73,7 @@ export default function Index() {
     desktop_only: false,
     employee_id: "",
     department_id: "",
+    shift_id: "",
     designation: "",
     joining_date: "",
     employment_type: "",
@@ -221,12 +224,14 @@ export default function Index() {
         desktop_only: !!user.desktop_only,
         employee_id: user.employee_id || "",
         department_id: user.department_id || "",
+        shift_id: user.shift_id || "",
         designation: user.designation || "",
         joining_date: getLocalYMD(user.joining_date),
         employment_type: user.employment_type || "",
         module_permissions: Array.isArray(user.module_permissions) ? user.module_permissions : [],
       });
     } else {
+      const defaultShift = (shifts || []).find(s => s.is_default);
       setEditingUser(null);
       setForm({
         name: "",
@@ -238,6 +243,7 @@ export default function Index() {
         desktop_only: false,
         employee_id: "",
         department_id: "",
+        shift_id: defaultShift?.id || "",
         designation: "",
         joining_date: "",
         employment_type: "",
@@ -642,6 +648,7 @@ export default function Index() {
                   <th className="py-4 px-6">Role</th>
                   <th className="py-4 px-6">Designation</th>
                   <th className="py-4 px-6">Department</th>
+                  {shiftsEnabled && <th className="py-4 px-6">Shift</th>}
                   <th className="py-4 px-6">Status</th>
                   <th className="py-4 px-6 text-center">Desktop Only</th>
                   <th className="py-4 px-6 text-center">Actions</th>
@@ -701,6 +708,20 @@ export default function Index() {
                     <td className="py-4 px-6 text-[15px] text-gray-700 font-medium">
                       {user.department?.name || "-"}
                     </td>
+                    {shiftsEnabled && (
+                      <td className="py-4 px-6">
+                        {user.shift ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-100">
+                            <Clock size={12} className="text-indigo-500" />
+                            <span>{user.shift.name}</span>
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 text-xs text-gray-400 font-medium">
+                            <span>Default</span>
+                          </span>
+                        )}
+                      </td>
+                    )}
                     <td className="py-4 px-6">
                       <button
                         onClick={() => handleToggle(user.id)}
@@ -759,7 +780,7 @@ export default function Index() {
 
                 {filteredUsers.length === 0 && (
                   <tr>
-                    <td colSpan="9" className="py-12 text-center text-gray-400 font-medium">
+                    <td colSpan={shiftsEnabled ? "10" : "9"} className="py-12 text-center text-gray-400 font-medium">
                       No matching employees found.
                     </td>
                   </tr>
@@ -862,6 +883,11 @@ export default function Index() {
                 <div className="flex items-center justify-between text-xs text-gray-500 mb-3 bg-gray-50 rounded-xl px-3 py-2 border border-gray-50">
                   <div className="font-semibold text-gray-600">
                     Dept: <span className="font-bold text-gray-800">{user.department?.name || "-"}</span>
+                    {shiftsEnabled && (
+                      <span className="ml-2 text-indigo-600 font-bold">
+                        • {user.shift?.name || "Default Shift"}
+                      </span>
+                    )}
                   </div>
                   <div>
                     {renderRole(user.role)}
@@ -1204,8 +1230,34 @@ export default function Index() {
                   </select>
                 </div>
 
+                {/* Work Shift (Visible when multiple shifts enabled) */}
+                {shiftsEnabled && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Work Shift</label>
+                      <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">Multi-Shift</span>
+                    </div>
+                    <select
+                      name="shift_id"
+                      value={form.shift_id}
+                      onChange={handleChange}
+                      className="w-full pl-5 pr-10 py-2.5 bg-gray-50/50 border border-gray-100 rounded-2xl bg-white text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_14px_center] bg-[size:18px] bg-no-repeat"
+                    >
+                      <option value="">Default Office Shift</option>
+                      {(shifts || []).map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name} ({s.start_time?.substring(0, 5)} - {s.end_time?.substring(0, 5)}{s.is_night_shift || s.end_time <= s.start_time ? ' Next Day' : ''}) {s.is_default ? '★ Default' : ''}
+                        </option>
+                      ))}
+                    </select>
+                    {errors.shift_id && (
+                      <p className="text-red-500 text-xs font-bold ml-1 mt-1">{errors.shift_id}</p>
+                    )}
+                  </div>
+                )}
+
                 {/* Joining Date */}
-                <div className="md:col-span-2 space-y-1">
+                <div className={`${shiftsEnabled ? "space-y-1" : "md:col-span-2 space-y-1"}`}>
                   <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Joining Date</label>
                   <DatePicker
                     name="joining_date"

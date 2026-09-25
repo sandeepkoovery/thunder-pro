@@ -326,6 +326,7 @@ class HandleInertiaRequests extends Middleware
             'isSubscriptionPending' => ($approvalStatus === 'pending'),
             'allowedModules' => $allowedModules,
             'userAdditionalModules' => $userAdditionalModules,
+            'isWorkshiftEnabled' => ($user && $user->role === 'superadmin') || ($admin ? (bool)$admin->workshift_enabled : false),
             'moduleOrder' => json_decode($settingsMap['module_order'] ?? '[]', true) ?: [],
             'pricingSettings' => [
                 'basic_plan_price' => $settingsMap['basic_plan_price'] ?? '999',
@@ -337,6 +338,7 @@ class HandleInertiaRequests extends Middleware
             'sharedSettings' => [
                 'beta_menu_items' => json_decode($settingsMap['beta_menu_items'] ?? '[]', true) ?: [],
                 'hidden_modules' => json_decode($settingsMap['hidden_modules'] ?? '[]', true) ?: [],
+                'workshifts_visible_to_admins' => ($settingsMap['workshifts_visible_to_admins'] ?? '1') === '1',
                 'csv_import_limit' => (int) ($settingsMap['csv_import_limit'] ?? 100),
             ],
             'expiringWebsitesCount' => $expiringCount,

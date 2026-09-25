@@ -5,7 +5,7 @@ import MonthPicker from '@/Components/MonthPicker';
 import Modal from '@/Components/Modal';
 import { Home, ChevronRight, Clock, Plus, Edit2, AlertCircle, CheckCircle2, XCircle, Coffee, Trash2 } from 'lucide-react';
 
-export default function Index({ attendanceData = [], correctionRequests = [], filters = {}, totalMonthlyMinutes = 0 }) {
+export default function Index({ attendanceData = [], correctionRequests = [], filters = {}, totalMonthlyMinutes = 0, timingRules = {}, userShift = null }) {
     const { auth } = usePage().props;
     const user = auth?.user || {};
 
@@ -411,9 +411,17 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                         <div className="lg:col-span-5 space-y-4">
                             <div>
                                 <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Attendance history</h1>
-                                <p className="text-xs sm:text-sm text-gray-400 mt-1 font-medium flex items-center gap-1.5">
-                                    <span className="text-amber-400 text-sm">☼</span> {todayStr}
-                                </p>
+                                <div className="flex flex-wrap items-center gap-3 mt-1.5">
+                                    <p className="text-xs sm:text-sm text-gray-400 font-medium flex items-center gap-1.5">
+                                        <span className="text-amber-400 text-sm">☼</span> {todayStr}
+                                    </p>
+                                    {userShift && (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
+                                            <Clock size={12} className="text-indigo-600" />
+                                            <span>Shift: {userShift.name} ({userShift.start_time?.substring(0, 5)} – {userShift.end_time?.substring(0, 5)}{userShift.is_night_shift || userShift.end_time <= userShift.start_time ? ' Next Day' : ''})</span>
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Percentage Pills Bar */}

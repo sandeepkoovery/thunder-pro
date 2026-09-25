@@ -21,6 +21,7 @@ class Attendance extends Model
         'punch_out_lat',
         'punch_out_lng',
         'device_type',
+        'shift_id',
     ];
 
     protected $casts = [
@@ -44,5 +45,10 @@ class Attendance extends Model
     public function correctionRequests()
     {
         return $this->hasMany(AttendanceCorrectionRequest::class);
+    }
+
+    public function shift()
+    {
+        return $this->belongsTo(Shift::class, 'shift_id');
     }
 }

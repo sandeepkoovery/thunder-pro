@@ -62,6 +62,7 @@ export default function Index() {
     additional_modules: [],
     approval_status: "approved",
     unlimited_employees_status: "none",
+    workshift_enabled: false,
   });
   const [errors, setErrors] = useState({});
   const [deleteId, setDeleteId] = useState(null);
@@ -82,6 +83,7 @@ export default function Index() {
         additional_modules: Array.isArray(admin.additional_modules) ? admin.additional_modules : [],
         approval_status: admin.approval_status || "approved",
         unlimited_employees_status: admin.unlimited_status || admin.unlimited_employees_status || "none",
+        workshift_enabled: Boolean(admin.workshift_enabled),
       });
     } else {
       setEditingAdmin(null);
@@ -97,6 +99,7 @@ export default function Index() {
         additional_modules: [],
         approval_status: "approved",
         unlimited_employees_status: "none",
+        workshift_enabled: false,
       });
     }
     setErrors({});
@@ -172,6 +175,20 @@ export default function Index() {
       onError: (err) => {
         console.error("Unlimited status change error:", err);
         toast.error("Failed to update unlimited capacity status.");
+      },
+    });
+  };
+
+  // Toggle Work Shift feature for a particular admin
+  const handleToggleWorkshift = (id, newStatus) => {
+    router.patch(route("admin.admin-users.toggle-workshift", id), { workshift_enabled: newStatus }, {
+      preserveScroll: true,
+      onSuccess: () => {
+        toast.success("Work Shift feature status updated!");
+      },
+      onError: (err) => {
+        console.error("Work Shift status change error:", err);
+        toast.error("Failed to update Work Shift status.");
       },
     });
   };
@@ -330,6 +347,7 @@ export default function Index() {
                   <th className="py-4 px-6">Workspace / Admin</th>
                   <th className="py-4 px-6">Contact Details</th>
                   <th className="py-4 px-6">Plan &amp; Modules</th>
+                  <th className="py-4 px-6 text-center">Work Shift</th>
                   <th className="py-4 px-6 text-center">Employees / Capacity</th>
                   <th className="py-4 px-6">Status</th>
                   <th className="py-4 px-6 text-center">Actions</th>
@@ -403,6 +421,21 @@ export default function Index() {
                             </div>
                           )}
                         </div>
+                      </td>
+                      <td className="py-4 px-6 text-center">
+                        <button
+                          type="button"
+                          onClick={() => handleToggleWorkshift(admin.id, !admin.workshift_enabled)}
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer ${
+                            admin.workshift_enabled
+                              ? "bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200"
+                              : "bg-gray-100 text-gray-500 hover:bg-gray-200 border border-gray-200"
+                          }`}
+                          title={`Click to ${admin.workshift_enabled ? 'Disable' : 'Enable'} Work Shift System for ${admin.company_name || admin.name}`}
+                        >
+                          <Clock size={13} className={admin.workshift_enabled ? "text-indigo-600" : "text-gray-400"} />
+                          {admin.workshift_enabled ? "Enabled" : "Disabled"}
+                        </button>
                       </td>
                       <td className="py-4 px-6 text-center">
                         <div className="inline-flex flex-col items-center gap-1.5">
@@ -619,6 +652,24 @@ export default function Index() {
                       </span>
                     </span>
                   </div>
+                </div>
+
+                <div className="flex items-center justify-between text-xs text-gray-500 mb-3 bg-indigo-50/50 rounded-xl px-3 py-2 border border-indigo-100/60">
+                  <div className="font-semibold text-gray-700 flex items-center gap-1.5">
+                    <Clock size={13} className="text-indigo-600" />
+                    Work Shift Feature:
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleWorkshift(admin.id, !admin.workshift_enabled)}
+                    className={`px-2.5 py-0.5 rounded-full text-xs font-bold cursor-pointer ${
+                      admin.workshift_enabled
+                        ? "bg-indigo-600 text-white"
+                        : "bg-gray-200 text-gray-600"
+                    }`}
+                  >
+                    {admin.workshift_enabled ? "Enabled" : "Disabled"}
+                  </button>
                 </div>
 
                 {admin.unlimited_status === "pending" && (
@@ -940,6 +991,43 @@ export default function Index() {
                 <p className="text-[11px] text-gray-400 mt-1 font-medium">
                   When approved, this tenant admin can import and add unlimited employees beyond the standard {csvImportLimit} cap.
                 </p>
+              </div>
+
+              {/* Work Shift System Feature Toggle */}
+              <div className="p-4 bg-indigo-50/70 border border-indigo-100 rounded-2xl flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 bg-indigo-100 text-indigo-700 rounded-xl shrink-0">
+                    <Clock size={18} />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-gray-900 uppercase tracking-wider flex items-center gap-2">
+                      Work Shift System Feature
+                      <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase ${
+                        form.workshift_enabled ? "bg-emerald-100 text-emerald-800" : "bg-gray-200 text-gray-700"
+                      }`}>
+                        {form.workshift_enabled ? "Enabled" : "Disabled"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-gray-500 font-medium mt-0.5">
+                      Enable to allow this admin to configure multi-shifts (Day, Evening, Night) and assign staff to them.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setForm((prev) => ({ ...prev, workshift_enabled: !prev.workshift_enabled }))}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    form.workshift_enabled ? "bg-indigo-600" : "bg-gray-300"
+                  }`}
+                  role="switch"
+                  aria-checked={form.workshift_enabled}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
+                      form.workshift_enabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
               </div>
 
               {/* Submit Button */}

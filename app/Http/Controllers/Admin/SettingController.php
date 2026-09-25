@@ -32,6 +32,44 @@ class SettingController extends Controller
         $settings['office_start_time'] = $admin ? ($admin->office_start_time ?? '09:00') : '09:00';
         $settings['office_end_time'] = $admin ? ($admin->office_end_time ?? '18:00') : '18:00';
         $settings['login_buffer_minutes'] = $admin ? ($admin->login_buffer_minutes ?? 30) : 30;
+        $settings['shifts_enabled'] = $admin ? (bool)($admin->shifts_enabled ?? false) : false;
+        $settings['workshift_enabled'] = $admin ? (bool)($admin->workshift_enabled ?? false) : ($user->role === 'superadmin');
+
+        $tenantAdmins = [];
+        if ($user->role === 'superadmin') {
+            $tenantAdmins = \App\Models\Admin::where('role', 'admin')
+                ->withCount('users')
+                ->orderBy('company_name')
+                ->get(['id', 'name', 'company_name', 'email', 'workshift_enabled', 'shifts_enabled', 'plan'])
+                ->transform(function ($a) {
+                    $a->workshift_enabled = (bool)($a->workshift_enabled ?? false);
+                    $a->shifts_enabled = (bool)($a->shifts_enabled ?? false);
+                    return $a;
+                });
+        }
+
+        $shifts = $admin ? \App\Models\Shift::where('admin_id', $admin->id)->orderBy('id')->get() : collect([]);
+
+        // If shifts are enabled but no shifts exist, create 1 default editable shift from office hours
+        if ($admin && $settings['shifts_enabled'] && $shifts->isEmpty()) {
+            $startTime = $admin->office_start_time ? substr($admin->office_start_time, 0, 5) : '09:00';
+            $endTime = $admin->office_end_time ? substr($admin->office_end_time, 0, 5) : '18:00';
+            $buffer = $admin->login_buffer_minutes ?: 30;
+
+            $defaultShift = \App\Models\Shift::create([
+                'admin_id' => $admin->id,
+                'name' => 'General Shift',
+                'start_time' => $startTime,
+                'end_time' => $endTime,
+                'buffer_minutes' => $buffer,
+                'is_night_shift' => ($endTime <= $startTime),
+                'is_default' => true,
+                'is_active' => true,
+                'description' => 'Official office working hours',
+            ]);
+
+            $shifts = collect([$defaultShift]);
+        }
 
         $adminId = $admin ? $admin->id : 0;
         $settings['admin_email'] = $settings["admin_email_{$adminId}"] ?? ($admin ? $admin->email : ($settings['admin_email'] ?? ($user->email ?? '')));
@@ -135,6 +173,8 @@ class SettingController extends Controller
             'settings' => $settings,
             'users' => $users,
             'worksheetSettings' => $worksheetSettings,
+            'shifts' => $shifts,
+            'tenantAdmins' => $tenantAdmins,
         ], $backupProps));
     }
 
@@ -151,6 +191,8 @@ class SettingController extends Controller
             'office_start_time' => 'nullable|string|max:10',
             'office_end_time' => 'nullable|string|max:10',
             'login_buffer_minutes' => 'nullable|integer|min:0|max:240',
+            'shifts_enabled' => 'nullable|boolean',
+            'workshifts_visible_to_admins' => 'nullable|boolean',
             'beta_menu_items' => 'nullable|array',
             'hidden_modules' => 'nullable|array',
             'csv_import_limit' => 'nullable|integer|min:1|max:10000',
@@ -159,6 +201,7 @@ class SettingController extends Controller
         $user = auth()->user();
         if ($user->role !== 'superadmin') {
             unset($data['csv_import_limit']);
+            unset($data['workshifts_visible_to_admins']);
         }
         $admin = null;
         if ($user instanceof \App\Models\Admin) {
@@ -170,7 +213,7 @@ class SettingController extends Controller
         }
 
         if ($admin) {
-            $admin->update([
+            $adminData = [
                 'month_start_day' => $data['month_start_day'] ?? ($admin->month_start_day ?? 25),
                 'month_end_day' => $data['month_end_day'] ?? ($admin->month_end_day ?? 24),
                 'casual_leaves' => isset($data['casual_leaves']) ? (int) $data['casual_leaves'] : ($admin->casual_leaves ?? 12),
@@ -178,7 +221,11 @@ class SettingController extends Controller
                 'office_start_time' => !empty($data['office_start_time']) ? substr($data['office_start_time'], 0, 5) : ($admin->office_start_time ?? '09:00'),
                 'office_end_time' => !empty($data['office_end_time']) ? substr($data['office_end_time'], 0, 5) : ($admin->office_end_time ?? '18:00'),
                 'login_buffer_minutes' => isset($data['login_buffer_minutes']) ? (int) $data['login_buffer_minutes'] : ($admin->login_buffer_minutes ?? 30),
-            ]);
+            ];
+            if (isset($data['shifts_enabled'])) {
+                $adminData['shifts_enabled'] = (bool)$data['shifts_enabled'];
+            }
+            $admin->update($adminData);
         }
 
         $adminId = $admin ? $admin->id : 0;
@@ -187,11 +234,11 @@ class SettingController extends Controller
             if (in_array($key, ['month_start_day', 'month_end_day'])) continue;
             
             $saveKey = $key;
-            if (in_array($key, ['admin_email', 'monthly_working_days', 'casual_leaves', 'sick_leaves', 'office_start_time', 'office_end_time', 'login_buffer_minutes'])) {
+            if (in_array($key, ['admin_email', 'monthly_working_days', 'casual_leaves', 'sick_leaves', 'office_start_time', 'office_end_time', 'login_buffer_minutes', 'shifts_enabled'])) {
                 $saveKey = "{$key}_{$adminId}";
             }
 
-            $val = is_array($value) ? json_encode($value) : $value;
+            $val = is_array($value) ? json_encode($value) : (is_bool($value) ? ($value ? '1' : '0') : $value);
             Setting::updateOrCreate(['key' => $saveKey], ['value' => $val]);
         }
 

@@ -249,6 +249,12 @@ Route::middleware(['auth', 'is_admin'])
             Route::post('settings', [\App\Http\Controllers\Admin\SettingController::class, 'update'])->name('settings.update');
             Route::post('settings/worksheet', [\App\Http\Controllers\Admin\SettingController::class, 'updateWorksheetSetting'])->name('settings.worksheet.update');
             Route::post('settings/designers', [\App\Http\Controllers\Admin\SettingController::class, 'updateDesignersSetting'])->name('settings.designers.update');
+            Route::post('settings/shifts/toggle-multiple', [\App\Http\Controllers\Admin\ShiftController::class, 'toggleMultiple'])->name('shifts.toggle-multiple');
+            Route::post('settings/shifts', [\App\Http\Controllers\Admin\ShiftController::class, 'store'])->name('shifts.store');
+            Route::put('settings/shifts/{shift}', [\App\Http\Controllers\Admin\ShiftController::class, 'update'])->name('shifts.update');
+            Route::post('settings/shifts/{shift}/default', [\App\Http\Controllers\Admin\ShiftController::class, 'setDefault'])->name('shifts.default');
+            Route::post('settings/shifts/{shift}/toggle', [\App\Http\Controllers\Admin\ShiftController::class, 'toggle'])->name('shifts.toggle');
+            Route::delete('settings/shifts/{shift}', [\App\Http\Controllers\Admin\ShiftController::class, 'destroy'])->name('shifts.destroy');
 
             // -------------------------
             // ✅ MODULES LIST & PERMISSIONS
@@ -275,6 +281,7 @@ Route::middleware(['auth', 'is_admin'])
             Route::match(['post', 'patch'], 'admin-users/{id}/approval', [\App\Http\Controllers\Admin\AdminUsersController::class, 'updateApproval'])->name('admin-users.approval');
             Route::match(['post', 'patch'], 'admin-users/{id}/unlimited', [\App\Http\Controllers\Admin\AdminUsersController::class, 'updateUnlimitedStatus'])->name('admin-users.unlimited');
             Route::match(['post', 'patch'], 'admin-users/{id}/toggle', [\App\Http\Controllers\Admin\AdminUsersController::class, 'toggleStatus'])->name('admin-users.toggle');
+            Route::match(['post', 'patch'], 'admin-users/{id}/toggle-workshift', [\App\Http\Controllers\Admin\AdminUsersController::class, 'toggleWorkshift'])->name('admin-users.toggle-workshift');
             Route::delete('admin-users/{id}', [\App\Http\Controllers\Admin\AdminUsersController::class, 'destroy'])->name('admin-users.destroy');
 
             // -------------------------

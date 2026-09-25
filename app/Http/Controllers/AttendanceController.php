@@ -16,12 +16,22 @@ class AttendanceController extends Controller
         $today = Carbon::today();
         $user_id = Auth::id();
 
-        $attendances = Attendance::where('user_id', $user_id)
-            ->where('date', $today)
+        // Check for any ongoing active attendance (e.g. night shift started yesterday or session started today)
+        $latestAttendance = Attendance::where('user_id', $user_id)
+            ->where('status', '!=', 'punched_out')
             ->with('breaks')
-            ->get();
+            ->latest()
+            ->first();
 
-        $latestAttendance = $attendances->last();
+        // If no active ongoing session, fetch today's latest attendance record (e.g. if already punched out)
+        if (!$latestAttendance) {
+            $latestAttendance = Attendance::where('user_id', $user_id)
+                ->where('date', $today)
+                ->with('breaks')
+                ->latest()
+                ->first();
+        }
+
         if ($latestAttendance && $latestAttendance->status !== 'punched_out') {
             $activeBreak = $latestAttendance->breaks->whereNull('end_time')->last();
             if ($activeBreak) {
@@ -31,7 +41,9 @@ class AttendanceController extends Controller
                 }
             }
         }
-        $totalMinutesToday = $attendances->sum('total_worked_minutes');
+        $totalMinutesToday = Attendance::where('user_id', $user_id)
+            ->where('date', $today)
+            ->sum('total_worked_minutes');
 
         return response()->json([
             'status' => $latestAttendance ? $latestAttendance->status : 'not_started',
@@ -63,17 +75,23 @@ class AttendanceController extends Controller
             return back()->with('error', 'Location is mandatory to punch in. Please allow location access.');
         }
 
+        // Check if there is an active ongoing session (even from yesterday night)
+        $activeSession = Attendance::where('user_id', $userId)
+            ->where('status', '!=', 'punched_out')
+            ->latest()
+            ->first();
+        if ($activeSession) {
+            return back();
+        }
+
         // Check if attendance already exists for today
         $attendance = Attendance::where('user_id', $userId)
             ->where('date', $today)
+            ->latest()
             ->first();
 
-        if ($attendance) {
-            if ($attendance->status === 'punched_out') {
-                return back()->with('error', 'You have already completed your work for today.');
-            }
-            // If already punched in or on break, just return (idempotent)
-            return back();
+        if ($attendance && $attendance->status === 'punched_out') {
+            return back()->with('error', 'You have already completed your work for today.');
         }
 
         // Detect Device Type
@@ -88,10 +106,14 @@ class AttendanceController extends Controller
             return back()->with('error', 'You are restricted to punch in from Desktop only.');
         }
 
+        $user = Auth::user();
+        $timingRules = $this->getOfficeTimingRules(null, $user);
+
         // Create new attendance
         Attendance::create([
             'user_id' => $userId,
             'date' => $today,
+            'shift_id' => $timingRules['shift_id'] ?? null,
             'punch_in' => Carbon::now(),
             'punch_in_lat' => $request->latitude,
             'punch_in_lng' => $request->longitude,
@@ -118,7 +140,6 @@ class AttendanceController extends Controller
 
         // Find the latest active session
         $attendance = Attendance::where('user_id', $userId)
-            ->where('date', Carbon::today())
             ->where('status', '!=', 'punched_out')
             ->latest()
             ->first();
@@ -185,7 +206,6 @@ class AttendanceController extends Controller
     public function startBreak()
     {
         $attendance = Attendance::where('user_id', Auth::id())
-            ->where('date', Carbon::today())
             ->where('status', 'punched_in')
             ->latest()
             ->first();
@@ -215,7 +235,6 @@ class AttendanceController extends Controller
     public function endBreak()
     {
         $attendance = Attendance::where('user_id', Auth::id())
-            ->where('date', Carbon::today())
             ->where('status', '!=', 'punched_out')
             ->latest()
             ->first();
@@ -327,6 +346,36 @@ class AttendanceController extends Controller
         }
 
         $admin = $adminId > 0 ? \App\Models\Admin::find($adminId) : null;
+        $shiftsEnabled = $admin ? (bool)$admin->shifts_enabled : false;
+
+        if ($shiftsEnabled) {
+            $shift = null;
+            if ($user && !empty($user->shift_id)) {
+                $shift = \App\Models\Shift::where('id', $user->shift_id)->where('is_active', true)->first();
+            }
+            if (!$shift && $user && $user->relationLoaded('shift') && $user->shift && $user->shift->is_active) {
+                $shift = $user->shift;
+            }
+            if (!$shift && $adminId > 0) {
+                // Find default shift for this admin
+                $shift = \App\Models\Shift::where('admin_id', $adminId)->where('is_default', true)->where('is_active', true)->first();
+                if (!$shift) {
+                    $shift = \App\Models\Shift::where('admin_id', $adminId)->where('is_active', true)->first();
+                }
+            }
+
+            if ($shift) {
+                return [
+                    'start_time'     => substr($shift->start_time, 0, 5),
+                    'end_time'       => substr($shift->end_time, 0, 5),
+                    'buffer_minutes' => (int)($shift->buffer_minutes ?? 30),
+                    'shift_id'       => $shift->id,
+                    'shift_name'     => $shift->name,
+                    'is_night_shift' => (bool)$shift->is_night_shift,
+                    'shifts_enabled' => true,
+                ];
+            }
+        }
 
         $startTime = $admin ? $admin->office_start_time : null;
         $endTime = $admin ? $admin->office_end_time : null;
@@ -346,21 +395,31 @@ class AttendanceController extends Controller
         }
 
         return [
-            'start_time'     => $startTime ?: '09:00',
-            'end_time'       => $endTime ?: '18:00',
+            'start_time'     => substr($startTime ?: '09:00', 0, 5),
+            'end_time'       => substr($endTime ?: '18:00', 0, 5),
             'buffer_minutes' => (int)($bufferMinutes ?? 30),
+            'shift_id'       => null,
+            'shift_name'     => 'General Office Hours',
+            'is_night_shift' => false,
+            'shifts_enabled' => false,
         ];
     }
 
     private function getLateCutoff($dateString, $startTime = '09:00', $bufferMinutes = 30)
     {
-        $base = Carbon::parse($dateString . ' ' . $startTime, 'Asia/Kolkata');
+        $base = Carbon::parse($dateString . ' ' . substr($startTime, 0, 5), 'Asia/Kolkata');
         return $base->copy()->addMinutes($bufferMinutes)->second(59);
     }
 
-    private function getEarlyLeaveCutoff($dateString, $endTime = '18:00')
+    private function getEarlyLeaveCutoff($dateString, $endTime = '18:00', $startTime = '09:00')
     {
-        return Carbon::parse($dateString . ' ' . $endTime . ':00', 'Asia/Kolkata');
+        $end = substr($endTime, 0, 5);
+        $start = substr($startTime, 0, 5);
+        $base = Carbon::parse($dateString . ' ' . $end . ':00', 'Asia/Kolkata');
+        if ($end <= $start) {
+            $base->addDay();
+        }
+        return $base;
     }
 
     public function index(Request $request)
@@ -391,7 +450,8 @@ class AttendanceController extends Controller
         if ($adminId > 0) {
             $usersQuery->where('admin_id', $adminId);
         }
-        $users = $usersQuery->orderBy('name')->get();
+        $users = $usersQuery->with('shift')->orderBy('name')->get();
+        $shifts = $adminId > 0 ? \App\Models\Shift::where('admin_id', $adminId)->where('is_active', true)->get() : \App\Models\Shift::where('is_active', true)->get();
         $filters = $request->only(['date', 'month', 'user_id', 'display']);
 
         $correctionRequests = \App\Models\AttendanceCorrectionRequest::where(function ($q) use ($adminId) {
@@ -434,6 +494,11 @@ class AttendanceController extends Controller
             }
 
             if ($userId) {
+                $selectedUser = $users->find($userId);
+                if ($selectedUser) {
+                    $timingRules = $this->getOfficeTimingRules($adminId, $selectedUser);
+                }
+
                 // Generate all dates for the month (25th of previous month to 24th of current month)
                 $startDate = $month->copy()->subMonth()->day(25);
                 $realEndDate = $month->copy()->day(24);
@@ -530,7 +595,7 @@ class AttendanceController extends Controller
                         $checkInTime = Carbon::parse($attendance->punch_in)->timezone('Asia/Kolkata');
                         $dateString = $attendance->date instanceof \Carbon\Carbon ? $attendance->date->format('Y-m-d') : $attendance->date;
                         $lateCutoff = $this->getLateCutoff($dateString, $timingRules['start_time'], $timingRules['buffer_minutes']);
-                        $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $timingRules['end_time']);
+                        $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $timingRules['end_time'], $timingRules['start_time']);
 
                         $isLate = $checkInTime->gt($lateCutoff);
                         $isEarlyLeave = $attendance->punch_out && Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->lt($earlyLeaveCutoff);
@@ -586,6 +651,9 @@ class AttendanceController extends Controller
                         'hours' => $hours,
                         'break_time' => $breakTime,
                         'attendance_id' => $attendanceId,
+                        'shift_name' => $timingRules['shift_name'] ?? null,
+                        'shift_timing' => ($timingRules['start_time'] ?? '09:00') . ' - ' . ($timingRules['end_time'] ?? '18:00'),
+                        'is_night_shift' => $timingRules['is_night_shift'] ?? false,
                         'punch_in_raw' => $attendance && $attendance->punch_in ? Carbon::parse($attendance->punch_in, 'Asia/Kolkata')->toIso8601String() : null,
                         'punch_out_raw' => $attendance && $attendance->punch_out ? Carbon::parse($attendance->punch_out, 'Asia/Kolkata')->toIso8601String() : null,
                         'punch_in_lat' => $punchInLat,
@@ -611,6 +679,7 @@ class AttendanceController extends Controller
                 return Inertia::render('Admin/Attendance/Index', [
                     'attendanceData' => $attendanceData,
                     'users' => $users,
+                    'shifts' => $shifts,
                     'filters' => $filters,
                     'viewType' => 'monthly',
                     'totalMonthlyMinutes' => $totalMonthlyMinutes,
@@ -628,7 +697,7 @@ class AttendanceController extends Controller
                 $realEndDate = $month->copy()->day(24);
 
                 $attendancesQuery = Attendance::whereBetween('date', [$startDate->toDateString(), $realEndDate->toDateString()])
-                    ->with(['user', 'breaks']);
+                    ->with(['user.shift', 'breaks', 'shift']);
                 if ($adminId > 0) {
                     $attendancesQuery->whereIn('user_id', $users->pluck('id'));
                 }
@@ -636,11 +705,12 @@ class AttendanceController extends Controller
 
                 $totalMonthlyMinutes = $attendances->sum('total_worked_minutes');
 
-                $attendanceData = $attendances->map(function ($att) use ($timingRules) {
+                $attendanceData = $attendances->map(function ($att) use ($timingRules, $adminId) {
+                    $userRules = $this->getOfficeTimingRules($adminId, $att->user);
                     $checkInTime = $att->punch_in ? Carbon::parse($att->punch_in)->timezone('Asia/Kolkata') : null;
                     $dateString = $att->date instanceof \Carbon\Carbon ? $att->date->format('Y-m-d') : $att->date;
-                    $lateCutoff = $this->getLateCutoff($dateString, $timingRules['start_time'], $timingRules['buffer_minutes']);
-                    $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $timingRules['end_time']);
+                    $lateCutoff = $this->getLateCutoff($dateString, $userRules['start_time'], $userRules['buffer_minutes']);
+                    $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $userRules['end_time'], $userRules['start_time']);
 
                     $isLate = $checkInTime && $checkInTime->gt($lateCutoff);
                     $isEarlyLeave = $att->punch_out && Carbon::parse($att->punch_out)->timezone('Asia/Kolkata')->lt($earlyLeaveCutoff);
@@ -676,6 +746,9 @@ class AttendanceController extends Controller
                         'status' => $status,
                         'hours' => $hours,
                         'break_time' => $breakTime,
+                        'shift_name' => $userRules['shift_name'] ?? null,
+                        'shift_timing' => $userRules['start_time'] . ' - ' . $userRules['end_time'],
+                        'is_night_shift' => $userRules['is_night_shift'] ?? false,
                         'attendance_id' => $att->id,
                         'punch_in_raw' => $att->punch_in ? Carbon::parse($att->punch_in, 'Asia/Kolkata')->toIso8601String() : null,
                         'punch_out_raw' => $att->punch_out ? Carbon::parse($att->punch_out, 'Asia/Kolkata')->toIso8601String() : null,
@@ -698,6 +771,7 @@ class AttendanceController extends Controller
                 return Inertia::render('Admin/Attendance/Index', [
                     'attendanceData' => $attendanceData,
                     'users' => $users,
+                    'shifts' => $shifts,
                     'filters' => $filters,
                     'viewType' => 'monthly',
                     'totalMonthlyMinutes' => $totalMonthlyMinutes,
@@ -773,9 +847,10 @@ class AttendanceController extends Controller
                 }
 
                 // Calculate Status
+                $userRules = $this->getOfficeTimingRules($adminId, $user);
                 $dateString = $attendance->date instanceof \Carbon\Carbon ? $attendance->date->format('Y-m-d') : $attendance->date;
-                $lateCutoff = $this->getLateCutoff($dateString, $timingRules['start_time'], $timingRules['buffer_minutes']);
-                $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $timingRules['end_time']);
+                $lateCutoff = $this->getLateCutoff($dateString, $userRules['start_time'], $userRules['buffer_minutes']);
+                $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $userRules['end_time'], $userRules['start_time']);
 
                 $isLate = $checkInTime->gt($lateCutoff);
                 $isEarlyLeave = $attendance->punch_out && Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->lt($earlyLeaveCutoff);
@@ -791,6 +866,8 @@ class AttendanceController extends Controller
 
                 // Calculate Hours
                 $hours = floor($attendance->total_worked_minutes / 60) . 'h ' . ($attendance->total_worked_minutes % 60) . 'm';
+            } else {
+                $userRules = $this->getOfficeTimingRules($adminId, $user);
             }
 
             $isMissingPunchout = false;
@@ -810,6 +887,9 @@ class AttendanceController extends Controller
                 'status' => $status,
                 'hours' => $hours,
                 'break_time' => floor($totalBreakMinutes / 60) . 'h ' . ($totalBreakMinutes % 60) . 'm',
+                'shift_name' => $userRules['shift_name'] ?? null,
+                'shift_timing' => $userRules['start_time'] . ' - ' . $userRules['end_time'],
+                'is_night_shift' => $userRules['is_night_shift'] ?? false,
                 'attendance_id' => $attendance ? $attendance->id : null,
                 'punch_in_raw' => $attendance && $attendance->punch_in ? Carbon::parse($attendance->punch_in, 'Asia/Kolkata')->toIso8601String() : null,
                 'punch_out_raw' => $attendance && $attendance->punch_out ? Carbon::parse($attendance->punch_out, 'Asia/Kolkata')->toIso8601String() : null,
@@ -833,6 +913,7 @@ class AttendanceController extends Controller
         return Inertia::render('Admin/Attendance/Index', [
             'attendanceData' => $attendanceData,
             'users' => $users,
+            'shifts' => $shifts,
             'filters' => array_merge($filters, ['date' => $date]),
             'viewType' => 'daily',
             'settings' => $settings,
@@ -1118,7 +1199,7 @@ class AttendanceController extends Controller
                 $checkInTime = Carbon::parse($attendance->punch_in)->timezone('Asia/Kolkata');
                 $dateString = $attendance->date instanceof \Carbon\Carbon ? $attendance->date->format('Y-m-d') : $attendance->date;
                 $lateCutoff = $this->getLateCutoff($dateString, $timingRules['start_time'], $timingRules['buffer_minutes']);
-                $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $timingRules['end_time']);
+                $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateString, $timingRules['end_time'], $timingRules['start_time']);
 
                 $isLate = $checkInTime->gt($lateCutoff);
                 $isEarlyLeave = $attendance->punch_out && Carbon::parse($attendance->punch_out)->timezone('Asia/Kolkata')->lt($earlyLeaveCutoff);
@@ -1173,6 +1254,9 @@ class AttendanceController extends Controller
                 'status' => $status,
                 'hours' => $hours,
                 'break_time' => $breakTime,
+                'shift_name' => $timingRules['shift_name'] ?? null,
+                'shift_timing' => ($timingRules['start_time'] ?? '09:00') . ' - ' . ($timingRules['end_time'] ?? '18:00'),
+                'is_night_shift' => $timingRules['is_night_shift'] ?? false,
                 'attendance_id' => $attendanceId,
                 'punch_in_raw' => $attendance && $attendance->punch_in ? Carbon::parse($attendance->punch_in, 'Asia/Kolkata')->toIso8601String() : null,
                 'punch_out_raw' => $attendance && $attendance->punch_out ? Carbon::parse($attendance->punch_out, 'Asia/Kolkata')->toIso8601String() : null,
@@ -1192,6 +1276,8 @@ class AttendanceController extends Controller
             'attendanceData' => $attendanceData,
             'totalMonthlyMinutes' => $totalMonthlyMinutes,
             'correctionRequests' => $correctionRequests,
+            'timingRules' => $timingRules,
+            'userShift' => $user ? ($user->relationLoaded('shift') ? $user->shift : $user->load('shift')->shift) : null,
             'filters' => [
                 'month' => $monthStr,
             ],
@@ -1516,7 +1602,7 @@ class AttendanceController extends Controller
                             if ($timeStr === '23:59:59' || $timeStr === '23:59:00' || ($attendance->status === 'punched_out' && ($attendance->total_worked_minutes === 0 || $attendance->total_worked_minutes === null))) {
                                 $missingPunchoutDays++;
                             }
-                            $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateStr, $timingRules['end_time']);
+                            $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateStr, $timingRules['end_time'], $timingRules['start_time']);
                             if ($punchOutLocal->lt($earlyLeaveCutoff) && $timeStr !== '23:59:59' && $timeStr !== '23:59:00') {
                                 $earlyLeaveDays++;
                             }
@@ -1645,7 +1731,7 @@ class AttendanceController extends Controller
                         if ($timeStr === '23:59:59' || $timeStr === '23:59:00' || ($attendance->status === 'punched_out' && ($attendance->total_worked_minutes === 0 || $attendance->total_worked_minutes === null))) {
                             $missingPunchoutDays++;
                         }
-                        $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateStr, $timingRules['end_time']);
+                        $earlyLeaveCutoff = $this->getEarlyLeaveCutoff($dateStr, $timingRules['end_time'], $timingRules['start_time']);
                         if ($punchOutLocal->lt($earlyLeaveCutoff) && $timeStr !== '23:59:59' && $timeStr !== '23:59:00') {
                             $earlyLeaveDays++;
                         }

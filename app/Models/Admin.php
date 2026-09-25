@@ -38,6 +38,8 @@ class Admin extends Authenticatable
         'office_start_time',
         'office_end_time',
         'login_buffer_minutes',
+        'shifts_enabled',
+        'workshift_enabled',
     ];
 
     protected $hidden = [
@@ -83,6 +85,8 @@ class Admin extends Authenticatable
             'casual_leaves' => 'integer',
             'sick_leaves' => 'integer',
             'login_buffer_minutes' => 'integer',
+            'shifts_enabled' => 'boolean',
+            'workshift_enabled' => 'boolean',
             'trial_ends_at' => 'datetime',
             'subscribed_at' => 'datetime',
         ];
@@ -198,6 +202,11 @@ class Admin extends Authenticatable
     public function attendances()
     {
         return $this->hasMany(Attendance::class, 'user_id');
+    }
+
+    public function shifts()
+    {
+        return $this->hasMany(Shift::class, 'admin_id');
     }
 
     public function hasUnlimitedEmployees(): bool

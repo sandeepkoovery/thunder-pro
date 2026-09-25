@@ -29,7 +29,7 @@ class AdminUsersController extends Controller
     {
         $admins = Admin::where('role', 'admin')
             ->latest()
-            ->get(['id', 'name', 'email', 'company_name', 'phone', 'plan', 'subscription_status', 'trial_ends_at', 'subscribed_at', 'additional_modules', 'casual_leaves', 'sick_leaves', 'office_start_time', 'office_end_time', 'login_buffer_minutes', 'is_active', 'approval_status', 'unlimited_employees_status', 'created_at']);
+            ->get(['id', 'name', 'email', 'company_name', 'phone', 'plan', 'subscription_status', 'trial_ends_at', 'subscribed_at', 'additional_modules', 'casual_leaves', 'sick_leaves', 'office_start_time', 'office_end_time', 'login_buffer_minutes', 'shifts_enabled', 'workshift_enabled', 'is_active', 'approval_status', 'unlimited_employees_status', 'created_at']);
 
         // Attach active employee count and trial info for each admin tenant
         $admins->transform(function ($admin) {
@@ -44,6 +44,8 @@ class AdminUsersController extends Controller
             $admin->login_buffer_minutes = (int)($admin->login_buffer_minutes ?? 30);
             $admin->has_unlimited = $admin->hasUnlimitedEmployees();
             $admin->unlimited_status = $admin->unlimited_employees_status ?? 'none';
+            $admin->workshift_enabled = (bool)($admin->workshift_enabled ?? false);
+            $admin->shifts_enabled = (bool)($admin->shifts_enabled ?? false);
             return $admin;
         });
 
@@ -85,11 +87,13 @@ class AdminUsersController extends Controller
             'office_start_time' => 'nullable|string|max:10',
             'office_end_time' => 'nullable|string|max:10',
             'login_buffer_minutes' => 'nullable|integer|min:0|max:180',
+            'workshift_enabled' => 'nullable|boolean',
         ]);
 
         $companyName = $validated['company_name'];
         $name = !empty($validated['name']) ? $validated['name'] : $companyName;
         $isApproved = $validated['approval_status'] === 'approved';
+        $workshiftEnabled = $request->boolean('workshift_enabled');
 
         $subStatus = 'active';
         $trialEndsAt = null;
@@ -118,6 +122,8 @@ class AdminUsersController extends Controller
             'office_start_time' => $validated['office_start_time'] ?? '09:00',
             'office_end_time' => $validated['office_end_time'] ?? '18:00',
             'login_buffer_minutes' => isset($validated['login_buffer_minutes']) ? (int) $validated['login_buffer_minutes'] : 30,
+            'workshift_enabled' => $workshiftEnabled,
+            'shifts_enabled' => $workshiftEnabled,
             'is_active' => $isApproved,
             'approval_status' => $validated['approval_status'],
         ]);
@@ -149,6 +155,7 @@ class AdminUsersController extends Controller
             'office_start_time' => 'nullable|string|max:10',
             'office_end_time' => 'nullable|string|max:10',
             'login_buffer_minutes' => 'nullable|integer|min:0|max:180',
+            'workshift_enabled' => 'nullable|boolean',
         ]);
 
         $companyName = $validated['company_name'];
@@ -171,6 +178,14 @@ class AdminUsersController extends Controller
             'unlimited_employees_status' => $validated['unlimited_employees_status'] ?? ($admin->unlimited_employees_status ?? 'none'),
             'is_active' => $isApproved,
         ];
+
+        if ($request->has('workshift_enabled')) {
+            $isWorkshift = $request->boolean('workshift_enabled');
+            $updateData['workshift_enabled'] = $isWorkshift;
+            if (!$isWorkshift) {
+                $updateData['shifts_enabled'] = false;
+            }
+        }
 
         if ($validated['plan'] === 'premium') {
             if (!empty($validated['subscription_status'])) {
@@ -294,5 +309,28 @@ class AdminUsersController extends Controller
 
         $statusLabel = ucfirst($validated['status']);
         return back()->with('success', "Unlimited employees status for {$admin->name} updated to {$statusLabel}.");
+    }
+
+    /**
+     * Toggle Work Shift feature for a particular admin.
+     */
+    public function toggleWorkshift(Request $request, $id)
+    {
+        $admin = Admin::findOrFail($id);
+        $newStatus = $request->has('workshift_enabled') 
+            ? $request->boolean('workshift_enabled') 
+            : !$admin->workshift_enabled;
+
+        $admin->update([
+            'workshift_enabled' => $newStatus,
+            'shifts_enabled' => $newStatus ? $admin->shifts_enabled : false,
+        ]);
+
+        $company = $admin->company_name ?: $admin->name;
+        $msg = $newStatus 
+            ? "Work Shift feature ENABLED for '{$company}'. Admin can now configure multi-shifts." 
+            : "Work Shift feature DISABLED for '{$company}'. Reverted to standard office timing.";
+
+        return back()->with('success', $msg);
     }
 }

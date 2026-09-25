@@ -41,19 +41,28 @@ class UserController extends Controller
         $isSuperAdmin = $authUser->role === 'superadmin';
         $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
 
-        $query = User::with(['department', 'reportingManager', 'passkeys'])
+        $query = User::with(['department', 'reportingManager', 'passkeys', 'shift'])
             ->withCount('passkeys')
             ->whereIn('role', ['user', 'manager', 'editor']);
 
         $departmentsQuery = Department::query();
+        $shiftsQuery = \App\Models\Shift::where('is_active', true);
 
         if (!$isSuperAdmin) {
             $query->where('admin_id', $tenantAdminId);
             $departmentsQuery->where('admin_id', $tenantAdminId);
+            $shiftsQuery->where('admin_id', $tenantAdminId);
         }
 
         $users = $query->get();
         $departments = $departmentsQuery->orderBy('name')->get();
+        $shifts = $shiftsQuery->orderBy('name')->get();
+
+        $adminModel = \App\Models\Admin::find($tenantAdminId);
+        $shiftsEnabled = $adminModel ? ((bool)$adminModel->workshift_enabled && (bool)$adminModel->shifts_enabled) : false;
+        if ($isSuperAdmin && $adminModel) {
+            $shiftsEnabled = (bool)$adminModel->shifts_enabled;
+        }
 
         $admins = [];
         if ($isSuperAdmin) {
@@ -98,6 +107,8 @@ class UserController extends Controller
         return inertia('Admin/Users/Index', [
             'users' => $users,
             'departments' => $departments,
+            'shifts' => $shifts,
+            'shiftsEnabled' => $shiftsEnabled,
             'admins' => $admins,
             'isSuperAdmin' => $isSuperAdmin,
             'allModules' => $allModules,
@@ -117,7 +128,7 @@ class UserController extends Controller
         }
 
         return inertia('Admin/Users/Show', [
-            'user' => $user->load(['department', 'reportingManager', 'passkeys'])->loadCount('passkeys'),
+            'user' => $user->load(['department', 'reportingManager', 'passkeys', 'shift'])->loadCount('passkeys'),
         ]);
     }
 
@@ -135,6 +146,7 @@ class UserController extends Controller
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'employee_id' => 'nullable|string|max:255|unique:users,employee_id',
             'department_id' => 'nullable|exists:departments,id',
+            'shift_id' => 'nullable|exists:shifts,id',
             'designation' => 'nullable|string|max:255',
             'joining_date' => 'nullable|date',
             'employment_type' => 'nullable|in:permanent,contract,intern',
@@ -164,6 +176,15 @@ class UserController extends Controller
                 ->exists();
             if (!$deptValid) {
                 return back()->withErrors(['department_id' => 'The selected department is invalid for this company.'])->withInput();
+            }
+        }
+
+        if (!empty($validated['shift_id']) && $authUser->role !== 'superadmin') {
+            $shiftValid = \App\Models\Shift::where('id', $validated['shift_id'])
+                ->where('admin_id', $tenantAdminId)
+                ->exists();
+            if (!$shiftValid) {
+                return back()->withErrors(['shift_id' => 'The selected shift is invalid for this company.'])->withInput();
             }
         }
 
@@ -238,6 +259,7 @@ class UserController extends Controller
             'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
             'employee_id' => 'nullable|string|max:255|unique:users,employee_id,' . $user->id,
             'department_id' => 'nullable|exists:departments,id',
+            'shift_id' => 'nullable|exists:shifts,id',
             'designation' => 'nullable|string|max:255',
             'joining_date' => 'nullable|date',
             'employment_type' => 'nullable|in:permanent,contract,intern',
@@ -251,6 +273,15 @@ class UserController extends Controller
                 ->exists();
             if (!$deptValid) {
                 return back()->withErrors(['department_id' => 'The selected department is invalid for this company.'])->withInput();
+            }
+        }
+
+        if (!empty($validated['shift_id']) && !$isSuperAdmin) {
+            $shiftValid = \App\Models\Shift::where('id', $validated['shift_id'])
+                ->where('admin_id', $tenantAdminId)
+                ->exists();
+            if (!$shiftValid) {
+                return back()->withErrors(['shift_id' => 'The selected shift is invalid for this company.'])->withInput();
             }
         }
 
