@@ -13,10 +13,11 @@ use Carbon\Carbon;
 
 Schedule::call(function () {
     Attendance::where('status', '!=', 'punched_out')
-        ->whereDate('date', Carbon::yesterday())
+        ->whereDate('date', '<', Carbon::today())
         ->update([
             'status' => 'punched_out',
-            'punch_out' => Carbon::yesterday()->endOfDay(),
+            'punch_out' => \Illuminate\Support\Facades\DB::raw("CONCAT(DATE(punch_in), ' 23:59:59')"),
+            'total_worked_minutes' => \Illuminate\Support\Facades\DB::raw("COALESCE(total_worked_minutes, 0)"),
         ]);
 })->daily();
 

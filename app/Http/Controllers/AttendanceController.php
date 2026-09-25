@@ -11,24 +11,54 @@ use Inertia\Inertia;
 
 class AttendanceController extends Controller
 {
+    /**
+     * Get genuinely active attendance session for the user.
+     * Looks at today's active session, or an overnight shift started yesterday (within last 24h).
+     * Strictly ignores stale/unclosed sessions from past days.
+     */
+    private function getActiveAttendance($userId)
+    {
+        $today = Carbon::today();
+        $yesterday = Carbon::yesterday();
+
+        // 1. Check for active session today (punched_in or on_break)
+        $todayAttendance = Attendance::where('user_id', $userId)
+            ->whereDate('date', $today)
+            ->where('status', '!=', 'punched_out')
+            ->with('breaks')
+            ->latest('id')
+            ->first();
+
+        if ($todayAttendance) {
+            return $todayAttendance;
+        }
+
+        // 2. Check for active overnight session started yesterday within the last 24 hours
+        $overnightAttendance = Attendance::where('user_id', $userId)
+            ->whereDate('date', $yesterday)
+            ->where('status', '!=', 'punched_out')
+            ->where('punch_in', '>=', Carbon::now()->subHours(24))
+            ->with('breaks')
+            ->latest('id')
+            ->first();
+
+        return $overnightAttendance;
+    }
+
     public function status()
     {
         $today = Carbon::today();
         $user_id = Auth::id();
 
-        // Check for any ongoing active attendance (e.g. night shift started yesterday or session started today)
-        $latestAttendance = Attendance::where('user_id', $user_id)
-            ->where('status', '!=', 'punched_out')
-            ->with('breaks')
-            ->latest()
-            ->first();
+        // Check for genuine ongoing active attendance (today or yesterday's overnight)
+        $latestAttendance = $this->getActiveAttendance($user_id);
 
         // If no active ongoing session, fetch today's latest attendance record (e.g. if already punched out)
         if (!$latestAttendance) {
             $latestAttendance = Attendance::where('user_id', $user_id)
-                ->where('date', $today)
+                ->whereDate('date', $today)
                 ->with('breaks')
-                ->latest()
+                ->latest('id')
                 ->first();
         }
 
@@ -42,7 +72,7 @@ class AttendanceController extends Controller
             }
         }
         $totalMinutesToday = Attendance::where('user_id', $user_id)
-            ->where('date', $today)
+            ->whereDate('date', $today)
             ->sum('total_worked_minutes');
 
         return response()->json([
@@ -75,19 +105,16 @@ class AttendanceController extends Controller
             return back()->with('error', 'Location is mandatory to punch in. Please allow location access.');
         }
 
-        // Check if there is an active ongoing session (even from yesterday night)
-        $activeSession = Attendance::where('user_id', $userId)
-            ->where('status', '!=', 'punched_out')
-            ->latest()
-            ->first();
+        // Check if there is an active ongoing session (today or yesterday's overnight)
+        $activeSession = $this->getActiveAttendance($userId);
         if ($activeSession) {
-            return back();
+            return back()->with('error', 'You already have an active attendance session.');
         }
 
-        // Check if attendance already exists for today
+        // Check if attendance already exists for today and user has punched out
         $attendance = Attendance::where('user_id', $userId)
-            ->where('date', $today)
-            ->latest()
+            ->whereDate('date', $today)
+            ->latest('id')
             ->first();
 
         if ($attendance && $attendance->status === 'punched_out') {
@@ -138,11 +165,8 @@ class AttendanceController extends Controller
             'accuracy' => $request->accuracy ?? 'not provided'
         ]);
 
-        // Find the latest active session
-        $attendance = Attendance::where('user_id', $userId)
-            ->where('status', '!=', 'punched_out')
-            ->latest()
-            ->first();
+        // Find the genuinely active ongoing session
+        $attendance = $this->getActiveAttendance($userId);
 
         if ($attendance && $attendance->punch_in) {
             $now = Carbon::now();
@@ -205,12 +229,9 @@ class AttendanceController extends Controller
 
     public function startBreak()
     {
-        $attendance = Attendance::where('user_id', Auth::id())
-            ->where('status', 'punched_in')
-            ->latest()
-            ->first();
+        $attendance = $this->getActiveAttendance(Auth::id());
 
-        if ($attendance) {
+        if ($attendance && $attendance->status === 'punched_in') {
             $punchIn = Carbon::parse($attendance->punch_in);
             if (abs(Carbon::now()->diffInSeconds($punchIn)) < 295) {
                 return back()->with('error', 'You must work at least 5 minutes before taking a break.');
@@ -234,10 +255,7 @@ class AttendanceController extends Controller
 
     public function endBreak()
     {
-        $attendance = Attendance::where('user_id', Auth::id())
-            ->where('status', '!=', 'punched_out')
-            ->latest()
-            ->first();
+        $attendance = $this->getActiveAttendance(Auth::id());
 
         if ($attendance) {
             // Find the active break
