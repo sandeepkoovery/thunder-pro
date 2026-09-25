@@ -806,7 +806,7 @@ class AttendanceController extends Controller
         $attendances = $attendancesQuery->get()->keyBy('user_id');
 
         // Map users to their attendance and calculate status
-        $attendanceData = $filteredUsers->map(function ($user) use ($attendances, $date, $timingRules) {
+        $attendanceData = $filteredUsers->map(function ($user) use ($attendances, $date, $timingRules, $adminId) {
             $attendance = $attendances->get($user->id);
             $status = 'Absent';
             $checkIn = '-';
