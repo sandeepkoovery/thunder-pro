@@ -33,7 +33,7 @@ class SettingController extends Controller
         $settings['office_end_time'] = $admin ? ($admin->office_end_time ?? '18:00') : '18:00';
         $settings['login_buffer_minutes'] = $admin ? ($admin->login_buffer_minutes ?? 30) : 30;
         $settings['shifts_enabled'] = $admin ? (bool)($admin->shifts_enabled ?? false) : false;
-        $settings['workshift_enabled'] = $admin ? (bool)($admin->workshift_enabled ?? false) : ($user->role === 'superadmin');
+        $settings['workshift_enabled'] = $admin ? (bool)($admin->workshift_enabled ?? false) : false;
 
         $tenantAdmins = [];
         if ($user->role === 'superadmin') {

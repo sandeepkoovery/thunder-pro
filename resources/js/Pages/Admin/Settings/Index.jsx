@@ -83,7 +83,7 @@ export default function Index({
         hidden_modules: JSON.parse(settings.hidden_modules || '[]'),
     });
 
-    const isWorkshiftFeatureEnabled = isSuperAdmin ? true : Boolean(settings.workshift_enabled);
+    const isWorkshiftFeatureEnabled = !isSuperAdmin && Boolean(settings.workshift_enabled);
     const canSeeWorkShifts = isWorkshiftFeatureEnabled;
     const [togglingAdminId, setTogglingAdminId] = useState(null);
 
@@ -707,7 +707,8 @@ export default function Index({
                                             </div>
                                         )}
 
-                                        {canSeeWorkShifts ? (
+                                        {!isSuperAdmin && (
+                                            canSeeWorkShifts ? (
                                             <>
                                                 {/* Office Hours & Multiple Shift Configuration */}
                                                 <div className="md:col-span-2 pt-6 pb-2 border-t border-gray-100">
@@ -950,7 +951,8 @@ export default function Index({
                                         </div>
                                         {renderSingleShiftInputs()}
                                     </>
-                                )}
+                                )
+                            )}
                             </div>
 
                             {isSuperAdmin && (
