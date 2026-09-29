@@ -209,9 +209,6 @@ class AdminUsersController extends Controller
 
         $admin->update($updateData);
 
-        // Sync employee status based on admin active status
-        User::where('admin_id', $admin->id)->update(['is_active' => $isApproved]);
-
         return back()->with('success', "Admin account for '{$admin->name}' updated successfully.");
     }
 
@@ -252,9 +249,6 @@ class AdminUsersController extends Controller
 
         $admin->update($updateData);
 
-        // Sync employee status
-        User::where('admin_id', $admin->id)->update(['is_active' => $isApproved]);
-
         $label = ucfirst($status);
         return back()->with('success', "Admin account status updated to {$label}.");
     }
@@ -272,8 +266,6 @@ class AdminUsersController extends Controller
             'is_active' => $newActive,
             'approval_status' => $newApproval,
         ]);
-
-        User::where('admin_id', $admin->id)->update(['is_active' => $newActive]);
 
         $statusText = $newActive ? 'Active & Approved' : 'Disabled';
         return back()->with('success', "Admin account '{$admin->name}' status changed to {$statusText}.");

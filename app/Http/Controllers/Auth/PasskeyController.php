@@ -104,6 +104,16 @@ class PasskeyController extends Controller
                 ], 403);
             }
 
+            if ($user instanceof \App\Models\User && $user->admin_id) {
+                $parentAdmin = \App\Models\Admin::find($user->admin_id);
+                if ($parentAdmin && (!$parentAdmin->is_active || ($parentAdmin->approval_status ?? 'approved') === 'rejected')) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Your company account has been disabled. Please contact administrator.',
+                    ], 403);
+                }
+            }
+
             if ($user instanceof \App\Models\User && !empty($user->desktop_only)) {
                 $userAgent = $request->header('User-Agent') ?? '';
                 $isMobileDevice = (bool) preg_match('/Mobile|Android|iP(hone|od|ad)|IEMobile|BlackBerry|Kindle|Silk-Accelerated|(hpw|web)OS|Opera M(obi|ini)/i', $userAgent);

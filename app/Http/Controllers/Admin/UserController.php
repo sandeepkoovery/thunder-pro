@@ -413,18 +413,29 @@ class UserController extends Controller
 
         if (!$user->is_active) {
             // Toggling active from false to true: check limit
-            if (in_array($user->role, ['user', 'manager', 'editor'])) {
-                $tenantAdmin = $authUser->role === 'admin' ? $authUser : User::find($tenantAdminId);
-                $plan = $tenantAdmin ? ($tenantAdmin->plan ?? 'basic') : 'basic';
+            if (in_array($user->role, ['user', 'manager', 'editor']) && !$isSuperAdmin) {
+                $adminModel = \App\Models\Admin::find($tenantAdminId);
+                $plan = $adminModel ? ($adminModel->plan ?? 'basic') : ($authUser->plan ?? 'basic');
+                $activeEmployees = User::where('admin_id', $tenantAdminId)
+                    ->whereIn('role', ['user', 'manager', 'editor'])
+                    ->where('is_active', true)
+                    ->count();
+
                 if ($plan === 'basic') {
-                    $activeEmployees = User::where('admin_id', $tenantAdminId)
-                        ->whereIn('role', ['user', 'manager', 'editor'])
-                        ->where('is_active', true)
-                        ->count();
                     if ($activeEmployees >= 10) {
                         return response()->json([
                             'error' => 'You have reached the limit of 10 active employees for the Basic Plan. Upgrade to the Premium Plan to activate this user.'
                         ], 422);
+                    }
+                } else {
+                    $hasUnlimited = $adminModel ? $adminModel->hasUnlimitedEmployees() : false;
+                    if (!$hasUnlimited) {
+                        $maxTotal = (int) (\App\Models\Setting::where('key', 'csv_import_limit')->value('value') ?: 100);
+                        if ($activeEmployees >= $maxTotal) {
+                            return response()->json([
+                                'error' => "You have reached your total plan limit of {$maxTotal} employees ({$activeEmployees} currently active). Please request approval from the Super Administrator for unlimited employees."
+                            ], 422);
+                        }
                     }
                 }
             }

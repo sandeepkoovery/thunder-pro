@@ -70,7 +70,7 @@ class LoginRequest extends FormRequest
             $isDisabled = false;
             if ($user instanceof \App\Models\Admin) {
                 if ($user->role !== 'superadmin') {
-                    if (($user->approval_status ?? 'approved') === 'rejected') {
+                    if (!$user->is_active || ($user->approval_status ?? 'approved') === 'rejected') {
                         $isDisabled = true;
                     }
                 }
@@ -79,7 +79,7 @@ class LoginRequest extends FormRequest
                     $isDisabled = true;
                 } elseif ($user->admin_id) {
                     $parentAdmin = \App\Models\Admin::find($user->admin_id);
-                    if ($parentAdmin && ($parentAdmin->approval_status ?? 'approved') === 'rejected') {
+                    if ($parentAdmin && (!$parentAdmin->is_active || ($parentAdmin->approval_status ?? 'approved') === 'rejected')) {
                         $isDisabled = true;
                     }
                 }

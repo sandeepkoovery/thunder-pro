@@ -264,7 +264,6 @@ class PricingController extends Controller
                         'approval_status' => 'pending',
                         'is_active' => true,
                     ]);
-                    \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => true]);
 
                     if ($user instanceof \App\Models\User || isset($user->plan)) {
                         $user->update(['plan' => $request->plan]);
@@ -280,8 +279,6 @@ class PricingController extends Controller
                         'additional_modules' => $additionalModules,
                     ]);
 
-                    \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => false]);
-
                     if ($user instanceof \App\Models\User || isset($user->plan)) {
                         $user->update(['plan' => $request->plan]);
                     }
@@ -296,7 +293,6 @@ class PricingController extends Controller
                     'is_active' => true,
                     'additional_modules' => [],
                 ]);
-                \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => true]);
             }
         }
 
@@ -403,9 +399,6 @@ class PricingController extends Controller
 
         $admin->update($updateData);
 
-        // Sync employee status
-        \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => true]);
-
         return back()->with('success', 'Plan & subscription status approved and activated successfully for ' . $admin->name . '.');
     }
 
@@ -419,10 +412,7 @@ class PricingController extends Controller
         $newStatus = !$admin->is_active;
         $admin->update(['is_active' => $newStatus]);
 
-        // Cascading disable: update all employee users belonging to this admin
-        \App\Models\User::where('admin_id', $admin->id)->update(['is_active' => $newStatus]);
-
         $statusLabel = $newStatus ? 'enabled' : 'disabled';
-        return back()->with('success', "Admin {$admin->name} and all associated employee users have been {$statusLabel}.");
+        return back()->with('success', "Admin {$admin->name} account has been {$statusLabel}.");
     }
 }

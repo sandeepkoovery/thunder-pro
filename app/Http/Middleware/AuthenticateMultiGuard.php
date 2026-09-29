@@ -24,6 +24,26 @@ class AuthenticateMultiGuard extends Middleware
 
         foreach ($guards as $guard) {
             if ($this->auth->guard($guard)->check()) {
+                $user = $this->auth->guard($guard)->user();
+                if ($user instanceof \App\Models\User) {
+                    if (!$user->is_active) {
+                        $this->auth->guard($guard)->logout();
+                        continue;
+                    }
+                    if ($user->admin_id) {
+                        $parentAdmin = \App\Models\Admin::find($user->admin_id);
+                        if ($parentAdmin && (!$parentAdmin->is_active || ($parentAdmin->approval_status ?? 'approved') === 'rejected')) {
+                            $this->auth->guard($guard)->logout();
+                            continue;
+                        }
+                    }
+                } elseif ($user instanceof \App\Models\Admin) {
+                    if (!$user->is_active || ($user->role !== 'superadmin' && ($user->approval_status ?? 'approved') === 'rejected')) {
+                        $this->auth->guard($guard)->logout();
+                        continue;
+                    }
+                }
+
                 return $this->auth->shouldUse($guard);
             }
         }
