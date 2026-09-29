@@ -143,6 +143,7 @@ class PricingController extends Controller
                 ['key' => 'daily_listings', 'label' => 'Daily Listings', 'price' => 499, 'description' => 'Track & manage daily property/item listings', 'included' => true],
                 ['key' => 'designers_worklist', 'label' => 'Designers Worklist', 'price' => 499, 'description' => 'Manage creative tasks & designer workflows', 'included' => true],
                 ['key' => 'domains', 'label' => 'Domains & Hosting', 'price' => 499, 'description' => 'Track domain names and website hosting', 'included' => true],
+                ['key' => 'salary_slips', 'label' => 'Salary Slips', 'price' => 499, 'description' => 'Upload Excel sheets to auto-generate and manage verified payslips', 'included' => true],
             ];
         }
 

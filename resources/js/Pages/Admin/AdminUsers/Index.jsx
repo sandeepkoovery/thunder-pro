@@ -877,7 +877,7 @@ export default function Index() {
                             onChange={() => handleModuleToggle(mod.key)}
                             className="w-4 h-4 rounded border-gray-300 text-purple-600 focus:ring-purple-500"
                           />
-                          <span className="truncate uppercase text-[11px]">{mod.name || mod.key}</span>
+                          <span className="truncate uppercase text-[11px]">{mod.label || mod.name || mod.key}</span>
                         </label>
                       );
                     })}

@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Building2,
   Layers,
+  Receipt,
 } from "lucide-react";
 import AppShell, { NavItem } from "@/Layouts/AppShell";
 
@@ -105,6 +106,11 @@ export default function AdminLayout({ children, title = "Dashboard" }) {
         key: 'leaves',
         order: getModuleOrder('leaves', 6),
         element: <NavItem key="leaves" href={route(isManagementAdmin ? "admin.leaves.index" : "leave.index")} icon={FileText} label="Leaves" routeName={isManagementAdmin ? "admin.leaves" : "leave"} visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} />
+      },
+      {
+        key: 'salary_slips',
+        order: getModuleOrder('salary_slips', 6.5),
+        element: <NavItem key="salary_slips" href={route("admin.salary-slips.index")} icon={Receipt} label="Salary Slips" routeName="admin.salary-slips" visible={!isSuperAdmin && isVisible("salary_slips")} beta={false} collapsed={collapsed} isMobileOpen={isMobileOpen} />
       },
       {
         key: 'calendar',

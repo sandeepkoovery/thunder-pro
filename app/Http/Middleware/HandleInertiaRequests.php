@@ -142,13 +142,13 @@ class HandleInertiaRequests extends Middleware
         $allModulesList = [
             'dashboard', 'projects', 'users', 'departments', 'attendance', 'leaves', 
             'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 
-            'drive', 'chat', 'websites', 'reports', 'notifications', 'modules', 
+            'drive', 'chat', 'websites', 'reports', 'notifications', 'salary_slips', 'modules', 
             'pricing', 'settings', 'ai_assistant'
         ];
 
         if ($user && $user->role === 'superadmin') {
-            // Super Admin gets all core modules but NOT AI Assistant (which is for tenant admins)
-            $allowedModules = array_values(array_diff($allModulesList, ['ai_assistant']));
+            // Super Admin gets all core modules but NOT AI Assistant or Salary Slips (which are tenant add-on modules)
+            $allowedModules = array_values(array_diff($allModulesList, ['ai_assistant', 'salary_slips']));
         } elseif ($user && $user->role === 'manager') {
             // Manager role: strictly honor the exact modules assigned to this manager
             $rolePermissionsJson = $settingsMap['role_module_permissions'] ?? null;
@@ -191,9 +191,9 @@ class HandleInertiaRequests extends Middleware
                 // Per-role ceiling: the maximum modules this role can ever see
                 $roleCeiling = [
                     'admin'    => $allModulesList,
-                    'editor'   => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications', 'ai_assistant'],
-                    'designer' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications', 'ai_assistant'],
-                    'user'     => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications', 'ai_assistant'],
+                    'editor'   => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'reports', 'notifications', 'salary_slips', 'ai_assistant'],
+                    'designer' => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'designers_worklist', 'drive', 'chat', 'notifications', 'salary_slips', 'ai_assistant'],
+                    'user'     => ['dashboard', 'projects', 'attendance', 'leaves', 'calendar', 'content_calendar', 'daily_listings', 'drive', 'chat', 'notifications', 'salary_slips', 'ai_assistant'],
                 ];
                 $ceiling = $roleCeiling[$userRoleKey] ?? $allModulesList;
                 $grantableAdditional = array_intersect($userAdditionalModules, $ceiling);

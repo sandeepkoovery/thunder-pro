@@ -187,6 +187,13 @@ Route::middleware(['auth'])->group(function () {
     // -------------------------
     Route::post('/ai/chat', [AiAssistantController::class, 'chat'])->name('ai.chat');
     Route::patch('/users/toggle-desktop/{user}', [AdminUserController::class, 'toggleDesktop'])->name('users.toggle.desktop');
+
+    // -------------------------
+    // ✅ USER SALARY SLIP ROUTES
+    // -------------------------
+    Route::get('/salary-slips', [\App\Http\Controllers\User\SalarySlipController::class, 'index'])->name('salary-slips.index');
+    Route::get('/salary-slips/{salarySlip}/download', [\App\Http\Controllers\User\SalarySlipController::class, 'downloadPdf'])->name('salary-slips.download');
+    Route::get('/salary-slips/{salarySlip}/preview', [\App\Http\Controllers\User\SalarySlipController::class, 'streamPdf'])->name('salary-slips.preview');
 });
 
 
@@ -241,6 +248,17 @@ Route::middleware(['auth', 'is_admin'])
             Route::post('attendance/correction-requests/{id}/approve', [AttendanceCorrectionController::class, 'approve'])->name('attendance.correction.approve');
             Route::post('attendance/correction-requests/{id}/reject', [AttendanceCorrectionController::class, 'reject'])->name('attendance.correction.reject');
             Route::delete('attendance/correction-requests/{id}', [AttendanceCorrectionController::class, 'destroy'])->name('attendance.correction.destroy');
+
+            // -------------------------
+            // ✅ SALARY SLIP ROUTES (Admin)
+            // -------------------------
+            Route::get('salary-slips', [\App\Http\Controllers\Admin\SalarySlipController::class, 'index'])->name('salary-slips.index');
+            Route::post('salary-slips/upload', [\App\Http\Controllers\Admin\SalarySlipController::class, 'upload'])->name('salary-slips.upload');
+            Route::get('salary-slips/sample-template', [\App\Http\Controllers\Admin\SalarySlipController::class, 'downloadSample'])->name('salary-slips.sample-template');
+            Route::get('salary-slips/{salarySlip}/download', [\App\Http\Controllers\Admin\SalarySlipController::class, 'downloadPdf'])->name('salary-slips.download');
+            Route::get('salary-slips/{salarySlip}/preview', [\App\Http\Controllers\Admin\SalarySlipController::class, 'streamPdf'])->name('salary-slips.preview');
+            Route::delete('salary-slips/{salarySlip}', [\App\Http\Controllers\Admin\SalarySlipController::class, 'destroy'])->name('salary-slips.destroy');
+            Route::post('salary-slips/bulk-delete', [\App\Http\Controllers\Admin\SalarySlipController::class, 'bulkDestroy'])->name('salary-slips.bulk-destroy');
 
             // -------------------------
             // ✅ SETTINGS ROUTES (Super Admin & Admin)

@@ -19,6 +19,7 @@ import {
   Sparkles,
   Building2,
   Layers,
+  Receipt,
 } from "lucide-react";
 import AppShell, { NavItem } from "@/Layouts/AppShell";
 import BottomNav from "@/Components/BottomNav";
@@ -81,6 +82,7 @@ export default function UserLayout({ children, title = "Dashboard" }) {
       { key: 'departments', order: getModuleOrder('departments', 4), element: <NavItem key="departments" href={route("admin.departments.index")} icon={Building2} label="Departments" routeName="admin.departments" visible={isVisible("departments") && isManagementAdmin} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
       { key: 'attendance', order: getModuleOrder('attendance', 5), element: <NavItem key="attendance" href={route(isAttendanceAdmin ? "admin.attendance.index" : "attendance.index")} icon={Clock} label="Attendance" routeName={isAttendanceAdmin ? "admin.attendance" : "attendance"} visible={isVisible("attendance")} beta={betaMenuItems.includes("attendance")} badge={sidebarCounts.pending_corrections} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
       { key: 'leaves', order: getModuleOrder('leaves', 6), element: <NavItem key="leave" href={route(isManagementAdmin ? "admin.leaves.index" : "leave.index")} icon={FileText} label="Leaves" routeName={isManagementAdmin ? "admin.leaves" : "leave"} visible={isVisible("leaves")} beta={betaMenuItems.includes("leaves")} badge={sidebarCounts.pending_leaves} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
+      { key: 'salary_slips', order: getModuleOrder('salary_slips', 6.5), element: <NavItem key="salary_slips" href={route(isManagementAdmin ? "admin.salary-slips.index" : "salary-slips.index")} icon={Receipt} label="Salary Slips" routeName={isManagementAdmin ? "admin.salary-slips" : "salary-slips"} visible={isVisible("salary_slips")} beta={false} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
       { key: 'calendar', order: getModuleOrder('calendar', 7), element: <NavItem key="calendar" href={route("calendar.index")} icon={CalendarDays} label="Calendar" routeName="calendar" visible={isVisible("calendar")} beta={betaMenuItems.includes("calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
       { key: 'content_calendar', order: getModuleOrder('content_calendar', 8), element: <NavItem key="content_calendar" href={route("content-calendar.index")} icon={Sparkles} label="Content Calendar" routeName="content-calendar" visible={isVisible("content_calendar")} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },
       { key: 'daily_listings', order: getModuleOrder('daily_listings', 9), element: <NavItem key="daily_listings" href={route("daily-listings.index")} icon={List} label="Daily Listings" routeName="daily-listings" visible={isVisible("daily_listings")} collapsed={collapsed} isMobileOpen={isMobileOpen} /> },

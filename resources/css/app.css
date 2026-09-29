@@ -82,6 +82,22 @@ h4 { font-size: 18px !important; }
 h5 { font-size: 16px !important; }
 h6 { font-size: 14px !important; }
 
+/* Salary slip dark banner overrides (ensure crisp white text on dark background) */
+.salary-banner-title,
+h1.salary-banner-title,
+h2.salary-banner-title,
+.salary-slip-banner h1,
+.salary-slip-banner h2,
+.text-white.salary-banner-title {
+  color: #ffffff !important;
+  font-weight: 800 !important;
+}
+.salary-banner-subtitle,
+.salary-slip-banner p {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+
 /* ── Global Textbox & Form Input Visibility Styles (Matches Employees List & Screenshot) ── */
 @layer base {
   input:not(.mp-search-input):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]):not([type="file"]):not([type="range"]):not([type="hidden"]):not(.border-none):not(.border-0) {

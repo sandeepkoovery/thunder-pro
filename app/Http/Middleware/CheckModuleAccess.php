@@ -68,6 +68,8 @@ class CheckModuleAccess
             'admin.websites.' => 'websites',
             'websites.' => 'websites',
             'domains.' => 'websites',
+            'admin.salary-slips.' => 'salary_slips',
+            'salary-slips.' => 'salary_slips',
         ];
 
         $module = null;
@@ -181,7 +183,7 @@ class CheckModuleAccess
                     $coreAlwaysAllowed
                 ));
 
-                $allowed = array_values(array_intersect($roleAllowed, $tenantMaxModules));
+                $allowed = array_values(array_intersect(array_unique(array_merge($roleAllowed, $additionalMapped)), $tenantMaxModules));
             }
 
             if (!in_array($module, $allowed)) {

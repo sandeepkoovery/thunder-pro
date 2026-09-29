@@ -38,6 +38,7 @@ class ModuleController extends Controller
             ['key' => 'websites', 'name' => 'Websites & Domains', 'description' => 'Domain registration tracking and hosting management (Add-on)'],
             ['key' => 'reports', 'name' => 'Reports', 'description' => 'Attendance, working hours, and activity reporting'],
             ['key' => 'notifications', 'name' => 'Notifications', 'description' => 'System notifications and user alert logs'],
+            ['key' => 'salary_slips', 'name' => 'Salary Slips', 'description' => 'Excel upload, automated payslip PDF generation, and employee slip downloads'],
             ['key' => 'ai_assistant', 'name' => 'AI Voice Assistant', 'description' => 'Voice & AI Assistant for database queries and tasks (Add-on)'],
             ['key' => 'modules', 'name' => 'Modules List', 'description' => 'Module access matrix and menu ordering control'],
             ['key' => 'pricing', 'name' => 'Pricing', 'description' => 'Subscription plans and billing settings'],

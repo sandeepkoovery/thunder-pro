@@ -58,6 +58,7 @@ class AdminUsersController extends Controller
             ['key' => 'designers_worklist', 'name' => 'Designers Worklist', 'price' => 499],
             ['key' => 'drive', 'name' => 'Google Drive Integration', 'price' => 299],
             ['key' => 'chat', 'name' => 'Team Real-time Chat', 'price' => 199],
+            ['key' => 'salary_slips', 'name' => 'Salary Slips', 'label' => 'Salary Slips', 'price' => 499],
         ];
 
         return Inertia::render('Admin/AdminUsers/Index', [
