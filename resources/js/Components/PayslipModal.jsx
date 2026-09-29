@@ -21,27 +21,30 @@ export default function PayslipModal({ isOpen, onClose, slip, downloadUrl, previ
     };
 
     return (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-fadeIn">
+        <div 
+            className="fixed inset-0 z-[99999] overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex justify-center items-start p-3 sm:p-6 md:p-8 animate-fadeIn"
+            onClick={onClose}
+        >
             <div 
-                className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden flex flex-col max-h-[92vh]"
+                className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-4xl overflow-hidden flex flex-col my-auto sm:my-8 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)]"
                 onClick={(e) => e.stopPropagation()}
             >
-                {/* Modal Header */}
-                <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                        <span className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                {/* Modal Header (Fixed/Sticky at top, shrink-0) */}
+                <div className="px-5 sm:px-6 py-3.5 sm:py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
+                    <div className="flex items-center space-x-3">
+                        <span className="p-2 bg-blue-50 text-blue-600 rounded-lg shrink-0">
                             <CheckCircle className="w-5 h-5" />
                         </span>
                         <div>
-                            <h3 className="font-semibold text-slate-800 text-base">
+                            <h3 className="font-semibold text-slate-800 text-base leading-tight">
                                 Salary Slip Preview
                             </h3>
-                            <p className="text-xs text-slate-500">
+                            <p className="text-xs text-slate-500 mt-0.5">
                                 {slip.employee_name} ({slip.employee_no}) &bull; {slip.month_year}
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-center space-x-2">
+                    <div className="flex items-center space-x-2 shrink-0">
                         {downloadUrl && (
                             <a
                                 href={downloadUrl}
@@ -54,7 +57,7 @@ export default function PayslipModal({ isOpen, onClose, slip, downloadUrl, previ
                         )}
                         <button
                             onClick={handlePrint}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg transition"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-medium text-slate-700 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg transition"
                         >
                             <Printer className="w-3.5 h-3.5" />
                             Print / PDF
@@ -68,11 +71,11 @@ export default function PayslipModal({ isOpen, onClose, slip, downloadUrl, previ
                     </div>
                 </div>
 
-                {/* Payslip Document Preview (Exact matching PDF styling) */}
-                <div className="p-6 sm:p-10 overflow-y-auto bg-slate-100/50 flex justify-center">
-                    <div className="bg-white border border-slate-300 shadow-lg rounded-sm w-full max-w-3xl p-8 sm:p-12 text-slate-800">
+                {/* Payslip Document Preview (Exact matching PDF styling, scrollable with min-h-0) */}
+                <div className="p-4 sm:p-8 overflow-y-auto bg-slate-100/50 flex justify-center flex-1 min-h-0">
+                    <div className="bg-white border border-slate-300 shadow-lg rounded-sm w-full max-w-3xl p-6 sm:p-10 text-slate-800 h-fit">
                         {/* Title Header */}
-                        <div className="text-center mb-7">
+                        <div className="text-center mb-6">
                             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                                 {slip.company_name || 'Network18 Media & Inv. Ltd.'}
                             </h1>
@@ -198,7 +201,7 @@ export default function PayslipModal({ isOpen, onClose, slip, downloadUrl, previ
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end">
+                <div className="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex justify-end shrink-0">
                     <button
                         onClick={onClose}
                         className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 transition shadow-sm"

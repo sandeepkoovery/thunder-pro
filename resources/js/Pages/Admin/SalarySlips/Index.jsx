@@ -495,9 +495,15 @@ export default function Index({ salarySlips, filters = {}, availableMonths = [],
 
             {/* Upload Modal */}
             {isUploadOpen && (
-                <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-fadeIn">
-                        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between">
+                <div 
+                    className="fixed inset-0 z-[99999] overflow-y-auto bg-slate-900/70 backdrop-blur-sm flex justify-center items-start p-3 sm:p-6"
+                    onClick={() => { setIsUploadOpen(false); reset(); }}
+                >
+                    <div 
+                        className="bg-white rounded-2xl shadow-2xl border border-slate-200 w-full max-w-lg overflow-hidden animate-fadeIn my-auto sm:my-8 max-h-[calc(100vh-2rem)] flex flex-col"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="px-6 py-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between shrink-0">
                             <div className="flex items-center gap-2">
                                 <span className="p-2 bg-blue-100 text-blue-600 rounded-lg">
                                     <Upload className="w-5 h-5" />
