@@ -16,7 +16,7 @@ export default function AdminForgotPassword({ status }) {
     };
 
     return (
-        <GuestLayout>
+        <GuestLayout isAdmin={true}>
             <Head title="Admin Password Reset" />
 
             <div className="mb-8 text-center">

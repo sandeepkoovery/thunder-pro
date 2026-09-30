@@ -39,7 +39,7 @@ export default function AdminResetPassword({ token, email }) {
     };
 
     return (
-        <GuestLayout>
+        <GuestLayout isAdmin={true}>
             <Head title="Set New Admin Password" />
 
             <div className="mb-8 text-center">

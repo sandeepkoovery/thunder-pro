@@ -1,11 +1,8 @@
-import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
 import { useState } from 'react';
-import { Fingerprint, ShieldAlert } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, Fingerprint, ShieldAlert } from 'lucide-react';
 import { startPasskeyLogin, isWebAuthnSupported } from '@/Utils/webauthn';
 import toast from 'react-hot-toast';
 
@@ -24,6 +21,7 @@ export default function Login({ status, canResetPassword }) {
         is_pwa: isPwa,
     });
 
+    const [showPassword, setShowPassword] = useState(false);
     const [passkeyLoading, setPasskeyLoading] = useState(false);
     const [passkeyError, setPasskeyError] = useState('');
     const isSupported = isWebAuthnSupported();
@@ -65,23 +63,27 @@ export default function Login({ status, canResetPassword }) {
     };
 
     return (
-        <GuestLayout>
+        <GuestLayout isAdmin={false}>
             <Head title="Log in" />
 
-            <div className="mb-8 text-center">
-                <h2 className="text-2xl font-medium text-mp-heading mb-2">Welcome Back</h2>
-                <p className="text-mp-body font-light">Please enter your details to sign in</p>
+            <div className="mb-7">
+                <h1 className="text-3xl sm:text-[34px] font-normal text-slate-800 tracking-tight mb-1.5">
+                    Welcome Back
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-400 font-normal">
+                    Please enter your details to sign in
+                </p>
             </div>
 
             {status && (
-                <div className="mb-6 p-4 bg-green-50 rounded-mp-sm text-sm font-medium text-green-600 border border-green-100">
+                <div className="mb-5 p-3.5 bg-green-50 rounded-2xl text-xs font-medium text-green-600 border border-green-100">
                     {status}
                 </div>
             )}
 
             {errors.email && errors.email.includes('Too many failed login attempts') && (
-                <div className="mb-6 p-4 bg-rose-50 rounded-xl text-sm font-medium text-rose-700 border border-rose-200 flex items-start gap-3">
-                    <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div className="mb-5 p-3.5 bg-rose-50 rounded-2xl text-xs font-medium text-rose-700 border border-rose-200 flex items-start gap-2.5">
+                    <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div>
                         <p className="font-semibold text-rose-800">Account Temporarily Locked</p>
                         <p className="mt-0.5 text-xs text-rose-600 leading-relaxed">
@@ -92,99 +94,109 @@ export default function Login({ status, canResetPassword }) {
             )}
 
             {passkeyError && (
-                <div className="mb-6 p-4 bg-rose-50 rounded-mp-sm text-sm font-medium text-rose-600 border border-rose-100">
+                <div className="mb-5 p-3.5 bg-rose-50 rounded-2xl text-xs font-medium text-rose-600 border border-rose-100">
                     {passkeyError}
                 </div>
             )}
 
-            <form onSubmit={submit} className="space-y-6">
+            <form onSubmit={submit} className="space-y-4">
+                {/* Email Field with User Icon */}
                 <div>
-                    <InputLabel htmlFor="email" value="Email Address" className="text-mp-heading font-medium mb-2 ml-1" />
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="w-full px-5 py-3.5 bg-mp-bg border-none rounded-mp-sm focus:ring-2 focus:ring-primary transition-all font-light text-mp-heading"
-                        autoComplete="username"
-                        isFocused={true}
-                        onChange={(e) => setData('email', e.target.value)}
-                        placeholder="Enter your email address"
-                    />
-                    <InputError message={errors.email} className="mt-2 ml-1" />
-                </div>
-
-                <div>
-                    <div className="flex justify-between items-center mb-2 ml-1">
-                        <InputLabel htmlFor="password" value="Password" className="text-mp-heading font-medium" />
-                        {canResetPassword && (
-                            <Link
-                                href={route('password.request')}
-                                className="text-sm font-medium text-primary hover:text-primary-dark transition-colors"
-                            >
-                                Forgot?
-                            </Link>
-                        )}
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none text-slate-400">
+                            <User className="w-4 h-4" />
+                        </div>
+                        <input
+                            id="email"
+                            type="email"
+                            name="email"
+                            value={data.email}
+                            className="w-full pl-11 sm:pl-12 pr-5 py-3.5 bg-white border border-slate-100/90 rounded-full focus:ring-2 focus:ring-[#674ab0]/20 focus:border-[#674ab0]/30 transition-all shadow-[0_4px_18px_rgba(0,0,0,0.05)] text-slate-800 placeholder:text-slate-400 text-sm outline-none"
+                            autoComplete="username"
+                            onChange={(e) => setData('email', e.target.value)}
+                            placeholder="Designer"
+                        />
                     </div>
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="w-full px-5 py-3.5 bg-mp-bg border-none rounded-mp-sm focus:ring-2 focus:ring-primary transition-all font-light text-mp-heading"
-                        autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
-                        placeholder="••••••••"
-                    />
-                    <InputError message={errors.password} className="mt-2 ml-1" />
+                    <InputError message={errors.email} className="mt-1.5 ml-4" />
                 </div>
 
-                <div className="flex items-center justify-between">
-                    <label className="flex items-center cursor-pointer group">
-                        <Checkbox
+                {/* Password Field with Lock Icon and Eye Toggle */}
+                <div>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none text-slate-400">
+                            <Lock className="w-4 h-4" />
+                        </div>
+                        <input
+                            id="password"
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            value={data.password}
+                            className="w-full pl-11 sm:pl-12 pr-11 py-3.5 bg-white border border-slate-100/90 rounded-full focus:ring-2 focus:ring-[#674ab0]/20 focus:border-[#674ab0]/30 transition-all shadow-[0_4px_18px_rgba(0,0,0,0.05)] text-slate-800 placeholder:text-slate-400 text-sm outline-none"
+                            autoComplete="current-password"
+                            onChange={(e) => setData('password', e.target.value)}
+                            placeholder="••••••••••"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-4 sm:pr-5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
+                    <InputError message={errors.password} className="mt-1.5 ml-4" />
+                </div>
+
+                {/* Remember Me & Forgot Password Row */}
+                <div className="flex items-center justify-between text-xs text-slate-400 px-1 pt-0.5">
+                    <label className="flex items-center cursor-pointer select-none group shrink-0">
+                        <input
+                            type="checkbox"
                             name="remember"
                             checked={data.remember}
                             onChange={(e) => setData('remember', e.target.checked)}
-                            className="rounded-mp-sm border-gray-300 text-primary focus:ring-primary"
+                            className="rounded border-slate-300 text-[#674ab0] focus:ring-[#674ab0] w-3.5 h-3.5 cursor-pointer"
                         />
-                        <span className="ms-3 text-sm font-light text-mp-body group-hover:text-mp-heading transition-colors">
+                        <span className="ms-1.5 text-slate-400 group-hover:text-slate-600 transition-colors">
                             Remember me
                         </span>
                     </label>
-                </div>
 
-                <button
-                    type="submit"
-                    disabled={processing}
-                    className="w-full py-3.5 bg-primary text-white rounded-mp-sm font-medium text-base hover:bg-primary-dark transition-all shadow-mp active:scale-[0.98] disabled:opacity-50"
-                >
-                    {processing ? 'Signing in...' : 'Sign In'}
-                </button>
-
-                <div className="relative flex py-2 items-center">
-                    <div className="flex-grow border-t border-gray-200"></div>
-                    <span className="flex-shrink mx-4 text-xs font-semibold uppercase tracking-wider text-gray-400">or sign in with</span>
-                    <div className="flex-grow border-t border-gray-200"></div>
-                </div>
-
-                <button
-                    type="button"
-                    onClick={handlePasskeyLogin}
-                    disabled={passkeyLoading}
-                    className="w-full py-3.5 bg-slate-900 hover:bg-slate-800 text-white rounded-mp-sm font-medium text-base transition-all shadow-sm flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-50"
-                >
-                    {passkeyLoading ? (
-                        <>
-                            <span className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                            Windows Hello Active...
-                        </>
-                    ) : (
-                        <>
-                            <Fingerprint className="w-5 h-5 text-indigo-400" />
-                            Sign in with Passkey
-                        </>
+                    {canResetPassword && (
+                        <Link
+                            href={route('password.request')}
+                            className="text-slate-400 hover:text-[#674ab0] transition-colors whitespace-nowrap"
+                        >
+                            Forgot Password?
+                        </Link>
                     )}
-                </button>
+                </div>
+
+                {/* Action Button: Purple Pill Button */}
+                <div className="pt-2 flex items-center">
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="px-11 py-3 rounded-full bg-[#674ab0] hover:bg-[#583ca0] text-white font-medium text-sm transition-all shadow-[0_8px_20px_rgba(103,74,176,0.35)] hover:shadow-[0_10px_25px_rgba(103,74,176,0.45)] active:scale-[0.98] disabled:opacity-50"
+                    >
+                        {processing ? 'Logging in...' : 'Login'}
+                    </button>
+                </div>
+
+
+
+                {/* Windows Hello / Passkey Login option kept intact */}
+                <div className="pt-3">
+                    <button
+                        type="button"
+                        onClick={handlePasskeyLogin}
+                        disabled={passkeyLoading}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200/80 bg-white hover:bg-slate-50 text-slate-600 text-xs font-medium transition-all shadow-xs disabled:opacity-50"
+                    >
+                        <Fingerprint className="w-3.5 h-3.5 text-[#674ab0]" />
+                        <span>{passkeyLoading ? 'Windows Hello Active...' : 'Sign in with Passkey'}</span>
+                    </button>
+                </div>
             </form>
         </GuestLayout>
     );

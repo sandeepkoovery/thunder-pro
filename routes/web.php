@@ -27,7 +27,7 @@ use App\Http\Controllers\Admin\DepartmentController as AdminDepartmentController
 Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
-        'canRegister' => Route::has('register'),
+        'canRegister' => false,
     ]);
 })->name('home');
 

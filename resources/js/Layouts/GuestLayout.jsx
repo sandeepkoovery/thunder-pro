@@ -20,26 +20,49 @@ const getAssetUrl = (path) => {
     }
 };
 
-export default function GuestLayout({ children }) {
+export default function GuestLayout({ children, isAdmin = false }) {
+    const logoUrl = getAssetUrl('images/worknest_logo.png?v=17');
+    const waveUrl = getAssetUrl('images/auth_wave.png?v=4');
+
     return (
-        <div className="min-h-screen bg-mp-bg relative overflow-hidden font-sans flex flex-col items-center justify-center p-6">
-            <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-blue-100 rounded-full blur-[100px] opacity-50"></div>
-            <div className="absolute bottom-[-10%] right-[-5%] w-[50%] h-[50%] bg-cyan-100 rounded-full blur-[120px] opacity-60"></div>
+        <div className="min-h-screen bg-white relative overflow-hidden font-sans flex flex-col justify-between selection:bg-[#674ab0] selection:text-white">
+            {/* Top-Left Header: Brand Logo with comfortable spacing */}
+            <header className="absolute top-0 left-0 p-8 sm:p-10 lg:px-16 lg:pt-12 z-30 flex items-center">
+                <Link href="/" className="inline-flex items-center gap-3 group">
+                    <img
+                        src={logoUrl}
+                        alt="WorkNest Logo"
+                        className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl object-contain drop-shadow-xs group-hover:scale-105 transition-transform duration-200"
+                    />
+                    <span className="text-xl sm:text-2xl font-bold tracking-tight text-[#2d264b]">
+                        Work<span className="text-[#674ab0]">Nest</span>
+                        {isAdmin && (
+                            <span className="ml-2.5 text-[11px] uppercase font-bold tracking-wider px-2.5 py-0.5 rounded-full bg-purple-100 text-[#674ab0]">
+                                Admin
+                            </span>
+                        )}
+                    </span>
+                </Link>
+            </header>
 
-            <div className="relative z-10 w-full max-w-md">
-                <div className="flex justify-center mb-8">
-                    <Link href="/" className="flex flex-col items-center gap-3 group">
-                        <img src={getAssetUrl('images/worknest_logo.png?v=15')} alt="WorkNest Logo" className="w-20 h-20 rounded-2xl shadow-md object-contain" />
-                        <span className="text-2xl font-bold tracking-tight text-mp-heading">
-                            Work<span className="text-emerald-600">Nest</span>
-                        </span>
-                    </Link>
-                </div>
-
-                <div className="bg-white p-8 md:p-10 rounded-mp shadow-mp border border-white/80">
+            {/* Form Section: Perfectly Centered Horizontally & Vertically in the 60% white area */}
+            <div className="w-full lg:w-[60%] min-h-screen flex flex-col justify-center items-center px-4 sm:px-8 lg:px-12 z-20 pt-24 pb-10 lg:py-0">
+                <main className="w-full max-w-[320px] sm:max-w-[370px] flex flex-col justify-center">
                     {children}
-                </div>
+                </main>
             </div>
+
+            {/* Right-Side Purple Wave Matching Exact Reference Screenshot Curve */}
+            <div className="hidden lg:block absolute top-0 right-0 bottom-0 w-[55%] xl:w-[50%] 2xl:w-[48%] pointer-events-none overflow-hidden select-none bg-[#674ab0]">
+                <img
+                    src={waveUrl}
+                    alt=""
+                    className="w-full h-full object-cover object-left"
+                />
+            </div>
+
+            {/* Mobile / Tablet subtle bottom accent */}
+            <div className="lg:hidden absolute -bottom-36 -right-36 w-80 h-80 rounded-full bg-[#674ab0]/15 blur-3xl pointer-events-none"></div>
         </div>
     );
 }

@@ -1,10 +1,8 @@
-import Checkbox from '@/Components/Checkbox';
 import InputError from '@/Components/InputError';
-import InputLabel from '@/Components/InputLabel';
-import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
 import { Head, Link, useForm } from '@inertiajs/react';
-import { ShieldCheck, Lock, Building2, ShieldAlert } from 'lucide-react';
+import { useState } from 'react';
+import { User, Lock, Eye, EyeOff, ShieldAlert, ShieldCheck } from 'lucide-react';
 
 export default function AdminLogin({ status }) {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -12,6 +10,8 @@ export default function AdminLogin({ status }) {
         password: '',
         remember: false,
     });
+
+    const [showPassword, setShowPassword] = useState(false);
 
     const submit = (e) => {
         e.preventDefault();
@@ -21,28 +21,27 @@ export default function AdminLogin({ status }) {
     };
 
     return (
-        <GuestLayout>
+        <GuestLayout isAdmin={true}>
             <Head title="Admin Portal Sign In" />
 
-            <div className="mb-8 text-center">
-                <div className="w-12 h-12 bg-indigo-50 border border-indigo-100 rounded-2xl flex items-center justify-center mx-auto mb-3 text-indigo-600">
-                    <ShieldCheck className="w-6 h-6" />
-                </div>
-                <h2 className="text-2xl font-bold text-slate-800 mb-1">Admin Portal Sign In</h2>
-                <p className="text-sm text-slate-500 font-light">
-                    Restricted portal for Administrators
+            <div className="mb-7">
+                <h1 className="text-3xl sm:text-[34px] font-normal text-slate-800 tracking-tight mb-1.5">
+                    Welcome Back
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-400 font-normal">
+                    Please enter your details to sign in to Admin Portal
                 </p>
             </div>
 
             {status && (
-                <div className="mb-6 p-4 bg-green-50 rounded-xl text-sm font-medium text-green-600 border border-green-100">
+                <div className="mb-5 p-3.5 bg-green-50 rounded-2xl text-xs font-medium text-green-600 border border-green-100">
                     {status}
                 </div>
             )}
 
             {errors.email && errors.email.includes('Too many failed login attempts') && (
-                <div className="mb-6 p-4 bg-rose-50 rounded-xl text-sm font-medium text-rose-700 border border-rose-200 flex items-start gap-3">
-                    <ShieldAlert className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div className="mb-5 p-3.5 bg-rose-50 rounded-2xl text-xs font-medium text-rose-700 border border-rose-200 flex items-start gap-2.5">
+                    <ShieldAlert className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
                     <div>
                         <p className="font-semibold text-rose-800">Account Temporarily Locked</p>
                         <p className="mt-0.5 text-xs text-rose-600 leading-relaxed">
@@ -52,76 +51,92 @@ export default function AdminLogin({ status }) {
                 </div>
             )}
 
-            <form onSubmit={submit} className="space-y-6">
+            <form onSubmit={submit} className="space-y-4">
+                {/* Administrator Email with User Icon */}
                 <div>
-                    <InputLabel htmlFor="email" value="Administrator Email" className="text-slate-700 font-medium mb-2 ml-1" />
-                    <TextInput
-                        id="email"
-                        type="email"
-                        name="email"
-                        value={data.email}
-                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all font-normal text-slate-800"
-                        autoComplete="username"
-                        isFocused={true}
-                        onChange={(e) => setData('email', e.target.value)}
-                        placeholder="admin@company.com"
-                    />
-                    <InputError message={errors.email} className="mt-2 ml-1" />
-                </div>
-
-                <div>
-                    <div className="flex justify-between items-center mb-2 ml-1">
-                        <InputLabel htmlFor="password" value="Password" className="text-slate-700 font-medium" />
-                        <Link
-                            href={route('admin.password.request')}
-                            className="text-xs font-semibold text-indigo-600 hover:text-indigo-800 transition-colors"
-                        >
-                            Forgot password?
-                        </Link>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none text-slate-400">
+                            <User className="w-4 h-4" />
+                        </div>
+                        <input
+                            id="email"
+                            type="email"
+                            name="email"
+                            value={data.email}
+                            className="w-full pl-11 sm:pl-12 pr-5 py-3.5 bg-white border border-slate-100/90 rounded-full focus:ring-2 focus:ring-[#674ab0]/20 focus:border-[#674ab0]/30 transition-all shadow-[0_4px_18px_rgba(0,0,0,0.05)] text-slate-800 placeholder:text-slate-400 text-sm outline-none"
+                            autoComplete="username"
+                            onChange={(e) => setData('email', e.target.value)}
+                            placeholder="admin@company.com"
+                        />
                     </div>
-                    <TextInput
-                        id="password"
-                        type="password"
-                        name="password"
-                        value={data.password}
-                        className="w-full px-5 py-3.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-600 focus:bg-white transition-all font-normal text-slate-800"
-                        autoComplete="current-password"
-                        onChange={(e) => setData('password', e.target.value)}
-                        placeholder="••••••••"
-                    />
-                    <InputError message={errors.password} className="mt-2 ml-1" />
+                    <InputError message={errors.email} className="mt-1.5 ml-4" />
                 </div>
 
-                <div className="flex items-center justify-between">
-                    <label className="flex items-center cursor-pointer group">
-                        <Checkbox
+                {/* Password Field with Lock Icon and Eye Toggle */}
+                <div>
+                    <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-4 sm:pl-5 flex items-center pointer-events-none text-slate-400">
+                            <Lock className="w-4 h-4" />
+                        </div>
+                        <input
+                            id="password"
+                            type={showPassword ? 'text' : 'password'}
+                            name="password"
+                            value={data.password}
+                            className="w-full pl-11 sm:pl-12 pr-11 py-3.5 bg-white border border-slate-100/90 rounded-full focus:ring-2 focus:ring-[#674ab0]/20 focus:border-[#674ab0]/30 transition-all shadow-[0_4px_18px_rgba(0,0,0,0.05)] text-slate-800 placeholder:text-slate-400 text-sm outline-none"
+                            autoComplete="current-password"
+                            onChange={(e) => setData('password', e.target.value)}
+                            placeholder="••••••••••"
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute inset-y-0 right-0 pr-4 sm:pr-5 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
+                        >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                    </div>
+                    <InputError message={errors.password} className="mt-1.5 ml-4" />
+                </div>
+
+                {/* Remember Me & Forgot Password Row */}
+                <div className="flex items-center justify-between text-xs text-slate-400 px-1 pt-0.5">
+                    <label className="flex items-center cursor-pointer select-none group shrink-0">
+                        <input
+                            type="checkbox"
                             name="remember"
                             checked={data.remember}
                             onChange={(e) => setData('remember', e.target.checked)}
-                            className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                            className="rounded border-slate-300 text-[#674ab0] focus:ring-[#674ab0] w-3.5 h-3.5 cursor-pointer"
                         />
-                        <span className="ms-3 text-sm font-normal text-slate-600 group-hover:text-slate-800 transition-colors">
+                        <span className="ms-1.5 text-slate-400 group-hover:text-slate-600 transition-colors">
                             Remember session
                         </span>
                     </label>
+
+                    <Link
+                        href={route('admin.password.request')}
+                        className="text-slate-400 hover:text-[#674ab0] transition-colors whitespace-nowrap"
+                    >
+                        Forgot Password?
+                    </Link>
                 </div>
 
-                <button
-                    type="submit"
-                    disabled={processing}
-                    className="w-full py-3.5 bg-gradient-to-r from-slate-900 to-indigo-950 hover:from-slate-800 hover:to-indigo-900 text-white rounded-xl font-semibold text-base transition-all shadow-md active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                    <Lock className="w-4 h-4 text-indigo-300" />
-                    {processing ? 'Authenticating Admin...' : 'Sign In to Admin Portal'}
-                </button>
+                {/* Action Button: Purple Pill Login */}
+                <div className="pt-2 flex items-center">
+                    <button
+                        type="submit"
+                        disabled={processing}
+                        className="px-11 py-3 rounded-full bg-[#674ab0] hover:bg-[#583ca0] text-white font-medium text-sm transition-all shadow-[0_8px_20px_rgba(103,74,176,0.35)] hover:shadow-[0_10px_25px_rgba(103,74,176,0.45)] active:scale-[0.98] disabled:opacity-50"
+                    >
+                        {processing ? 'Logging in...' : 'Login'}
+                    </button>
+                </div>
 
-                <div className="text-center pt-2">
-                    <p className="text-xs text-slate-400">
-                        Employee or Team Member?{' '}
-                        <Link href={route('login')} className="font-semibold text-indigo-600 hover:text-indigo-800 transition-colors">
-                            Sign in to User Portal
-                        </Link>
-                    </p>
+                {/* Security Note */}
+                <div className="pt-4 border-t border-slate-100 flex items-center gap-2 text-slate-400 text-xs">
+                    <ShieldCheck className="w-4 h-4 text-[#674ab0]" />
+                    <span>Authorized Administrative Personnel Only</span>
                 </div>
             </form>
         </GuestLayout>
