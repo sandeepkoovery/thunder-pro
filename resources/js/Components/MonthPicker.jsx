@@ -4,6 +4,7 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, X } from 'lucide-r
 
 export default function MonthPicker({
     value = '',
+    currentMonth = '',
     onChange,
     placeholder = 'Select Month',
     className = '',
@@ -122,11 +123,18 @@ export default function MonthPicker({
 
     const handleThisMonth = (e) => {
         e.stopPropagation();
-        const now = new Date();
-        const y = now.getFullYear();
-        const m = String(now.getMonth() + 1).padStart(2, '0');
-        setViewYear(y);
-        emitChange(`${y}-${m}`);
+        let target = currentMonth;
+        if (!target) {
+            const now = new Date();
+            const y = now.getFullYear();
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            target = `${y}-${m}`;
+        }
+        const parts = String(target).split('-');
+        if (parts.length >= 2) {
+            setViewYear(parseInt(parts[0], 10));
+        }
+        emitChange(target);
         setIsOpen(false);
     };
 

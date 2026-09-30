@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import UserLayout from '@/Layouts/UserLayout';
 import { Head, router, usePage, useForm, Link } from '@inertiajs/react';
 import MonthPicker from '@/Components/MonthPicker';
 import Modal from '@/Components/Modal';
 import { Home, ChevronRight, Clock, Plus, Edit2, AlertCircle, CheckCircle2, XCircle, Coffee, Trash2 } from 'lucide-react';
 
-export default function Index({ attendanceData = [], correctionRequests = [], filters = {}, totalMonthlyMinutes = 0, timingRules = {}, userShift = null }) {
+export default function Index({
+    attendanceData = [],
+    correctionRequests = [],
+    filters = {},
+    totalMonthlyMinutes = 0,
+    timingRules = {},
+    userShift = null,
+    currentActiveMonth = '',
+    cycleRange = null,
+}) {
     const { auth } = usePage().props;
     const user = auth?.user || {};
 
@@ -255,6 +264,12 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
         }
     });
 
+    // Ensure latest dates appear first (reverse chronological order)
+    const sortedAttendanceData = useMemo(() => {
+        if (!attendanceData || !Array.isArray(attendanceData)) return [];
+        return [...attendanceData].sort((a, b) => (b.date > a.date ? 1 : b.date < a.date ? -1 : 0));
+    }, [attendanceData]);
+
     const formatMinutesToAMPM = (avgMins) => {
         if (!avgMins || isNaN(avgMins)) return '09:30 AM';
         let h = Math.floor(avgMins / 60);
@@ -272,7 +287,9 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
     const todayStr = "Today " + new Date().toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 
     let dateRangeStr = "Monthly Records";
-    if (filters.month) {
+    if (cycleRange?.formatted) {
+        dateRangeStr = cycleRange.formatted;
+    } else if (filters.month) {
         const [yr, mo] = filters.month.split('-');
         const dObj = new Date(parseInt(yr), parseInt(mo) - 1, 1);
         dateRangeStr = dObj.toLocaleDateString('en-US', { month: 'short', year: 'numeric' });
@@ -380,17 +397,23 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                     
                     {/* Breadcrumb & Request Button Row */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-2 text-xs font-semibold text-gray-400">
+                        <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-gray-400">
                             <Home className="w-3.5 h-3.5 text-gray-400" />
                             <span>Members</span>
                             <ChevronRight className="w-3 h-3 text-gray-300" />
                             <span className="text-gray-700 font-bold bg-gray-100 px-2.5 py-1 rounded-lg">Attendance history</span>
+                            {cycleRange?.formatted && (
+                                <span className="text-blue-700 bg-blue-50 border border-blue-200/80 px-2.5 py-1 rounded-lg font-bold ml-1">
+                                    Cycle: {cycleRange.formatted}
+                                </span>
+                            )}
                         </div>
 
                         {/* Month Picker + Request Correction Button */}
                         <div className="flex items-center gap-3 shrink-0 whitespace-nowrap">
                             <MonthPicker
                                 value={filters.month || ''}
+                                currentMonth={currentActiveMonth}
                                 onChange={handleMonthChange}
                                 className="min-w-[180px]"
                             />
@@ -503,8 +526,8 @@ export default function Index({ attendanceData = [], correctionRequests = [], fi
                 {/* 3. MAIN CONTENT BASED ON TAB */}
                 {activeTab === 'attendance' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {attendanceData && attendanceData.length > 0 ? (
-                            attendanceData.map((record) => (
+                        {sortedAttendanceData && sortedAttendanceData.length > 0 ? (
+                            sortedAttendanceData.map((record) => (
                                 <div
                                     key={record.id}
                                     className={`bg-white rounded-2xl p-5 shadow-xs border border-gray-100 transition-all hover:shadow-md flex flex-col justify-between ${getCardBorder(record.status)}`}

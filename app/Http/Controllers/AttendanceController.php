@@ -483,19 +483,10 @@ class AttendanceController extends Controller
 
         // Mode 1: Monthly View (Month selected OR Calendar Display forced)
         if ($request->filled('month') || $request->input('display') === 'calendar') {
-            $monthInput = $request->input('month');
-            if (is_array($monthInput)) {
-                $monthStr = $monthInput['target']['value'] ?? (is_string(reset($monthInput)) ? reset($monthInput) : Carbon::now()->format('Y-m'));
-            } else {
-                $monthStr = is_string($monthInput) && !empty($monthInput) ? $monthInput : Carbon::now()->format('Y-m');
-            }
-
-            try {
-                $month = Carbon::parse($monthStr);
-            } catch (\Exception $e) {
-                $month = Carbon::now();
-                $monthStr = $month->format('Y-m');
-            }
+            $admin = $adminId > 0 ? \App\Models\Admin::find($adminId) : null;
+            $monthParsed = $this->parseMonthInput($request->input('month'), $admin);
+            $monthStr = $monthParsed['string'];
+            $month = $monthParsed['date'];
 
             // Month view is for an individual user; if no user selected, default to first user
             $userId = $request->user_id;
@@ -517,9 +508,8 @@ class AttendanceController extends Controller
                     $timingRules = $this->getOfficeTimingRules($adminId, $selectedUser);
                 }
 
-                // Generate all dates for the month (25th of previous month to 24th of current month)
-                $startDate = $month->copy()->subMonth()->day(25);
-                $realEndDate = $month->copy()->day(24);
+                // Generate all dates based on admin's payroll cycle
+                [$startDate, $realEndDate] = $this->getCycleDateRange($monthStr, $admin);
 
                 // Get all attendance records for the month range
                 $attendances = Attendance::where('user_id', $userId)
@@ -711,8 +701,7 @@ class AttendanceController extends Controller
                 ]);
             } else {
                 // All Users Monthly View
-                $startDate = $month->copy()->subMonth()->day(25);
-                $realEndDate = $month->copy()->day(24);
+                [$startDate, $realEndDate] = $this->getCycleDateRange($monthStr, $admin);
 
                 $attendancesQuery = Attendance::whereBetween('date', [$startDate->toDateString(), $realEndDate->toDateString()])
                     ->with(['user.shift', 'breaks', 'shift']);
@@ -1148,24 +1137,16 @@ class AttendanceController extends Controller
     {
         $user = auth()->user();
         $userId = $user ? $user->id : auth()->id();
+        $adminId = $user ? ($user->admin_id ?? 0) : 0;
+        $admin = $adminId > 0 ? \App\Models\Admin::find($adminId) : null;
         $timingRules = $this->getOfficeTimingRules(null, $user);
-        $monthInput = $request->input('month');
-        if (is_array($monthInput)) {
-            $monthStr = $monthInput['target']['value'] ?? (is_string(reset($monthInput)) ? reset($monthInput) : Carbon::now()->format('Y-m'));
-        } else {
-            $monthStr = is_string($monthInput) && !empty($monthInput) ? $monthInput : Carbon::now()->format('Y-m');
-        }
 
-        try {
-            $month = Carbon::parse($monthStr);
-        } catch (\Exception $e) {
-            $month = Carbon::now();
-            $monthStr = $month->format('Y-m');
-        }
+        $currentActiveMonth = $this->getDefaultActiveCycleMonth($admin);
+        $monthParsed = $this->parseMonthInput($request->input('month'), $admin);
+        $monthStr = $monthParsed['string'];
 
-        // Generate all dates for the month (25th of previous month to 24th of current month)
-        $startDate = $month->copy()->subMonth()->day(25);
-        $realEndDate = $month->copy()->day(24);
+        // Generate all dates based on admin's payroll cycle
+        [$startDate, $realEndDate] = $this->getCycleDateRange($monthStr, $admin);
 
         // Get all attendance records for the month range
         $attendances = Attendance::where('user_id', $userId)
@@ -1285,10 +1266,19 @@ class AttendanceController extends Controller
             ];
         }
 
+        // Reverse to show most recent dates first (latest date first)
+        $attendanceData = array_reverse($attendanceData);
+
         $correctionRequests = \App\Models\AttendanceCorrectionRequest::where('user_id', $userId)
             ->with(['attendanceBreak', 'actionedBy'])
             ->orderBy('created_at', 'desc')
             ->get();
+
+        $cycleRange = [
+            'start' => $startDate->toDateString(),
+            'end' => $realEndDate->toDateString(),
+            'formatted' => $startDate->format('d M') . ' – ' . $realEndDate->format('d M, Y'),
+        ];
 
         return Inertia::render('User/Attendance/Index', [
             'attendanceData' => $attendanceData,
@@ -1296,13 +1286,62 @@ class AttendanceController extends Controller
             'correctionRequests' => $correctionRequests,
             'timingRules' => $timingRules,
             'userShift' => $user ? ($user->relationLoaded('shift') ? $user->shift : $user->load('shift')->shift) : null,
+            'currentActiveMonth' => $currentActiveMonth,
+            'cycleRange' => $cycleRange,
             'filters' => [
                 'month' => $monthStr,
             ],
         ]);
     }
 
-    private function parseMonthInput($monthInput)
+    /**
+     * Get default active payroll cycle month string (e.g. '2026-10')
+     */
+    private function getDefaultActiveCycleMonth($admin = null)
+    {
+        $today = Carbon::today();
+        $startDay = $admin ? (int) ($admin->month_start_day ?? 25) : 25;
+        if ($startDay > 1 && $today->day >= $startDay) {
+            return $today->copy()->addMonth()->format('Y-m');
+        }
+        return $today->format('Y-m');
+    }
+
+    /**
+     * Get start and real end date for a given payroll cycle month string
+     */
+    private function getCycleDateRange($monthStr, $admin = null)
+    {
+        if ($admin && method_exists($admin, 'getMonthDateRange')) {
+            [$start, $end] = $admin->getMonthDateRange($monthStr);
+            return [Carbon::parse($start), Carbon::parse($end)];
+        }
+
+        $startDay = $admin ? (int) ($admin->month_start_day ?? 25) : 25;
+        $endDay = $admin ? (int) ($admin->month_end_day ?? 24) : 24;
+
+        try {
+            $baseDate = Carbon::parse($monthStr . '-01');
+        } catch (\Exception $e) {
+            $baseDate = Carbon::now();
+        }
+
+        if ($startDay === 1) {
+            $startDate = $baseDate->copy()->startOfMonth();
+            $endDate = $baseDate->copy()->endOfMonth();
+        } else {
+            $prevMonth = $baseDate->copy()->subMonth();
+            $maxStartDay = min($startDay, $prevMonth->daysInMonth);
+            $startDate = $prevMonth->day($maxStartDay);
+
+            $maxEndDay = min($endDay, $baseDate->daysInMonth);
+            $endDate = $baseDate->copy()->day($maxEndDay);
+        }
+
+        return [$startDate, $endDate];
+    }
+
+    private function parseMonthInput($monthInput, $admin = null)
     {
         if (is_array($monthInput)) {
             $val = $monthInput['target']['value'] ?? (is_string(reset($monthInput)) ? reset($monthInput) : null);
@@ -1313,7 +1352,7 @@ class AttendanceController extends Controller
 
         if (is_string($monthInput) && !empty($monthInput)) {
             try {
-                $date = Carbon::parse($monthInput);
+                $date = Carbon::parse($monthInput . '-01');
                 return [
                     'date' => $date,
                     'string' => $date->format('Y-m'),
@@ -1323,19 +1362,21 @@ class AttendanceController extends Controller
             }
         }
 
-        $now = Carbon::now();
+        $defaultMonthStr = $this->getDefaultActiveCycleMonth($admin);
+        $date = Carbon::parse($defaultMonthStr . '-01');
         return [
-            'date' => $now,
-            'string' => $now->format('Y-m'),
+            'date' => $date,
+            'string' => $defaultMonthStr,
         ];
     }
 
     public function report(Request $request)
     {
         $adminId = $this->getTenantAdminId();
+        $admin = $adminId > 0 ? \App\Models\Admin::find($adminId) : null;
         $userId = $request->input('user_id');
         $leaveUserId = $request->input('leave_user_id');
-        $monthParsed = $this->parseMonthInput($request->input('month'));
+        $monthParsed = $this->parseMonthInput($request->input('month'), $admin);
         $monthDate = $monthParsed['date'];
         $monthStr = $monthParsed['string'];
         $leaveStatus = $request->input('leave_status', 'all');
@@ -1408,7 +1449,8 @@ class AttendanceController extends Controller
     public function exportLeaves(Request $request)
     {
         $adminId = $this->getTenantAdminId();
-        $monthParsed = $this->parseMonthInput($request->input('month'));
+        $admin = $adminId > 0 ? \App\Models\Admin::find($adminId) : null;
+        $monthParsed = $this->parseMonthInput($request->input('month'), $admin);
         $monthDate = $monthParsed['date'];
         $monthStr = $monthParsed['string'];
         $leaveUserId = $request->input('leave_user_id') ?: $request->input('user_id');
@@ -1498,12 +1540,12 @@ class AttendanceController extends Controller
     public function export(Request $request)
     {
         $adminId = $this->getTenantAdminId();
-        $monthParsed = $this->parseMonthInput($request->input('month'));
+        $admin = $adminId > 0 ? \App\Models\Admin::find($adminId) : null;
+        $monthParsed = $this->parseMonthInput($request->input('month'), $admin);
         $month = $monthParsed['date'];
         $monthStr = $monthParsed['string'];
 
-        $startDate = $month->copy()->subMonth()->day(25);
-        $endDate = $month->copy()->day(24);
+        [$startDate, $endDate] = $this->getCycleDateRange($monthStr, $admin);
         $today = Carbon::today();
 
         // Don't count future days calculation
@@ -1668,12 +1710,12 @@ class AttendanceController extends Controller
     private function getExportSummaryData($monthInput, $userId = null)
     {
         $adminId = $this->getTenantAdminId();
-        $monthParsed = $this->parseMonthInput($monthInput);
+        $admin = $adminId > 0 ? \App\Models\Admin::find($adminId) : null;
+        $monthParsed = $this->parseMonthInput($monthInput, $admin);
         $month = $monthParsed['date'];
         $monthStr = $monthParsed['string'];
 
-        $startDate = $month->copy()->subMonth()->day(25);
-        $endDate = $month->copy()->day(24);
+        [$startDate, $endDate] = $this->getCycleDateRange($monthStr, $admin);
         $today = Carbon::today();
 
         $calculationEndDate = $endDate->gt($today) ? $today : $endDate;
