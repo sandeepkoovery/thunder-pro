@@ -41,7 +41,27 @@ class ProjectController extends Controller
             });
         }
 
-        $projects = $query->get();
+        $projects = $query->get()->map(function ($project) {
+            $totalTasks = $project->tasks->count();
+            $completedTasks = $project->tasks->where('status', 'completed')->count();
+            $totalComments = $project->tasks->sum(function ($t) { return $t->comments ? $t->comments->count() : 0; });
+
+            $project->tasks_count = $totalTasks;
+            $project->comments_count = $totalComments;
+            $project->progress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+            $project->image_url = $project->image ? asset('storage/' . $project->image) : null;
+
+            $assignees = $project->tasks->pluck('assignees')->flatten()->unique('id')->map(function ($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'image' => $user->image ? asset('storage/' . $user->image) : null,
+                ];
+            })->values();
+            $project->team = $assignees;
+
+            return $project;
+        });
 
         return Inertia::render('User/Projects/Index', [
             'projects' => $projects,

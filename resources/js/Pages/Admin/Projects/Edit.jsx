@@ -7,7 +7,7 @@ export default function EditProject({ project }) {
   const { data, setData, put, processing, errors } = useForm({
     name: project.name || "",
     description: project.description || "",
-    status: project.status || "not started",
+    status: project.status || "planning",
     start_date: project.start_date || "",
     end_date: project.end_date || "",
   });
@@ -71,12 +71,10 @@ export default function EditProject({ project }) {
                   onChange={(e) => setData("status", e.target.value)}
                   className="w-full bg-slate-50/50 border border-slate-100 px-7 py-5 rounded-[20px] text-xs font-black uppercase tracking-widest text-slate-700 focus:ring-8 focus:ring-slate-100/50 transition-all appearance-none cursor-pointer"
                 >
-                  <option value="not started">Pending</option>
-                  <option value="in progress">Ongoing</option>
+                  <option value="planning">Planning</option>
+                  <option value="in progress">In Progress</option>
                   <option value="completed">Completed</option>
-                  <option value="on hold">Inactive</option>
-                  <option value="cancelled">Cancelled</option>
-                  <option value="critical">Critical</option>
+                  <option value="on hold">On Hold</option>
                 </select>
               </div>
 

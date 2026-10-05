@@ -79,13 +79,35 @@ class TaskController extends Controller
         $task = Task::with(['project', 'assignees', 'comments.user'])
             ->findOrFail($id);
 
-        // Check if user is authorized (assignee or admin/manager)
+        // Check if user is authorized (assignee or admin/manager/superadmin)
         $user = auth()->user();
         $isAssignee = $task->assignees()->where('user_id', $user->id)->exists();
 
-        if (!$isAssignee && !in_array($user->role, ['admin', 'manager'])) {
+        if (!$isAssignee && !in_array($user->role, ['admin', 'manager', 'superadmin'])) {
             abort(403, 'Unauthorized access to this task.');
         }
+
+        $task->comments->transform(function ($comment) {
+            if (!$comment->user && $comment->user_id) {
+                $admin = \App\Models\Admin::find($comment->user_id);
+                if ($admin) {
+                    $comment->setRelation('user', (object) [
+                        'id' => $admin->id,
+                        'name' => $admin->name,
+                        'email' => $admin->email,
+                        'image_url' => $admin->image_url ?? asset('images/default-avatar.jpg'),
+                    ]);
+                } else {
+                    $comment->setRelation('user', (object) [
+                        'id' => $comment->user_id,
+                        'name' => 'Admin User',
+                        'email' => '',
+                        'image_url' => asset('images/default-avatar.jpg'),
+                    ]);
+                }
+            }
+            return $comment;
+        });
 
         return Inertia::render('User/Tasks/Show', [
             'task' => $task
@@ -103,9 +125,13 @@ class TaskController extends Controller
 
         // Check authorization
         $user = auth()->user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
         $isAssignee = $task->assignees()->where('user_id', $user->id)->exists();
 
-        if (!$isAssignee && !in_array($user->role, ['admin', 'manager'])) {
+        if (!$isAssignee && !in_array($user->role, ['admin', 'manager', 'superadmin'])) {
             abort(403, 'Unauthorized.');
         }
 

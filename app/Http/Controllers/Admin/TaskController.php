@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Task;
 use App\Models\Project;
 use App\Models\User;
+use App\Models\Admin;
 use App\Models\Comment;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -299,6 +300,28 @@ class TaskController extends Controller
 
         $this->authorizeTask($task);
 
+        $task->comments->transform(function ($comment) {
+            if (!$comment->user && $comment->user_id) {
+                $admin = \App\Models\Admin::find($comment->user_id);
+                if ($admin) {
+                    $comment->setRelation('user', (object) [
+                        'id' => $admin->id,
+                        'name' => $admin->name,
+                        'email' => $admin->email,
+                        'image_url' => $admin->image_url ?? asset('images/default-avatar.jpg'),
+                    ]);
+                } else {
+                    $comment->setRelation('user', (object) [
+                        'id' => $comment->user_id,
+                        'name' => 'Admin User',
+                        'email' => '',
+                        'image_url' => asset('images/default-avatar.jpg'),
+                    ]);
+                }
+            }
+            return $comment;
+        });
+
         return Inertia::render('Admin/Tasks/Show', [
             'task' => $task
         ]);
@@ -314,8 +337,13 @@ class TaskController extends Controller
         $task = Task::findOrFail($taskId);
         $this->authorizeTask($task);
 
+        $user = auth()->user();
+        if (!$user) {
+            return redirect()->route('login');
+        }
+
         $task->comments()->create([
-            'user_id' => auth()->id(),
+            'user_id' => $user->id,
             'content' => $request->input('content'),
             'parent_id' => $request->input('parent_id'),
         ]);

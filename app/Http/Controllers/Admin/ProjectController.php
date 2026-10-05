@@ -39,17 +39,18 @@ class ProjectController extends Controller
         // We also need project status counts for the tabs
         $statusCounts = [
             'All' => (clone $query)->count(),
-            'Ongoing' => (clone $query)->where('status', 'in progress')->count(),
+            'Planning' => (clone $query)->whereIn('status', ['planning', 'not started'])->count(),
+            'In Progress' => (clone $query)->whereIn('status', ['in progress', 'ongoing'])->count(),
             'Completed' => (clone $query)->where('status', 'completed')->count(),
-            'Inactive' => (clone $query)->where('status', 'on hold')->count(),
-            'Cancelled' => (clone $query)->where('status', 'cancelled')->count(),
-            'Critical' => (clone $query)->where('status', 'critical')->count(),
+            'On Hold' => (clone $query)->whereIn('status', ['on hold', 'inactive'])->count(),
         ];
 
         // Fetch projects with their relation aggregates (12 per page for 4-column grid alignment)
         $perPage = (int) $request->input('perPage', 12);
 
-        $projects = $query->with(['tasks', 'tasks.assignees']) // Eager load to process progress and unique user avatars
+        $projects = $query->with(['tasks' => function ($q) {
+            $q->withCount('comments');
+        }, 'tasks.assignees'])
             ->withCount('tasks')
             ->orderBy($sort, $direction)
             ->paginate($perPage)
@@ -59,8 +60,11 @@ class ProjectController extends Controller
         $projects->getCollection()->transform(function ($project) {
             $totalTasks = $project->tasks->count();
             $completedTasks = $project->tasks->where('status', 'completed')->count();
+            $totalComments = $project->tasks->sum('comments_count');
 
             $project->progress = $totalTasks > 0 ? round(($completedTasks / $totalTasks) * 100) : 0;
+            $project->comments_count = $totalComments;
+            $project->image_url = $project->image ? asset('storage/' . $project->image) : null;
 
             // Collect unique assignees across all tasks in this project
             $assignees = $project->tasks->pluck('assignees')->flatten()->unique('id')->map(function ($user) {
@@ -93,7 +97,7 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required',
             'client_name' => 'nullable|string|max:255',
             'budget' => 'nullable|numeric',
@@ -101,13 +105,23 @@ class ProjectController extends Controller
             'status' => 'required',
             'start_date' => 'required|date',
             'end_date' => 'required|date',
+            'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+        ], [
+            'image.mimes' => 'The project logo must be a file of type: jpeg, png, jpg, gif, svg, webp.',
+            'image.max' => 'The project logo size must not exceed 5MB.',
         ]);
 
         $authUser = auth()->user();
         $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
 
+        if ($request->hasFile('image')) {
+            $validated['image'] = $request->file('image')->store('projects', 'public');
+        } else {
+            unset($validated['image']);
+        }
+
         Project::create([
-            ...$request->all(),
+            ...$validated,
             'admin_id' => $tenantAdminId,
         ]);
 
@@ -141,7 +155,7 @@ class ProjectController extends Controller
     {
         $this->authorizeProject($project);
 
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required',
             'client_name' => 'nullable|string|max:255',
             'budget' => 'nullable|numeric',
@@ -149,17 +163,22 @@ class ProjectController extends Controller
             'status' => 'required',
             'start_date' => 'required|date',
             'end_date' => 'required|date',
+            'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
+        ], [
+            'image.mimes' => 'The project logo must be a file of type: jpeg, png, jpg, gif, svg, webp.',
+            'image.max' => 'The project logo size must not exceed 5MB.',
         ]);
 
-        $project->update($request->only([
-            'name',
-            'client_name',
-            'budget',
-            'description',
-            'status',
-            'start_date',
-            'end_date',
-        ]));
+        if ($request->hasFile('image')) {
+            if ($project->image && file_exists(public_path('storage/' . $project->image))) {
+                @unlink(public_path('storage/' . $project->image));
+            }
+            $validated['image'] = $request->file('image')->store('projects', 'public');
+        } else {
+            unset($validated['image']);
+        }
+
+        $project->update($validated);
 
         if ($request->inertia()) {
             return back()->with('success', 'Project updated successfully!');
@@ -207,6 +226,8 @@ class ProjectController extends Controller
                 : null;
             return $user;
         });
+
+        $project->image_url = $project->image ? asset('storage/' . $project->image) : null;
 
         return Inertia::render('Admin/Projects/Show', [
             'project' => $project,

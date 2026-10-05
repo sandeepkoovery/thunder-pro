@@ -1,9 +1,18 @@
 import React from "react";
 import { Head, router, Link } from "@inertiajs/react";
 import UserLayout from "@/Layouts/UserLayout";
-import { Eye, Clock, LayoutGrid } from "lucide-react";
+import { Eye, Clock, LayoutGrid, ListTodo, MessageSquare } from "lucide-react";
 
-export default function Index({ projects }) {
+const getAssetUrl = (path) => {
+  const baseUrl = window.location.origin + window.location.pathname.replace(/\/index\.php$/, '').replace(/\/$/, '');
+  const cleanPath = path.startsWith('/') ? path : '/' + path;
+  if (baseUrl.includes('/public')) {
+    return `${baseUrl}${cleanPath}`;
+  }
+  return `${baseUrl}/public${cleanPath}`;
+};
+
+export default function Index({ projects, auth }) {
   const rows = Array.isArray(projects) ? projects : projects?.data ?? [];
 
   const getDaysLeftText = (endDateStr) => {
@@ -28,96 +37,120 @@ export default function Index({ projects }) {
     }
   };
 
-  const getProjectLogo = (projectId) => {
-    const index = (projectId || 0) % 8;
-    const logos = [
-      // Triangle logo (neon purple/blue)
-      <svg viewBox="0 0 100 100" className="w-12 h-12">
-        <defs>
-          <linearGradient id={`usrgrad0-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#8A2387" />
-            <stop offset="50%" stopColor="#E94057" />
-            <stop offset="100%" stopColor="#F27121" />
-          </linearGradient>
-        </defs>
-        <path d="M50 20 L80 75 L20 75 Z" fill={`url(#usrgrad0-${projectId})`} />
-      </svg>,
-      // Teal wave logo
-      <svg viewBox="0 0 100 100" className="w-12 h-12">
-        <defs>
-          <linearGradient id={`usrgrad1-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#11998e" />
-            <stop offset="100%" stopColor="#38ef7d" />
-          </linearGradient>
-        </defs>
-        <path d="M20 50 Q 35 20, 50 50 T 80 50" fill="none" stroke={`url(#usrgrad1-${projectId})`} strokeWidth="12" strokeLinecap="round" />
-        <circle cx="50" cy="50" r="10" fill={`url(#usrgrad1-${projectId})`} />
-      </svg>,
-      // Blue loop logo
-      <svg viewBox="0 0 100 100" className="w-12 h-12">
-        <defs>
-          <linearGradient id={`usrgrad2-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#00c6ff" />
-            <stop offset="100%" stopColor="#0072ff" />
-          </linearGradient>
-        </defs>
-        <path d="M50 20 A 30 30 0 1 1 50 80 A 30 30 0 1 1 50 20 Z" fill="none" stroke={`url(#usrgrad2-${projectId})`} strokeWidth="10" />
-        <path d="M50 35 L50 65 L65 50 Z" fill={`url(#usrgrad2-${projectId})`} />
-      </svg>,
-      // Circular letter 'e' logo
-      <svg viewBox="0 0 100 100" className="w-12 h-12">
-        <defs>
-          <linearGradient id={`usrgrad3-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#7F00FF" />
-            <stop offset="100%" stopColor="#E100FF" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="35" fill="none" stroke={`url(#usrgrad3-${projectId})`} strokeWidth="8" />
-        <text x="50" y="62" textAnchor="middle" fontSize="38" fontWeight="900" fill={`url(#usrgrad3-${projectId})`} fontFamily="sans-serif">e</text>
-      </svg>,
-      // Ring logo
-      <svg viewBox="0 0 100 100" className="w-12 h-12">
-        <defs>
-          <linearGradient id={`usrgrad4-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#ff4b1f" />
-            <stop offset="100%" stopColor="#ff9068" />
-          </linearGradient>
-        </defs>
-        <circle cx="50" cy="50" r="30" fill="none" stroke={`url(#usrgrad4-${projectId})`} strokeWidth="12" />
-      </svg>,
-      // Green wave / leaf logo
-      <svg viewBox="0 0 100 100" className="w-12 h-12">
-        <defs>
-          <linearGradient id={`usrgrad5-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#3CA55C" />
-            <stop offset="100%" stopColor="#B5AC49" />
-          </linearGradient>
-        </defs>
-        <path d="M50 15 C30 35 30 65 50 85 C70 65 70 35 50 15 Z" fill={`url(#usrgrad5-${projectId})`} />
-      </svg>,
-      // Double wave logo
-      <svg viewBox="0 0 100 100" className="w-12 h-12">
-        <defs>
-          <linearGradient id={`usrgrad6-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#f857a6" />
-            <stop offset="100%" stopColor="#ff5858" />
-          </linearGradient>
-        </defs>
-        <path d="M25 40 Q 40 15, 55 40 T 85 40" fill="none" stroke={`url(#usrgrad6-${projectId})`} strokeWidth="10" strokeLinecap="round" />
-        <path d="M15 60 Q 40 35, 60 60 T 75 60" fill="none" stroke={`url(#usrgrad6-${projectId})`} strokeWidth="10" strokeLinecap="round" />
-      </svg>,
-      // Star/Sun gradient logo
-      <svg viewBox="0 0 100 100" className="w-12 h-12">
-        <defs>
-          <linearGradient id={`usrgrad7-${projectId}`} x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stopColor="#F5af19" />
-            <stop offset="100%" stopColor="#f12711" />
-          </linearGradient>
-        </defs>
-        <polygon points="50,15 62,38 88,38 67,54 75,80 50,64 25,80 33,54 12,38 38,38" fill={`url(#usrgrad7-${projectId})`} />
-      </svg>
+  const getInitials = (name) => {
+    if (!name) return 'PR';
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+    }
+    if (words.length === 1) {
+      const word = words[0];
+      if (word.length >= 2) {
+        return word.slice(0, 2).toUpperCase();
+      }
+      return word.charAt(0).toUpperCase();
+    }
+    return 'PR';
+  };
+
+  const bannerBackgrounds = [
+    "bg-[#EBF7FC]", // Soft sky blue
+    "bg-[#FAF8F5]", // Soft warm cream/off-white
+    "bg-[#FAF4FF]", // Soft lavender/purple
+    "bg-[#FFF7E8]", // Soft warm yellow/amber
+    "bg-[#F0FAF7]", // Soft mint green
+    "bg-[#FFF4F4]", // Soft rose pink
+  ];
+
+  const getBannerStatusBadge = (status) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-[#10B981] text-white';
+      case 'in progress':
+      case 'ongoing':
+        return 'bg-[#5B5D6E] text-white';
+      case 'on hold':
+      case 'inactive':
+        return 'bg-amber-500 text-white';
+      case 'planning':
+      case 'not started':
+      default:
+        return 'bg-sky-600 text-white';
+    }
+  };
+
+  const getBannerStatusLabel = (status) => {
+    switch (status) {
+      case 'completed':
+        return 'Finished';
+      case 'in progress':
+      case 'ongoing':
+        return 'Ongoing';
+      case 'on hold':
+      case 'inactive':
+        return 'On Hold';
+      case 'planning':
+      case 'not started':
+      default:
+        return 'Planning';
+    }
+  };
+
+  const getHeroProjectLogo = (project) => {
+    const name = typeof project === 'string' ? project : (project?.name || 'Project');
+    const initials = getInitials(name);
+    const id = typeof project?.id === 'number' ? project.id : (typeof project === 'number' ? project : 0);
+
+    const gradients = [
+      'from-indigo-600 to-purple-600 text-white',
+      'from-blue-600 to-cyan-500 text-white',
+      'from-violet-600 to-pink-500 text-white',
+      'from-emerald-600 to-teal-500 text-white',
+      'from-amber-500 to-orange-600 text-white',
+      'from-rose-500 to-red-600 text-white',
+      'from-sky-500 to-indigo-600 text-white',
     ];
-    return logos[index];
+
+    const gradientClass = gradients[id % gradients.length];
+    const rawImg = project?.image_url || project?.image;
+    let imageUrl = null;
+    if (rawImg) {
+      if (rawImg.startsWith('http://') || rawImg.startsWith('https://')) {
+        imageUrl = rawImg;
+      } else {
+        const cleanPath = rawImg.replace(/^\/?storage\//, '').replace(/^\//, '');
+        imageUrl = getAssetUrl('/storage/' + cleanPath);
+      }
+    }
+
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        {imageUrl ? (
+          <div className="w-full h-full flex items-center justify-center p-3">
+            <img 
+              src={imageUrl} 
+              alt={project?.name || 'Project Logo'} 
+              className="max-h-24 max-w-[85%] object-contain transition-transform duration-300 group-hover:scale-105" 
+              onError={(e) => {
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  parent.style.display = 'none';
+                  if (parent.nextSibling) {
+                    parent.nextSibling.style.display = 'flex';
+                  }
+                }
+              }}
+            />
+          </div>
+        ) : null}
+        <div 
+          className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${gradientClass} flex items-center justify-center font-black text-xl tracking-wider shadow-md select-none uppercase`}
+          style={{ display: imageUrl ? 'none' : 'flex' }}
+        >
+          {initials}
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -133,91 +166,120 @@ export default function Index({ projects }) {
       {/* Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-1">
         {rows.length > 0 ? (
-          rows.map((project) => {
+          rows.map((project, index) => {
+            const bgClass = bannerBackgrounds[index % bannerBackgrounds.length];
+            const badgeClass = getBannerStatusBadge(project.status);
+            const badgeLabel = getBannerStatusLabel(project.status);
             const daysLeft = getDaysLeftText(project.end_date);
-            return (
-              <div key={project.id} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-all duration-300 relative flex flex-col justify-between">
-                
-                <div>
-                  <div className="flex items-start justify-between mb-5">
-                    {/* Dynamic logo */}
-                    <div className="p-1 bg-gray-50/50 rounded-2xl inline-block">
-                      {getProjectLogo(project.id)}
-                    </div>
 
+            return (
+              <div key={project.id} className="group bg-white rounded-2xl border border-slate-200/60 shadow-2xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden">
+                
+                {/* Top Pastel Banner Area */}
+                <div className={`relative h-44 ${bgClass} flex items-center justify-center p-4 border-b border-slate-100/50`}>
+                  
+                  {/* Status badge top left */}
+                  <div className="absolute top-3.5 left-3.5 z-20">
+                    <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide shadow-2xs ${badgeClass}`}>
+                      {badgeLabel}
+                    </span>
+                  </div>
+
+                  {/* Quick view tasks top right */}
+                  <div className="absolute top-3.5 right-3.5 z-20">
                     <button 
                       onClick={() => router.get(route("tasks.index", { project_id: project.id }))}
-                      className="p-2 hover:bg-gray-50 text-indigo-600 rounded-full transition-colors"
-                      style={{ minHeight: '36px', minWidth: '36px' }}
+                      className="w-7 h-7 rounded-lg hover:bg-black/5 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors"
                       title="View Tasks"
                     >
-                      <Eye size={18} />
+                      <Eye size={16} />
                     </button>
                   </div>
 
-                  {/* Title & Description */}
-                  <Link href={route("tasks.index", { project_id: project.id })} className="block mb-2 group">
-                    <h3 className="text-sm font-bold text-gray-900 leading-tight group-hover:text-indigo-600 transition-colors line-clamp-1">
-                      {project.name}
-                    </h3>
-                  </Link>
-                  <p className="text-xs text-gray-400 leading-relaxed line-clamp-2 mb-6 min-h-[32px]">
-                    {project.description || "No project description provided."}
-                  </p>
-
-                  {/* Progress Line */}
-                  <div className="mb-6">
-                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-600 rounded-full transition-all duration-1000 ease-out"
-                        style={{ width: `${project.progress || 0}%` }}
-                      ></div>
-                    </div>
-                  </div>
+                  {/* Hero Centered Logo */}
+                  {getHeroProjectLogo(project)}
                 </div>
 
-                {/* Footer Section */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-50">
-                  <div className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${daysLeft.colorClass}`}>
-                    <Clock size={10} />
-                    {daysLeft.text}
-                  </div>
+                {/* Bottom Content Area */}
+                <div className="p-5 flex-1 flex flex-col justify-between bg-white space-y-4">
+                  <div>
+                    {/* Project Title */}
+                    <Link href={route("tasks.index", { project_id: project.id })} className="block mb-2">
+                      <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 tracking-tight">
+                        {project.name}
+                      </h3>
+                    </Link>
 
-                  {/* Team Avatars fallback */}
-                  <div className="flex items-center gap-2">
-                    {project.team && project.team.length > 0 ? (
-                      <div className="flex -space-x-2 overflow-hidden">
-                        {project.team.slice(0, 3).map((member, i) => (
-                          member.image ? (
-                            <img 
-                              key={i} 
-                              src={member.image} 
-                              alt={member.name} 
-                              className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" 
-                              title={member.name} 
-                            />
-                          ) : (
-                            <div 
-                              key={i} 
-                              className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-indigo-500 flex items-center justify-center text-[8px] font-bold text-white uppercase"
-                              title={member.name}
-                            >
-                              {member.name.charAt(0)}
-                            </div>
-                          )
-                        ))}
-                        {project.team.length > 3 && (
-                          <div className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-gray-100 flex items-center justify-center text-[8px] font-bold text-gray-500">
-                            +{project.team.length - 3}
+                    {/* Sub-info: Tasks & Comments Count */}
+                    <div className="flex items-center gap-4 text-xs font-semibold text-slate-400 mb-4">
+                      <div className="flex items-center gap-1.5">
+                        <ListTodo size={14} className="text-slate-400" />
+                        <span>{project.tasks_count || 0} Tasks</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MessageSquare size={14} className="text-slate-400" />
+                        <span>{project.comments_count || 0} Comments</span>
+                      </div>
+                    </div>
+
+                    {/* Team Avatars & Days Left */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center">
+                        {project.team && project.team.length > 0 ? (
+                          <div className="flex items-center -space-x-2 overflow-hidden">
+                            {project.team.slice(0, 3).map((member, i) => (
+                              member.image ? (
+                                <img 
+                                  key={i} 
+                                  src={member.image} 
+                                  alt={member.name} 
+                                  className="inline-block h-7 w-7 rounded-full ring-2 ring-white object-cover shadow-2xs" 
+                                  title={member.name} 
+                                />
+                              ) : (
+                                <div 
+                                  key={i} 
+                                  className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[9px] font-bold text-white uppercase shadow-2xs"
+                                  title={member.name}
+                                >
+                                  {member.name.charAt(0)}
+                                </div>
+                              )
+                            ))}
+                            {project.team.length > 3 && (
+                              <span className="text-xs font-bold text-slate-400 pl-3">
+                                +{project.team.length - 3} more
+                              </span>
+                            )}
                           </div>
+                        ) : (
+                          <span className="text-xs text-slate-400 font-medium">No team assigned</span>
                         )}
                       </div>
-                    ) : (
-                      <span className="text-[10px] text-gray-300 font-semibold uppercase tracking-wider">No team</span>
-                    )}
-                  </div>
-                </div>
 
+                      {/* Days Left badge */}
+                      <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${daysLeft.colorClass}`}>
+                        <Clock size={11} />
+                        {daysLeft.text}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar Line */}
+                  <div className="space-y-2 pt-3 border-t border-slate-100">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                      <span>Progress</span>
+                      <span className="text-slate-800 font-extrabold">{project.progress || 0}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-600 rounded-full transition-all duration-700 ease-out"
+                        style={{ width: `${project.progress || 0}%` }}
+                      />
+                    </div>
+                  </div>
+
+                </div>
               </div>
             );
           })

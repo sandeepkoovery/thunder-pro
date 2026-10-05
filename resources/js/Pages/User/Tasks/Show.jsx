@@ -86,27 +86,38 @@ export default function Show({ task }) {
 
     const CommentItem = ({ comment, isReply = false }) => {
         const isReplying = replyingTo === comment.id;
+        const authorName = comment.user?.name || comment.user?.full_name || 'User';
+        const avatarUrl = comment.user?.image_url || null;
+        const initial = authorName ? authorName.charAt(0).toUpperCase() : 'U';
 
         return (
             <div className={`flex gap-4 group ${isReply ? 'ml-12 mt-4' : ''}`}>
                 <div className="flex-shrink-0">
-                    {comment.user.image_url ? (
+                    {avatarUrl ? (
                         <img
-                            src={comment.user.image_url}
-                            alt={comment.user.name}
+                            src={avatarUrl}
+                            alt={authorName}
                             className={`${isReply ? 'w-8 h-8' : 'w-10 h-10'} rounded-full object-cover border-2 border-white shadow-sm`}
+                            onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                                if (e.currentTarget.nextSibling) {
+                                    e.currentTarget.nextSibling.style.display = 'flex';
+                                }
+                            }}
                         />
-                    ) : (
-                        <div className={`${isReply ? 'w-8 h-8 text-xs' : 'w-10 h-10'} rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border-2 border-white shadow-sm`}>
-                            {comment.user.name.charAt(0)}
-                        </div>
-                    )}
+                    ) : null}
+                    <div 
+                        className={`${isReply ? 'w-8 h-8 text-xs' : 'w-10 h-10'} rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold border-2 border-white shadow-sm`}
+                        style={{ display: avatarUrl ? 'none' : 'flex' }}
+                    >
+                        {initial}
+                    </div>
                 </div>
                 <div className="flex-1">
                     <div className="bg-gray-50 rounded-2xl rounded-tl-none p-4 relative group-hover:bg-blue-50 transition-colors duration-200">
                         <div className="flex justify-between items-center mb-1">
                             <span className="font-semibold text-gray-900 text-sm">
-                                {comment.user.name}
+                                {authorName}
                             </span>
                             <span className="text-xs text-gray-400">
                                 {new Date(comment.created_at).toLocaleString()}

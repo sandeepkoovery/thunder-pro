@@ -18,6 +18,7 @@ class Project extends Model
         'status',
         'start_date',
         'end_date',
+        'image',
     ];
 
     public function tasks()

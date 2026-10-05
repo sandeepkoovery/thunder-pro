@@ -258,6 +258,90 @@ export default function Show() {
     completed: "bg-green-500",
   };
 
+const getAssetUrl = (path) => {
+  const baseUrl = window.location.origin + window.location.pathname.replace(/\/index\.php$/, '').replace(/\/$/, '');
+  const cleanPath = path.startsWith('/') ? path : '/' + path;
+  if (baseUrl.includes('/public')) {
+    return `${baseUrl}${cleanPath}`;
+  }
+  return `${baseUrl}/public${cleanPath}`;
+};
+
+  const getInitials = (name) => {
+    if (!name) return 'PR';
+    const words = name.trim().split(/\s+/).filter(Boolean);
+    if (words.length >= 2) {
+      return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+    }
+    if (words.length === 1) {
+      const word = words[0];
+      if (word.length >= 2) {
+        return word.slice(0, 2).toUpperCase();
+      }
+      return word.charAt(0).toUpperCase();
+    }
+    return 'PR';
+  };
+
+  const getProjectLogo = (proj) => {
+    if (!proj) return null;
+    const name = typeof proj === 'string' ? proj : (proj?.name || 'Project');
+    const initials = getInitials(name);
+    const id = typeof proj?.id === 'number' ? proj.id : (typeof proj === 'number' ? proj : 0);
+
+    const gradients = [
+      'from-indigo-600 to-purple-600 text-white',
+      'from-blue-600 to-cyan-500 text-white',
+      'from-violet-600 to-pink-500 text-white',
+      'from-emerald-600 to-teal-500 text-white',
+      'from-amber-500 to-orange-600 text-white',
+      'from-rose-500 to-red-600 text-white',
+      'from-sky-500 to-indigo-600 text-white',
+    ];
+
+    const gradientClass = gradients[id % gradients.length];
+    
+    const rawImg = proj?.image_url || proj?.image;
+    let imageUrl = null;
+    if (rawImg) {
+      if (rawImg.startsWith('http://') || rawImg.startsWith('https://')) {
+        imageUrl = rawImg;
+      } else {
+        const cleanPath = rawImg.replace(/^\/?storage\//, '').replace(/^\//, '');
+        imageUrl = getAssetUrl('/storage/' + cleanPath);
+      }
+    }
+
+    return (
+      <div className="h-16 sm:h-20 flex items-center justify-center shrink-0">
+        {imageUrl ? (
+          <div className="h-16 sm:h-20 min-w-[64px] max-w-[240px] rounded-2xl bg-white border border-slate-100 flex items-center justify-center p-2 shadow-xs overflow-hidden">
+            <img 
+              src={imageUrl} 
+              alt={proj?.name || 'Project Logo'} 
+              className="h-full w-auto max-w-full object-contain rounded-xl" 
+              onError={(e) => {
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  parent.style.display = 'none';
+                  if (parent.nextSibling) {
+                    parent.nextSibling.style.display = 'flex';
+                  }
+                }
+              }}
+            />
+          </div>
+        ) : null}
+        <div 
+          className={`w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br ${gradientClass} flex items-center justify-center font-black text-xl tracking-wider shadow-xs select-none uppercase`}
+          style={{ display: imageUrl ? 'none' : 'flex' }}
+        >
+          {initials}
+        </div>
+      </div>
+    );
+  };
+
   const tableStatusBadges = {
     "not started": "bg-sky-50 text-sky-600 border border-sky-100/50",
     "in progress": "bg-amber-50/70 text-amber-600 border border-amber-100/50",
@@ -270,17 +354,20 @@ export default function Show() {
       <div className="p-4 sm:p-6 w-full space-y-6 font-sans">
         {/* Project Header Info */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            {/* Breadcrumb */}
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 mb-2">
-              <Link href={route('dashboard')} className="hover:text-indigo-600 transition-colors">Home</Link>
-              <ChevronRight size={12} className="text-gray-300" />
-              <Link href={route('admin.projects.index')} className="hover:text-indigo-600 transition-colors">Projects</Link>
-              <ChevronRight size={12} className="text-gray-300" />
-              <span className="text-indigo-600 font-bold">{project?.name || "Project Details"}</span>
+          <div className="flex items-center gap-4">
+            {getProjectLogo(project)}
+            <div>
+              {/* Breadcrumb */}
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-400 mb-1.5">
+                <Link href={route('dashboard')} className="hover:text-indigo-600 transition-colors">Home</Link>
+                <ChevronRight size={12} className="text-gray-300" />
+                <Link href={route('admin.projects.index')} className="hover:text-indigo-600 transition-colors">Projects</Link>
+                <ChevronRight size={12} className="text-gray-300" />
+                <span className="text-indigo-600 font-bold">{project?.name || "Project Details"}</span>
+              </div>
+              <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{project?.name || "Project Details"}</h1>
+              <p className="text-sm text-gray-400 mt-0.5">Manage details, task list, and trace progress coordinates</p>
             </div>
-            <h1 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">{project?.name || "Project Details"}</h1>
-            <p className="text-sm text-gray-400 mt-0.5">Manage details, task list, and trace progress coordinates</p>
           </div>
         </div>
 
