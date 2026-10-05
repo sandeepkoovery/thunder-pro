@@ -40,7 +40,7 @@ export default function Show() {
               <img
                 src={user.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=1e293b&color=fff&size=256`}
                 alt={user.name}
-                className="w-28 h-28 rounded-full object-cover border-2 border-gray-100 shadow-2xs"
+                className="w-28 h-28 rounded-full object-contain p-1 bg-white border-2 border-gray-100 shadow-2xs"
               />
               <h2 className="text-base font-bold text-slate-900 tracking-tight mt-4">{user.name}</h2>
               <p className="text-xs font-semibold text-[#7066e0] mt-0.5">

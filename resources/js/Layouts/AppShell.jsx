@@ -354,7 +354,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
                   <img 
                     src={auth?.user?.image_url || getAssetUrl('images/default-avatar.jpg')} 
                     alt={auth?.user?.name || 'User'} 
-                    className="mp-avatar object-cover" 
+                    className="mp-avatar object-contain bg-white p-0.5" 
                     onError={(e) => {
                       e.target.onerror = null;
                       e.target.src = getAssetUrl('images/default-avatar.jpg');
@@ -372,7 +372,7 @@ export default function AppShell({ children, title = "Dashboard", flash, auth, r
                     <img 
                       src={auth?.user?.image_url || getAssetUrl('images/default-avatar.jpg')} 
                       alt={auth?.user?.name || 'User'} 
-                      className="mp-profile-dropdown-avatar object-cover" 
+                      className="mp-profile-dropdown-avatar object-contain bg-white p-1" 
                       onError={(e) => {
                         e.target.onerror = null;
                         e.target.src = getAssetUrl('images/default-avatar.jpg');

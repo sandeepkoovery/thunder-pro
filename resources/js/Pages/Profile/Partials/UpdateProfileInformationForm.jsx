@@ -69,7 +69,7 @@ export default function UpdateProfileInformation({
                             <img
                                 src={user?.image_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(isCompany ? (data.company_name || user?.name || 'Company') : (user?.name || 'User'))}&background=f3f4f6&color=444&size=200`}
                                 alt={isCompany ? "Company Logo" : "Profile Photo"}
-                                className="w-full h-full object-cover"
+                                className="w-full h-full object-contain p-2 bg-white"
                             />
                         </div>
                         <label
