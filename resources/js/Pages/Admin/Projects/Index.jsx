@@ -113,11 +113,13 @@ export default function Index({ projects, statusCounts, filters, users, success,
         _method: "PUT",
         ...form,
       }, {
+        forceFormData: true,
         preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       post(route("admin.projects.store"), {
+        forceFormData: true,
         preserveScroll: true,
         onSuccess: () => closeModal(),
       });

@@ -170,22 +170,18 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
-            if ($project->image && file_exists(public_path('storage/' . $project->image))) {
-                @unlink(public_path('storage/' . $project->image));
-            }
+            $oldImage = $project->image;
             $validated['image'] = $request->file('image')->store('projects', 'public');
+            if ($oldImage && file_exists(storage_path('app/public/' . $oldImage))) {
+                @unlink(storage_path('app/public/' . $oldImage));
+            }
         } else {
             unset($validated['image']);
         }
 
         $project->update($validated);
 
-        if ($request->inertia()) {
-            return back()->with('success', 'Project updated successfully!');
-        }
-
-        return redirect()->route('admin.projects.index')
-            ->with('success', 'Project updated successfully!');
+        return back()->with('success', 'Project updated successfully!');
     }
 
     public function destroy(Project $project)
