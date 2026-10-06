@@ -631,15 +631,22 @@ export default function Index({ projects, statusCounts, filters, users, success,
                         </td>
                         <td className="p-4">
                           <div className="flex -space-x-1.5 overflow-hidden">
-                            {project.team && project.team.slice(0, 3).map((member, i) => (
-                              member.image ? (
-                                <img key={i} src={member.image} alt={member.name} className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover" title={member.name} />
-                              ) : (
-                                <div key={i} className="inline-block h-6 w-6 rounded-full ring-2 ring-white bg-indigo-500 flex items-center justify-center text-[8px] font-bold text-white uppercase shadow-sm" title={member.name}>
-                                  {member.name.charAt(0)}
-                                </div>
-                              )
-                            ))}
+                            {project.team && project.team.slice(0, 3).map((member, i) => {
+                              const avatarSrc = member.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'U')}&background=6366F1&color=fff`;
+                              return (
+                                <img 
+                                  key={i} 
+                                  src={avatarSrc} 
+                                  alt={member.name || 'Member'} 
+                                  className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover shadow-2xs" 
+                                  title={member.name} 
+                                  onError={(e) => {
+                                    e.currentTarget.onerror = null;
+                                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'U')}&background=6366F1&color=fff`;
+                                  }}
+                                />
+                              );
+                            })}
                           </div>
                         </td>
                         <td className="p-4 text-right pr-8 relative">

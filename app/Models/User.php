@@ -164,8 +164,10 @@ class User extends Authenticatable
      */
     public function getImageUrlAttribute(): string
     {
-        $defaultUrl = asset('images/default-avatar.jpg');
-        $path = $this->thumb ?: $this->image;
+        $name = urlencode($this->name ?: 'User');
+        $defaultUrl = "https://ui-avatars.com/api/?name={$name}&background=6366F1&color=fff";
+
+        $path = $this->image ?: $this->thumb;
         if (!$path) {
             return $defaultUrl;
         }
@@ -183,7 +185,7 @@ class User extends Authenticatable
             if (file_exists(public_path('storage/' . $path)) || file_exists(storage_path('app/public/' . $path))) {
                 return asset('storage/' . $path);
             }
-            return asset($path);
+            return $defaultUrl;
         }
 
         // Check storage path
@@ -191,7 +193,7 @@ class User extends Authenticatable
             return asset('storage/' . $path);
         }
 
-        return asset('storage/' . $path);
+        return $defaultUrl;
     }
 
     public function department(): \Illuminate\Database\Eloquent\Relations\BelongsTo
