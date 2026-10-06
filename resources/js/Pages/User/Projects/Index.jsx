@@ -1,7 +1,7 @@
 import React from "react";
 import { Head, router, Link } from "@inertiajs/react";
 import UserLayout from "@/Layouts/UserLayout";
-import { Eye, Calendar, LayoutGrid, MoreHorizontal } from "lucide-react";
+import { Eye, Calendar, LayoutGrid, MoreHorizontal, ListTodo, MessageSquare } from "lucide-react";
 
 const getAssetUrl = (path) => {
   const baseUrl = window.location.origin + window.location.pathname.replace(/\/index\.php$/, '').replace(/\/$/, '');
@@ -135,11 +135,14 @@ export default function Index({ projects, auth }) {
               <div key={project.id} className="group bg-white rounded-2xl border border-slate-200/80 p-6 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between">
                 
                 <div>
-                  {/* Row 1: Date on Left & View Tasks Button on Right */}
-                  <div className="flex items-center justify-between gap-3 mb-1">
-                    <div className="flex items-center gap-2 text-slate-900 font-bold text-[15px]">
-                      <Calendar size={17} className="text-slate-800 stroke-[2.5]" />
-                      <span className="font-bold text-slate-900">{getFormattedDate(project.end_date)}</span>
+                  {/* Row 1: Date & Days Left Badge on Left, View Tasks Button on Right */}
+                  <div className="flex items-center justify-between gap-3 mb-4">
+                    <div className="flex items-center gap-2.5 flex-wrap">
+                      <div className="flex items-center gap-2 text-slate-900 font-bold text-[15px]">
+                        <Calendar size={17} className="text-slate-800 stroke-[2.5]" />
+                        <span className="font-bold text-slate-900">{getFormattedDate(project.end_date)}</span>
+                      </div>
+                      {getDaysLeftBadge(project.end_date)}
                     </div>
 
                     <button 
@@ -151,12 +154,7 @@ export default function Index({ projects, auth }) {
                     </button>
                   </div>
 
-                  {/* Row 2: Days Left Badge */}
-                  <div className="mb-4">
-                    {getDaysLeftBadge(project.end_date)}
-                  </div>
-
-                  {/* Row 3: Project Title & Inline Status Pill */}
+                  {/* Row 2: Project Title & Inline Status Pill */}
                   <div className="flex items-center gap-2 mb-2">
                     <Link href={route("tasks.index", { project_id: project.id })} className="block truncate max-w-[70%]">
                       <h3 className="text-[17px] font-bold text-slate-800 group-hover:text-indigo-600 transition-colors truncate tracking-tight">
@@ -167,7 +165,7 @@ export default function Index({ projects, auth }) {
                   </div>
 
                   {/* Row 4: Supporting Description text with view more link */}
-                  <p className="text-[13px] text-slate-500 leading-relaxed line-clamp-2 min-h-[2.5rem] mb-5 font-normal">
+                  <p className="text-[13px] text-slate-500 leading-relaxed line-clamp-2 min-h-[2.5rem] mb-3 font-normal">
                     {project.description ? (
                       project.description.length > 85 ? (
                         <>
@@ -183,6 +181,18 @@ export default function Index({ projects, auth }) {
                       "No project description provided."
                     )}
                   </p>
+
+                  {/* Tasks & Comments Count */}
+                  <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 mb-5">
+                    <div className="flex items-center gap-1.5">
+                      <ListTodo size={14} className="text-slate-400" />
+                      <span>{project.tasks_count || 0} Tasks</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <MessageSquare size={14} className="text-slate-400" />
+                      <span>{project.comments_count || 0} Comments</span>
+                    </div>
+                  </div>
 
                   {/* Row 5: Progress Bar Line & Percentage */}
                   <div className="space-y-1.5 mb-6">
