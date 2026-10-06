@@ -428,138 +428,139 @@ export default function Index({ projects, statusCounts, filters, users, success,
               const daysLeft = getDaysLeftText(project.end_date);
 
               return (
-                <div key={project.id} className="group bg-white rounded-2xl border border-slate-200/60 shadow-2xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between overflow-hidden">
+                <div key={project.id} className="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
                   
-                  {/* Top Pastel Banner Area */}
-                  <div className={`relative h-44 ${bgClass} flex items-center justify-center p-4 border-b border-slate-100/50`}>
-                    
-                    {/* Status badge top left */}
-                    <div className="absolute top-3.5 left-3.5 z-20">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold tracking-wide shadow-2xs ${badgeClass}`}>
-                        {badgeLabel}
-                      </span>
-                    </div>
-
-                    {/* Quick menu top right */}
-                    <div className="absolute top-3.5 right-3.5 z-20">
-                      <button 
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setOpenMenuId(openMenuId === project.id ? null : project.id);
-                        }}
-                        className="w-7 h-7 rounded-lg hover:bg-black/5 flex items-center justify-center text-slate-500 hover:text-slate-900 transition-colors"
-                      >
-                        <MoreHorizontal size={16} />
-                      </button>
-
-                      {openMenuId === project.id && (
-                        <div className="absolute right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
-                          <Link
-                            href={route("admin.projects.show", project.id)}
-                            className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
-                          >
-                            <Eye size={14} /> View Details
-                          </Link>
-                          <button
-                            onClick={() => openEditModal(project)}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors text-left"
-                          >
-                            <Edit size={14} /> Edit Project
-                          </button>
-                          <button
-                            onClick={() => setDeleteId(project.id)}
-                            className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors text-left"
-                          >
-                            <Trash2 size={14} /> Delete
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Hero Centered Logo */}
-                    {getHeroProjectLogo(project)}
-                  </div>
-
-                  {/* Bottom Content Area */}
-                  <div className="p-5 flex-1 flex flex-col justify-between bg-white space-y-4">
-                    <div>
-                      {/* Project Title */}
-                      <Link href={route("admin.projects.show", project.id)} className="block mb-2">
-                        <h3 className="text-base font-bold text-slate-900 group-hover:text-indigo-600 transition-colors line-clamp-1 tracking-tight">
+                  <div>
+                    {/* Top Row: Project Title & Quick Actions Menu */}
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <Link href={route("admin.projects.show", project.id)} className="block flex-1">
+                        <h3 className="text-base font-bold text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1 tracking-tight">
                           {project.name}
                         </h3>
                       </Link>
 
-                      {/* Sub-info: Tasks & Comments Count */}
-                      <div className="flex items-center gap-4 text-xs font-semibold text-slate-400 mb-4">
-                        <div className="flex items-center gap-1.5">
-                          <ListTodo size={14} className="text-slate-400" />
-                          <span>{project.tasks_count || 0} Tasks</span>
-                        </div>
-                        <div className="flex items-center gap-1.5">
-                          <MessageSquare size={14} className="text-slate-400" />
-                          <span>{project.comments_count || 0} Comments</span>
-                        </div>
-                      </div>
+                      <div className="relative shrink-0">
+                        <button 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setOpenMenuId(openMenuId === project.id ? null : project.id);
+                          }}
+                          className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
+                        >
+                          <MoreHorizontal size={16} />
+                        </button>
 
-                      {/* Team Avatars & Days Left */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center">
-                          {project.team && project.team.length > 0 ? (
-                            <div className="flex items-center -space-x-2 overflow-hidden">
-                              {project.team.slice(0, 3).map((member, i) => (
-                                member.image ? (
-                                  <img 
-                                    key={i} 
-                                    src={member.image} 
-                                    alt={member.name} 
-                                    className="inline-block h-7 w-7 rounded-full ring-2 ring-white object-cover shadow-2xs" 
-                                    title={member.name} 
-                                  />
-                                ) : (
-                                  <div 
-                                    key={i} 
-                                    className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[9px] font-bold text-white uppercase shadow-2xs"
-                                    title={member.name}
-                                  >
-                                    {member.name.charAt(0)}
-                                  </div>
-                                )
-                              ))}
-                              {project.team.length > 3 && (
-                                <span className="text-xs font-bold text-slate-400 pl-3">
-                                  +{project.team.length - 3} more
-                                </span>
-                              )}
-                            </div>
-                          ) : (
-                            <span className="text-xs text-slate-400 font-medium">No team assigned</span>
+                        {openMenuId === project.id && (
+                          <div className="absolute right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
+                            <Link
+                              href={route("admin.projects.show", project.id)}
+                              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                            >
+                              <Eye size={14} /> View Details
+                            </Link>
+                            <button
+                              onClick={() => openEditModal(project)}
+                              className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors text-left"
+                            >
+                              <Edit size={14} /> Edit Project
+                            </button>
+                            <button
+                              onClick={() => setDeleteId(project.id)}
+                              className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors text-left"
+                            >
+                              <Trash2 size={14} /> Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Status Pill Badge */}
+                    <div className="mb-3">
+                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold tracking-wide ${badgeClass}`}>
+                        {badgeLabel}
+                      </span>
+                    </div>
+
+                    {/* Supporting Description text with view more link */}
+                    <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 min-h-[2.25rem] mb-4 font-normal">
+                      {project.description ? (
+                        project.description.length > 85 ? (
+                          <>
+                            {project.description.slice(0, 80).trim()}...{' '}
+                            <Link href={route("admin.projects.show", project.id)} className="text-slate-500 font-bold hover:underline">
+                              view more
+                            </Link>
+                          </>
+                        ) : (
+                          project.description
+                        )
+                      ) : (
+                        "No project description provided."
+                      )}
+                    </p>
+
+                    {/* Sub-info: Tasks & Comments Count */}
+                    <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 mb-4">
+                      <div className="flex items-center gap-1.5">
+                        <ListTodo size={14} className="text-slate-400" />
+                        <span>{project.tasks_count || 0} Tasks</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <MessageSquare size={14} className="text-slate-400" />
+                        <span>{project.comments_count || 0} Comments</span>
+                      </div>
+                    </div>
+
+                    {/* Team Avatars */}
+                    <div className="flex items-center mb-5">
+                      {project.team && project.team.length > 0 ? (
+                        <div className="flex items-center -space-x-2 overflow-hidden">
+                          {project.team.slice(0, 3).map((member, i) => (
+                            member.image ? (
+                              <img 
+                                key={i} 
+                                src={member.image} 
+                                alt={member.name} 
+                                className="inline-block h-7 w-7 rounded-full ring-2 ring-white object-cover shadow-2xs" 
+                                title={member.name} 
+                              />
+                            ) : (
+                              <div 
+                                key={i} 
+                                className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[9px] font-bold text-white uppercase shadow-2xs"
+                                title={member.name}
+                              >
+                                {member.name.charAt(0)}
+                              </div>
+                            )
+                          ))}
+                          {project.team.length > 3 && (
+                            <span className="text-xs font-bold text-slate-400 pl-3">
+                              +{project.team.length - 3} more
+                            </span>
                           )}
                         </div>
-
-                        {/* Days Left badge */}
-                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold ${daysLeft.colorClass}`}>
-                          <Clock size={11} />
-                          {daysLeft.text}
-                        </div>
-                      </div>
+                      ) : (
+                        <span className="text-xs text-slate-400 font-medium">No team assigned</span>
+                      )}
                     </div>
-
-                    {/* Progress Bar Line */}
-                    <div className="space-y-2 pt-3 border-t border-slate-100">
-                      <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-                        <span>Progress</span>
-                        <span className="text-slate-800 font-extrabold">{project.progress || 0}%</span>
-                      </div>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="h-full bg-indigo-600 rounded-full transition-all duration-700 ease-out"
-                          style={{ width: `${project.progress || 0}%` }}
-                        />
-                      </div>
-                    </div>
-
                   </div>
+
+                  {/* Progress Bar Line */}
+                  <div className="space-y-2 pt-3 border-t border-slate-100/80">
+                    <div className="flex items-center justify-between text-xs font-bold text-slate-500">
+                      <span>Progress</span>
+                      <span className="text-slate-800 font-extrabold">{project.progress || 0}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="h-full bg-indigo-600 rounded-full transition-all duration-700 ease-out"
+                        style={{ width: `${project.progress || 0}%` }}
+                      />
+                    </div>
+                  </div>
+
                 </div>
               );
             })
@@ -797,18 +798,6 @@ export default function Index({ projects, statusCounts, filters, users, success,
                   placeholder="Enter project name"
                 />
                 {errors.name && <p className="text-red-500 text-xs mt-1.5 px-1 font-semibold tracking-tight">{errors.name}</p>}
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">Project Logo (Optional)</label>
-                <input
-                  type="file"
-                  accept="image/png, image/jpeg, image/jpg, image/webp, image/gif, image/svg+xml"
-                  onChange={(e) => setData("image", e.target.files[0])}
-                  className={`w-full bg-slate-50/50 border border-slate-150 px-4 py-2.5 rounded-xl text-xs font-medium text-slate-700 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-indigo-50 file:text-indigo-600 hover:file:bg-indigo-100 cursor-pointer ${errors.image ? "border-red-200 ring-2 ring-red-50/50" : ""}`}
-                />
-                {errors.image && <p className="text-red-500 text-xs mt-1.5 px-1 font-semibold tracking-tight">{errors.image}</p>}
-                <p className="text-[11px] text-slate-400 mt-1 px-0.5">Supported formats: PNG, JPG, JPEG, WEBP, GIF, SVG (Max: 5MB). If left empty, monogram logo will be used.</p>
               </div>
 
               <div>
