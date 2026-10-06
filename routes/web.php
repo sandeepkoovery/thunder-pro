@@ -213,11 +213,30 @@ Route::middleware(['auth', 'is_admin'])
             $target = storage_path('app/public');
             $link = public_path('storage');
 
-            if (file_exists($link)) {
-                if (is_link($link)) {
-                    return 'Storage symlink already exists!';
+            $deleteRecursive = function ($dir) use (&$deleteRecursive) {
+                if (!file_exists($dir) && !is_link($dir)) return;
+                if (is_link($dir) || !is_dir($dir)) {
+                    @unlink($dir);
+                    return;
                 }
-                @rmdir($link);
+                foreach (scandir($dir) as $item) {
+                    if ($item === '.' || $item === '..') continue;
+                    $deleteRecursive($dir . DIRECTORY_SEPARATOR . $item);
+                }
+                @rmdir($dir);
+            };
+
+            if (file_exists($link) || is_link($link)) {
+                if (request('force')) {
+                    $deleteRecursive($link);
+                } else if (is_link($link)) {
+                    if (readlink($link) === $target && file_exists($link)) {
+                        return 'Storage symlink is active and valid!';
+                    }
+                    @unlink($link);
+                } else if (is_dir($link)) {
+                    $deleteRecursive($link);
+                }
             }
 
             try {
