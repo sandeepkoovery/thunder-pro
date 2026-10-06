@@ -155,24 +155,34 @@ export default function Index({ projects, statusCounts, filters, users, success,
     if (diffDays < 0) {
       const absDays = Math.abs(diffDays);
       return (
-        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-slate-200 text-slate-400 bg-white inline-block">
+        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-rose-200 text-rose-600 bg-rose-50/80 inline-block shrink-0">
           {absDays} {absDays === 1 ? 'day' : 'days'} overdue
         </span>
       );
-    } else if (diffDays >= 30) {
-      const months = Math.floor(diffDays / 30);
+    }
+
+    if (diffDays <= 10) {
       return (
-        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-slate-200 text-slate-400 bg-white inline-block">
-          {months} {months === 1 ? 'month' : 'months'} left
-        </span>
-      );
-    } else {
-      return (
-        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-slate-200 text-slate-400 bg-white inline-block">
-          {diffDays} {diffDays === 1 ? 'day' : 'days'} left
+        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-amber-200 text-amber-600 bg-amber-50/80 inline-block shrink-0">
+          {diffDays === 0 ? 'Due today' : `${diffDays} ${diffDays === 1 ? 'day' : 'days'} left`}
         </span>
       );
     }
+
+    if (diffDays >= 30) {
+      const months = Math.floor(diffDays / 30);
+      return (
+        <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200 text-emerald-600 bg-emerald-50/80 inline-block shrink-0">
+          {months} {months === 1 ? 'month' : 'months'} left
+        </span>
+      );
+    }
+
+    return (
+      <span className="text-[11px] font-semibold px-2.5 py-0.5 rounded-full border border-emerald-200 text-emerald-600 bg-emerald-50/80 inline-block shrink-0">
+        {diffDays} days left
+      </span>
+    );
   };
 
   const getInlineStatusBadge = (status) => {
