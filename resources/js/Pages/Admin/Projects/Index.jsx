@@ -559,7 +559,6 @@ export default function Index({ projects, statusCounts, filters, users, success,
               <tbody className="divide-y divide-gray-50">
                 {filteredProjects.length > 0 ? (
                   filteredProjects.map((project) => {
-                    const daysLeft = getDaysLeftText(project.end_date);
                     const isStarred = ['high', 'critical'].includes((project.priority || '').toLowerCase()) || project.id % 3 === 0;
                     
                     const statusColorBars = {
@@ -627,7 +626,7 @@ export default function Index({ projects, statusCounts, filters, users, success,
                             <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span className="text-[15px] font-semibold text-slate-600">{formatDate(project.end_date)}</span>
+                            <span className="text-[15px] font-semibold text-slate-600">{getFormattedDate(project.end_date)}</span>
                           </div>
                         </td>
                         <td className="p-4">
