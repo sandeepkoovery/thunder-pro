@@ -252,6 +252,36 @@ Route::middleware(['auth', 'is_admin'])
             }
         })->name('storage.link');
 
+        Route::get('/debug-storage', function () {
+            $storagePublic = storage_path('app/public');
+            $projectsDir = storage_path('app/public/projects');
+            
+            $results = [
+                'storage_path_public' => $storagePublic,
+                'storage_public_exists' => file_exists($storagePublic),
+                'storage_public_writable' => is_writable($storagePublic),
+                'projects_dir_exists' => file_exists($projectsDir),
+                'projects_dir_writable' => is_writable($projectsDir),
+                'files_in_projects' => file_exists($projectsDir) ? array_slice(scandir($projectsDir), 0, 10) : [],
+            ];
+
+            try {
+                if (!file_exists($projectsDir)) {
+                    @mkdir($projectsDir, 0775, true);
+                }
+                $testFile = $projectsDir . '/test_write.txt';
+                $written = @file_put_contents($testFile, 'test content ' . now());
+                $results['test_write_success'] = ($written !== false);
+                if ($results['test_write_success']) {
+                    @unlink($testFile);
+                }
+            } catch (\Exception $e) {
+                $results['test_write_error'] = $e->getMessage();
+            }
+
+            return response()->json($results);
+        });
+
         Route::middleware(['is_super_or_admin'])->group(function () {
             Route::patch('users/toggle/{user}', [AdminUserController::class, 'toggle'])
                 ->name('users.toggle');

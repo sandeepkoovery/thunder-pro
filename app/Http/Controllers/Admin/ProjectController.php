@@ -115,6 +115,10 @@ class ProjectController extends Controller
         $tenantAdminId = $authUser->role === 'admin' ? $authUser->id : ($authUser->admin_id ?? $authUser->id);
 
         if ($request->hasFile('image')) {
+            $directory = storage_path('app/public/projects');
+            if (!file_exists($directory)) {
+                @mkdir($directory, 0775, true);
+            }
             $validated['image'] = $request->file('image')->store('projects', 'public');
         } else {
             unset($validated['image']);
@@ -170,6 +174,10 @@ class ProjectController extends Controller
         ]);
 
         if ($request->hasFile('image')) {
+            $directory = storage_path('app/public/projects');
+            if (!file_exists($directory)) {
+                @mkdir($directory, 0775, true);
+            }
             $oldImage = $project->image;
             $validated['image'] = $request->file('image')->store('projects', 'public');
             if ($oldImage && file_exists(storage_path('app/public/' . $oldImage))) {
