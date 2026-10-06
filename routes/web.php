@@ -470,3 +470,24 @@ Route::get('/manifest.webmanifest', function () {
 
 require __DIR__.'/auth.php';
 
+// Direct Dynamic Storage File Fallback Route (for live servers/cPanel without active symlink support)
+Route::get('/storage/{path}', function ($path) {
+    $filePath = storage_path('app/public/' . $path);
+    if (!file_exists($filePath)) {
+        abort(404);
+    }
+    $mimeType = match (pathinfo($filePath, PATHINFO_EXTENSION)) {
+        'png' => 'image/png',
+        'jpg', 'jpeg' => 'image/jpeg',
+        'webp' => 'image/webp',
+        'svg' => 'image/svg+xml',
+        'gif' => 'image/gif',
+        'pdf' => 'application/pdf',
+        default => mime_content_type($filePath) ?: 'application/octet-stream',
+    };
+    return response()->file($filePath, [
+        'Content-Type' => $mimeType,
+        'Cache-Control' => 'public, max-age=31536000',
+    ]);
+})->where('path', '.*');
+
