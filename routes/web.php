@@ -209,6 +209,30 @@ Route::middleware(['auth', 'is_admin'])
             return Inertia::render('Admin/Drive/Index');
         })->name('drive.index');
 
+        Route::get('/create-storage-link', function () {
+            $target = storage_path('app/public');
+            $link = public_path('storage');
+
+            if (file_exists($link)) {
+                if (is_link($link)) {
+                    return 'Storage symlink already exists!';
+                }
+                @rmdir($link);
+            }
+
+            try {
+                \Illuminate\Support\Facades\Artisan::call('storage:link');
+                return 'Storage link created successfully via Artisan!';
+            } catch (\Exception $e) {
+                try {
+                    symlink($target, $link);
+                    return 'Storage link created successfully via symlink!';
+                } catch (\Exception $e2) {
+                    return 'Error creating symlink: ' . $e2->getMessage();
+                }
+            }
+        })->name('storage.link');
+
         Route::middleware(['is_super_or_admin'])->group(function () {
             Route::patch('users/toggle/{user}', [AdminUserController::class, 'toggle'])
                 ->name('users.toggle');
