@@ -16,7 +16,8 @@ import {
   ChevronRight,
   Plus,
   MessageSquare,
-  ListTodo
+  ListTodo,
+  Calendar
 } from "lucide-react";
 
 const getAssetUrl = (path) => {
@@ -90,7 +91,7 @@ export default function Index({ projects, statusCounts, filters, users, success,
     setData({
       name: project.name,
       description: project.description || "",
-      status: project.status || "planning",
+      status: (project.status === 'not started' ? 'planning' : project.status) || "planning",
       start_date: project.start_date || "",
       end_date: project.end_date || "",
       priority: project.priority || "Medium",
@@ -131,31 +132,10 @@ export default function Index({ projects, statusCounts, filters, users, success,
     setDeleteId(null);
   };
 
-  const getDaysLeftText = (endDateStr) => {
-    if (!endDateStr) return { text: "No deadline", colorClass: "bg-gray-50 text-gray-400" };
-    const end = new Date(endDateStr);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    end.setHours(0, 0, 0, 0);
-    const diffTime = end.getTime() - today.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    if (diffDays < 0) {
-      return { text: "Overdue", colorClass: "bg-rose-50 text-rose-500 border border-rose-100" };
-    } else if (diffDays === 0) {
-      return { text: "Due today", colorClass: "bg-amber-50 text-amber-500 border border-amber-100" };
-    } else if (diffDays <= 3) {
-      return { text: `${diffDays} days left`, colorClass: "bg-rose-50 text-rose-500 border border-rose-100" };
-    } else if (diffDays <= 7) {
-      return { text: `${diffDays} days left`, colorClass: "bg-amber-50 text-amber-500 border border-amber-100" };
-    } else {
-      return { text: `${diffDays} days left`, colorClass: "bg-green-50 text-green-500 border border-green-100" };
-    }
-  };
-
-  const formatDate = (dateStr) => {
+  const getFormattedDate = (dateStr) => {
     if (!dateStr) return "No deadline";
     const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
     const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
     const month = months[date.getMonth()];
     const day = date.getDate();
@@ -163,106 +143,95 @@ export default function Index({ projects, statusCounts, filters, users, success,
     return `${month} ${day}, ${year}`;
   };
 
-  const getInitials = (name) => {
-    if (!name) return 'PR';
-    const words = name.trim().split(/\s+/).filter(Boolean);
-    if (words.length >= 2) {
-      return (words[0].charAt(0) + words[1].charAt(0)).toUpperCase();
+  const getDaysLeftBadge = (endDateStr) => {
+    if (!endDateStr) return null;
+    const end = new Date(endDateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    end.setHours(0, 0, 0, 0);
+    const diffTime = end.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) {
+      const absDays = Math.abs(diffDays);
+      return (
+        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-slate-200 text-slate-400 bg-white inline-block">
+          {absDays} {absDays === 1 ? 'day' : 'days'} overdue
+        </span>
+      );
+    } else if (diffDays >= 30) {
+      const months = Math.floor(diffDays / 30);
+      return (
+        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-slate-200 text-slate-400 bg-white inline-block">
+          {months} {months === 1 ? 'month' : 'months'} left
+        </span>
+      );
+    } else {
+      return (
+        <span className="text-[11px] font-medium px-2.5 py-0.5 rounded-full border border-slate-200 text-slate-400 bg-white inline-block">
+          {diffDays} {diffDays === 1 ? 'day' : 'days'} left
+        </span>
+      );
     }
-    if (words.length === 1) {
-      const word = words[0];
-      if (word.length >= 2) {
-        return word.slice(0, 2).toUpperCase();
-      }
-      return word.charAt(0).toUpperCase();
-    }
-    return 'PR';
   };
 
-  const getProjectLogo = (project) => {
-    const name = typeof project === 'string' ? project : (project?.name || 'Project');
-    const initials = getInitials(name);
-    const id = typeof project?.id === 'number' ? project.id : (typeof project === 'number' ? project : 0);
+  const getInlineStatusBadge = (status) => {
+    const s = (status || '').toLowerCase();
+    
+    if (s === 'completed' || s === 'finished') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-cyan-50 text-teal-700 border border-cyan-100/80 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-teal-500"></span>
+          Complete
+        </span>
+      );
+    }
 
-    const gradients = [
-      'from-indigo-600 to-purple-600 text-white',
-      'from-blue-600 to-cyan-500 text-white',
-      'from-violet-600 to-pink-500 text-white',
-      'from-emerald-600 to-teal-500 text-white',
-      'from-amber-500 to-orange-600 text-white',
-      'from-rose-500 to-red-600 text-white',
-      'from-sky-500 to-indigo-600 text-white',
-    ];
+    if (s === 'on hold' || s === 'inactive') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-50 text-amber-800 border border-amber-200/80 shrink-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+          On Hold
+        </span>
+      );
+    }
 
-    const gradientClass = gradients[id % gradients.length];
-    const imageUrl = project?.image_url || (project?.image ? (project.image.startsWith('http') || project.image.startsWith('/') ? project.image : `/storage/${project.image}`) : null);
+    if (s === 'in progress' || s === 'ongoing') {
+      return (
+        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#475569] text-white shrink-0 shadow-2xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+          Ongoing
+        </span>
+      );
+    }
 
     return (
-      <div className="w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm">
-        {imageUrl ? (
-          <img 
-            src={imageUrl} 
-            alt={name} 
-            className="w-full h-full object-contain rounded-xl"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              if (e.currentTarget.nextSibling) {
-                e.currentTarget.nextSibling.style.display = 'flex';
-              }
-            }}
-          />
-        ) : null}
-        <div 
-          className={`w-full h-full rounded-xl bg-gradient-to-br ${gradientClass} flex items-center justify-center font-bold text-sm tracking-wider uppercase`}
-          style={{ display: imageUrl ? 'none' : 'flex' }}
-        >
-          {initials}
-        </div>
-      </div>
+      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-sky-50 text-sky-700 border border-sky-100/80 shrink-0">
+        <span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>
+        Planning
+      </span>
     );
   };
 
-  const bannerBackgrounds = [
-    "bg-[#EBF7FC]", // Soft sky blue
-    "bg-[#FAF8F5]", // Soft warm cream/off-white
-    "bg-[#FAF4FF]", // Soft lavender/purple
-    "bg-[#FFF7E8]", // Soft warm yellow/amber
-    "bg-[#F0FAF7]", // Soft mint green
-    "bg-[#FFF4F4]", // Soft rose pink
-  ];
-
-  const getBannerStatusBadge = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-[#10B981] text-white';
-      case 'in progress':
-      case 'ongoing':
-        return 'bg-[#5B5D6E] text-white';
-      case 'on hold':
-      case 'inactive':
-        return 'bg-amber-500 text-white';
-      case 'planning':
-      case 'not started':
-      default:
-        return 'bg-sky-600 text-white';
+  const getPriorityBadge = (priority) => {
+    const p = (priority || 'medium').toLowerCase();
+    if (p === 'high' || p === 'critical') {
+      return <span className="px-3 py-1 rounded-lg text-[11px] font-bold bg-[#00B4D8] text-white tracking-wide shadow-2xs">High</span>;
     }
+    if (p === 'low') {
+      return <span className="px-3 py-1 rounded-lg text-[11px] font-bold bg-[#EF4444] text-white tracking-wide shadow-2xs">Low</span>;
+    }
+    return <span className="px-3 py-1 rounded-lg text-[11px] font-bold bg-[#EAB308] text-white tracking-wide shadow-2xs">Medium</span>;
   };
 
-  const getBannerStatusLabel = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'Finished';
-      case 'in progress':
-      case 'ongoing':
-        return 'Ongoing';
-      case 'on hold':
-      case 'inactive':
-        return 'On Hold';
-      case 'planning':
-      case 'not started':
-      default:
-        return 'Planning';
-    }
+  const getProgressBarColor = (status, endDateStr) => {
+    const isOverdue = endDateStr && new Date(endDateStr) < new Date();
+    const s = (status || '').toLowerCase();
+    if (s === 'completed' || s === 'finished') return 'bg-[#0D9488]';
+    if (s === 'on hold' || s === 'inactive') return 'bg-[#F59E0B]';
+    if (s === 'in progress' || s === 'ongoing') return 'bg-[#00B4D8]';
+    if (isOverdue) return 'bg-[#EF4444]';
+    return 'bg-[#EAB308]';
   };
 
   const getHeroProjectLogo = (project) => {
@@ -421,23 +390,17 @@ export default function Index({ projects, statusCounts, filters, users, success,
       {viewMode === "grid" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 px-1">
           {filteredProjects.length > 0 ? (
-            filteredProjects.map((project, index) => {
-              const bgClass = bannerBackgrounds[index % bannerBackgrounds.length];
-              const badgeClass = getBannerStatusBadge(project.status);
-              const badgeLabel = getBannerStatusLabel(project.status);
-              const daysLeft = getDaysLeftText(project.end_date);
-
+            filteredProjects.map((project) => {
               return (
-                <div key={project.id} className="group bg-white rounded-2xl border border-slate-200/80 p-5 shadow-2xs hover:shadow-xl hover:-translate-y-1 transition-all duration-300 flex flex-col justify-between">
+                <div key={project.id} className="group bg-white rounded-2xl border border-slate-200/80 p-6 shadow-2xs hover:shadow-md transition-all duration-300 flex flex-col justify-between">
                   
                   <div>
-                    {/* Top Row: Project Title & Quick Actions Menu */}
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <Link href={route("admin.projects.show", project.id)} className="block flex-1">
-                        <h3 className="text-base font-bold text-slate-800 group-hover:text-indigo-600 transition-colors line-clamp-1 tracking-tight">
-                          {project.name}
-                        </h3>
-                      </Link>
+                    {/* Row 1: Date on Left & Three Dots Menu on Right */}
+                    <div className="flex items-center justify-between gap-3 mb-1">
+                      <div className="flex items-center gap-2 text-slate-900 font-bold text-[15px]">
+                        <Calendar size={17} className="text-slate-800 stroke-[2.5]" />
+                        <span className="font-bold text-slate-900">{getFormattedDate(project.end_date)}</span>
+                      </div>
 
                       <div className="relative shrink-0">
                         <button 
@@ -445,45 +408,53 @@ export default function Index({ projects, statusCounts, filters, users, success,
                             e.stopPropagation();
                             setOpenMenuId(openMenuId === project.id ? null : project.id);
                           }}
-                          className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
+                          className="w-8 h-8 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-colors"
                         >
-                          <MoreHorizontal size={16} />
+                          <MoreHorizontal size={20} />
                         </button>
 
                         {openMenuId === project.id && (
-                          <div className="absolute right-0 mt-1 w-40 bg-white rounded-xl shadow-lg border border-slate-100 py-1.5 z-30 animate-in fade-in zoom-in-95 duration-150">
+                          <div className="absolute right-0 mt-1 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-30 animate-in fade-in zoom-in-95 duration-150">
                             <Link
                               href={route("admin.projects.show", project.id)}
-                              className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
+                              className="flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors"
                             >
-                              <Eye size={14} /> View Details
+                              <Eye size={16} /> View Details
                             </Link>
                             <button
                               onClick={() => openEditModal(project)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors text-left"
+                              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50 hover:text-indigo-600 transition-colors text-left"
                             >
-                              <Edit size={14} /> Edit Project
+                              <Edit size={16} /> Edit Project
                             </button>
                             <button
                               onClick={() => setDeleteId(project.id)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors text-left"
+                              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm font-semibold text-rose-600 hover:bg-rose-50 transition-colors text-left"
                             >
-                              <Trash2 size={14} /> Delete
+                              <Trash2 size={16} /> Delete
                             </button>
                           </div>
                         )}
                       </div>
                     </div>
 
-                    {/* Status Pill Badge */}
-                    <div className="mb-3">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold tracking-wide ${badgeClass}`}>
-                        {badgeLabel}
-                      </span>
+                    {/* Row 2: Days Left Badge */}
+                    <div className="mb-4">
+                      {getDaysLeftBadge(project.end_date)}
                     </div>
 
-                    {/* Supporting Description text with view more link */}
-                    <p className="text-xs text-slate-400 leading-relaxed line-clamp-2 min-h-[2.25rem] mb-4 font-normal">
+                    {/* Row 3: Project Title & Inline Status Pill */}
+                    <div className="flex items-center gap-2 mb-2">
+                      <Link href={route("admin.projects.show", project.id)} className="block truncate max-w-[70%]">
+                        <h3 className="text-[17px] font-bold text-slate-800 group-hover:text-indigo-600 transition-colors truncate tracking-tight">
+                          {project.name}
+                        </h3>
+                      </Link>
+                      {getInlineStatusBadge(project.status, project.end_date)}
+                    </div>
+
+                    {/* Row 4: Supporting Description text with view more link */}
+                    <p className="text-[13px] text-slate-500 leading-relaxed line-clamp-2 min-h-[2.5rem] mb-5 font-normal">
                       {project.description ? (
                         project.description.length > 85 ? (
                           <>
@@ -500,41 +471,41 @@ export default function Index({ projects, statusCounts, filters, users, success,
                       )}
                     </p>
 
-                    {/* Sub-info: Tasks & Comments Count */}
-                    <div className="flex items-center gap-4 text-xs font-semibold text-slate-500 mb-4">
-                      <div className="flex items-center gap-1.5">
-                        <ListTodo size={14} className="text-slate-400" />
-                        <span>{project.tasks_count || 0} Tasks</span>
+                    {/* Row 5: Progress Bar Line & Percentage */}
+                    <div className="space-y-1.5 mb-6">
+                      <div className="flex items-center justify-between text-xs font-bold text-slate-400">
+                        <span>Progress</span>
+                        <span className="text-slate-600 font-bold">{project.progress || 0}%</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <MessageSquare size={14} className="text-slate-400" />
-                        <span>{project.comments_count || 0} Comments</span>
+                      <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all duration-700 ease-out ${getProgressBarColor(project.status, project.end_date)}`}
+                          style={{ width: `${project.progress || 0}%` }}
+                        />
                       </div>
                     </div>
+                  </div>
 
-                    {/* Team Avatars */}
-                    <div className="flex items-center mb-5">
+                  {/* Row 6: Bottom Footer - Team Avatars */}
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100/60">
+                    <div className="flex items-center">
                       {project.team && project.team.length > 0 ? (
                         <div className="flex items-center -space-x-2 overflow-hidden">
-                          {project.team.slice(0, 3).map((member, i) => (
-                            member.image ? (
+                          {project.team.slice(0, 3).map((member, i) => {
+                            const avatarSrc = member.image || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'U')}&background=random&color=fff`;
+                            return (
                               <img 
                                 key={i} 
-                                src={member.image} 
+                                src={avatarSrc} 
                                 alt={member.name} 
-                                className="inline-block h-7 w-7 rounded-full ring-2 ring-white object-cover shadow-2xs" 
+                                className="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover shadow-2xs" 
                                 title={member.name} 
+                                onError={(e) => {
+                                  e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(member.name || 'U')}&background=6366F1&color=fff`;
+                                }}
                               />
-                            ) : (
-                              <div 
-                                key={i} 
-                                className="inline-block h-7 w-7 rounded-full ring-2 ring-white bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-[9px] font-bold text-white uppercase shadow-2xs"
-                                title={member.name}
-                              >
-                                {member.name.charAt(0)}
-                              </div>
-                            )
-                          ))}
+                            );
+                          })}
                           {project.team.length > 3 && (
                             <span className="text-xs font-bold text-slate-400 pl-3">
                               +{project.team.length - 3} more
@@ -544,20 +515,6 @@ export default function Index({ projects, statusCounts, filters, users, success,
                       ) : (
                         <span className="text-xs text-slate-400 font-medium">No team assigned</span>
                       )}
-                    </div>
-                  </div>
-
-                  {/* Progress Bar Line */}
-                  <div className="space-y-2 pt-3 border-t border-slate-100/80">
-                    <div className="flex items-center justify-between text-xs font-bold text-slate-500">
-                      <span>Progress</span>
-                      <span className="text-slate-800 font-extrabold">{project.progress || 0}%</span>
-                    </div>
-                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="h-full bg-indigo-600 rounded-full transition-all duration-700 ease-out"
-                        style={{ width: `${project.progress || 0}%` }}
-                      />
                     </div>
                   </div>
 

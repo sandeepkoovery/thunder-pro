@@ -55,7 +55,7 @@ class ProjectController extends Controller
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'image' => $user->image ? asset('storage/' . $user->image) : null,
+                    'image' => $user->image_url,
                 ];
             })->values();
             $project->team = $assignees;

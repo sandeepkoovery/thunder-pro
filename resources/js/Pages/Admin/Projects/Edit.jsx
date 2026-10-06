@@ -7,7 +7,7 @@ export default function EditProject({ project }) {
   const { data, setData, put, processing, errors } = useForm({
     name: project.name || "",
     description: project.description || "",
-    status: project.status || "planning",
+    status: (project.status === 'not started' ? 'planning' : project.status) || "planning",
     start_date: project.start_date || "",
     end_date: project.end_date || "",
   });
