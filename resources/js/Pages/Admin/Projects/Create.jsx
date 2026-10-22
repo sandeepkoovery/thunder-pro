@@ -4,7 +4,7 @@ import AdminLayout from "@/Layouts/AdminLayout";
 import DatePicker from "@/Components/DatePicker";
 
 export default function CreateProject() {
-  const { data, setData, post, processing, errors } = useForm({
+  const { data, setData, post, processing, errors, clearErrors } = useForm({
     name: "",
     description: "",
     status: "planning",
@@ -35,11 +35,14 @@ export default function CreateProject() {
           <form onSubmit={handleSubmit} className="space-y-10">
             {/* Identity */}
             <div>
-              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3.5 px-0.5">Project Identifier</label>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3.5 px-0.5">Project Identifier <span className="text-red-500">*</span></label>
               <input
                 type="text"
                 value={data.name}
-                onChange={(e) => setData("name", e.target.value)}
+                onChange={(e) => {
+                  setData("name", e.target.value);
+                  if (errors.name) clearErrors("name");
+                }}
                 className={`w-full bg-slate-50/50 border border-slate-100 px-8 py-5 rounded-[20px] text-lg font-bold text-slate-900 focus:bg-white focus:ring-8 focus:ring-slate-100/50 focus:border-slate-300 transition-all placeholder:text-slate-200 ${errors.name ? "border-red-200 ring-2 ring-red-50" : ""}`}
                 placeholder="ASSIGN UNIQUE TITLE..."
               />
@@ -53,7 +56,10 @@ export default function CreateProject() {
               <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3.5 px-0.5">Operational Scope</label>
               <textarea
                 value={data.description}
-                onChange={(e) => setData("description", e.target.value)}
+                onChange={(e) => {
+                  setData("description", e.target.value);
+                  if (errors.description) clearErrors("description");
+                }}
                 className="w-full bg-slate-50/50 border border-slate-100 px-8 py-6 rounded-[20px] text-[17px] font-bold text-slate-900 focus:bg-white focus:ring-8 focus:ring-slate-100/50 focus:border-slate-300 transition-all min-h-[160px] resize-none no-scrollbar placeholder:text-slate-200"
                 placeholder="DEFINE OBJECTIVES & GOALS..."
               />
@@ -68,7 +74,10 @@ export default function CreateProject() {
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3.5 px-0.5">Status Matrix</label>
                 <select
                   value={data.status}
-                  onChange={(e) => setData("status", e.target.value)}
+                  onChange={(e) => {
+                    setData("status", e.target.value);
+                    if (errors.status) clearErrors("status");
+                  }}
                   className="w-full bg-slate-50/50 border border-slate-100 px-7 py-5 rounded-[20px] text-xs font-black uppercase tracking-widest text-slate-700 focus:ring-8 focus:ring-slate-100/50 transition-all appearance-none cursor-pointer"
                 >
                   <option value="planning">Planning</option>
@@ -76,22 +85,39 @@ export default function CreateProject() {
                   <option value="completed">Completed</option>
                   <option value="on hold">On Hold</option>
                 </select>
+                {errors.status && (
+                  <div className="text-red-500 text-xs mt-3 px-1 font-bold tracking-tight">{errors.status}</div>
+                )}
               </div>
 
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3.5 px-0.5">Launched</label>
                 <DatePicker
                   value={data.start_date}
-                  onChange={(e) => setData("start_date", e.target ? e.target.value : e)}
+                  onChange={(val) => {
+                    const dateVal = val?.target ? val.target.value : val;
+                    setData("start_date", dateVal);
+                    if (errors.start_date) clearErrors("start_date");
+                  }}
                 />
+                {errors.start_date && (
+                  <div className="text-red-500 text-xs mt-3 px-1 font-bold tracking-tight">{errors.start_date}</div>
+                )}
               </div>
 
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-[0.25em] mb-3.5 px-0.5">Deadline</label>
                 <DatePicker
                   value={data.end_date}
-                  onChange={(e) => setData("end_date", e.target ? e.target.value : e)}
+                  onChange={(val) => {
+                    const dateVal = val?.target ? val.target.value : val;
+                    setData("end_date", dateVal);
+                    if (errors.end_date) clearErrors("end_date");
+                  }}
                 />
+                {errors.end_date && (
+                  <div className="text-red-500 text-xs mt-3 px-1 font-bold tracking-tight">{errors.end_date}</div>
+                )}
               </div>
             </div>
 

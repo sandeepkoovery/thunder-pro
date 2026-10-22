@@ -41,7 +41,7 @@ export default function Index({ projects, statusCounts, filters, users, success,
   const [openMenuId, setOpenMenuId] = useState(null);
   const [viewMode, setViewMode] = useState("grid");
 
-  const { data: form, setData, post, put, reset, errors, clearErrors } = useForm({
+  const { data: form, setData, post, put, reset, errors, clearErrors, processing } = useForm({
     name: "",
     description: "",
     status: "planning",
@@ -82,14 +82,16 @@ export default function Index({ projects, statusCounts, filters, users, success,
 
   const openCreateModal = () => {
     reset();
+    clearErrors();
     setEditingProject(null);
     setShowCreate(true);
   };
 
   const openEditModal = (project) => {
+    clearErrors();
     setEditingProject(project);
     setData({
-      name: project.name,
+      name: project.name || "",
       description: project.description || "",
       status: (project.status === 'not started' ? 'planning' : project.status) || "planning",
       start_date: project.start_date || "",
@@ -103,24 +105,32 @@ export default function Index({ projects, statusCounts, filters, users, success,
   const closeModal = () => {
     reset();
     clearErrors();
+    setEditingProject(null);
     setShowCreate(false);
     setShowEdit(false);
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const hasImageFile = form.image instanceof File;
+
     if (editingProject) {
       router.post(route("admin.projects.update", editingProject.id), {
         _method: "PUT",
-        ...form,
+        name: form.name,
+        description: form.description,
+        status: form.status,
+        start_date: form.start_date || '',
+        end_date: form.end_date || '',
+        ...(hasImageFile ? { image: form.image } : {}),
       }, {
-        forceFormData: true,
+        forceFormData: hasImageFile,
         preserveScroll: true,
         onSuccess: () => closeModal(),
       });
     } else {
       post(route("admin.projects.store"), {
-        forceFormData: true,
+        forceFormData: hasImageFile,
         preserveScroll: true,
         onSuccess: () => closeModal(),
       });
@@ -772,12 +782,17 @@ export default function Index({ projects, statusCounts, filters, users, success,
 
             <form onSubmit={handleSubmit} className="space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">Project Name</label>
+                <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">
+                  Project Name <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={form.name}
-                  onChange={(e) => setData("name", e.target.value)}
-                  className={`w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-slate-400 ${errors.name ? "border-red-200 ring-2 ring-red-50/50" : ""}`}
+                  onChange={(e) => {
+                    setData("name", e.target.value);
+                    if (errors.name) clearErrors("name");
+                  }}
+                  className={`w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all placeholder:text-slate-400 ${errors.name ? "border-red-400 ring-2 ring-red-100" : ""}`}
                   placeholder="Enter project name"
                 />
                 {errors.name && <p className="text-red-500 text-xs mt-1.5 px-1 font-semibold tracking-tight">{errors.name}</p>}
@@ -787,10 +802,14 @@ export default function Index({ projects, statusCounts, filters, users, success,
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">Project Description</label>
                 <textarea
                   value={form.description}
-                  onChange={(e) => setData("description", e.target.value)}
+                  onChange={(e) => {
+                    setData("description", e.target.value);
+                    if (errors.description) clearErrors("description");
+                  }}
                   className="w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all min-h-[100px] resize-none placeholder:text-slate-400"
                   placeholder="Describe the key objectives and requirements..."
                 ></textarea>
+                {errors.description && <p className="text-red-500 text-xs mt-1.5 px-1 font-semibold tracking-tight">{errors.description}</p>}
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -798,7 +817,10 @@ export default function Index({ projects, statusCounts, filters, users, success,
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">Project Status</label>
                   <select
                     value={form.status}
-                    onChange={(e) => setData("status", e.target.value)}
+                    onChange={(e) => {
+                      setData("status", e.target.value);
+                      if (errors.status) clearErrors("status");
+                    }}
                     className="w-full bg-slate-50/50 border border-slate-150 px-4 py-3 rounded-xl text-sm font-medium text-slate-700 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all cursor-pointer"
                   >
                     <option value="planning">Planning</option>
@@ -806,21 +828,32 @@ export default function Index({ projects, statusCounts, filters, users, success,
                     <option value="completed">Completed</option>
                     <option value="on hold">On Hold</option>
                   </select>
+                  {errors.status && <p className="text-red-500 text-xs mt-1.5 px-1 font-semibold tracking-tight">{errors.status}</p>}
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">Start Date</label>
                   <DatePicker
                     value={form.start_date}
-                    onChange={(e) => setData("start_date", e.target ? e.target.value : e)}
+                    onChange={(val) => {
+                      const dateVal = val?.target ? val.target.value : val;
+                      setData("start_date", dateVal);
+                      if (errors.start_date) clearErrors("start_date");
+                    }}
                   />
+                  {errors.start_date && <p className="text-red-500 text-xs mt-1.5 px-1 font-semibold tracking-tight">{errors.start_date}</p>}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 px-0.5">End Date</label>
                   <DatePicker
                     value={form.end_date}
-                    onChange={(e) => setData("end_date", e.target ? e.target.value : e)}
+                    onChange={(val) => {
+                      const dateVal = val?.target ? val.target.value : val;
+                      setData("end_date", dateVal);
+                      if (errors.end_date) clearErrors("end_date");
+                    }}
                   />
+                  {errors.end_date && <p className="text-red-500 text-xs mt-1.5 px-1 font-semibold tracking-tight">{errors.end_date}</p>}
                 </div>
               </div>
 
@@ -834,9 +867,11 @@ export default function Index({ projects, statusCounts, filters, users, success,
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 px-6 text-sm font-semibold text-white bg-slate-900 hover:bg-black rounded-xl shadow-[0_10px_20px_-10px_rgba(15,23,42,0.4)] transition-all active:scale-[0.98]"
+                  disabled={processing}
+                  className="flex-1 py-3 px-6 text-sm font-semibold text-white bg-slate-900 hover:bg-black rounded-xl shadow-[0_10px_20px_-10px_rgba(15,23,42,0.4)] transition-all active:scale-[0.98] disabled:opacity-60 flex items-center justify-center gap-2"
                 >
-                  {editingProject ? "Update Project" : "Create Project"}
+                  {processing && <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                  {processing ? "Saving..." : (editingProject ? "Update Project" : "Create Project")}
                 </button>
               </div>
             </form>

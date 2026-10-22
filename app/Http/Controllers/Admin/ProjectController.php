@@ -97,16 +97,21 @@ class ProjectController extends Controller
 
     public function store(Request $request)
     {
+        if (!$request->hasFile('image')) {
+            $request->request->remove('image');
+        }
+
         $validated = $request->validate([
-            'name' => 'required',
+            'name' => 'required|string|max:255',
             'client_name' => 'nullable|string|max:255',
             'budget' => 'nullable|numeric',
-            'description' => 'nullable',
-            'status' => 'required',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date',
+            'description' => 'nullable|string',
+            'status' => 'required|string',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
             'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
         ], [
+            'name.required' => 'The project name field is required.',
             'image.mimes' => 'The project logo must be a file of type: jpeg, png, jpg, gif, svg, webp.',
             'image.max' => 'The project logo size must not exceed 5MB.',
         ]);
@@ -159,16 +164,21 @@ class ProjectController extends Controller
     {
         $this->authorizeProject($project);
 
+        if (!$request->hasFile('image')) {
+            $request->request->remove('image');
+        }
+
         $validated = $request->validate([
-            'name' => 'required',
+            'name' => 'required|string|max:255',
             'client_name' => 'nullable|string|max:255',
             'budget' => 'nullable|numeric',
-            'description' => 'nullable',
-            'status' => 'required',
-            'start_date' => 'required|date',
-            'end_date' => 'required|date',
+            'description' => 'nullable|string',
+            'status' => 'required|string',
+            'start_date' => 'nullable|date',
+            'end_date' => 'nullable|date',
             'image' => 'nullable|file|mimes:jpeg,png,jpg,gif,svg,webp|max:5120',
         ], [
+            'name.required' => 'The project name field is required.',
             'image.mimes' => 'The project logo must be a file of type: jpeg, png, jpg, gif, svg, webp.',
             'image.max' => 'The project logo size must not exceed 5MB.',
         ]);
