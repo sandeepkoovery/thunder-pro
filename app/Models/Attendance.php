@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class Attendance extends Model
 {
     protected $fillable = [
+        'admin_id',
         'user_id',
         'date',
         'punch_in',
@@ -20,6 +21,8 @@ class Attendance extends Model
         'punch_in_lng',
         'punch_out_lat',
         'punch_out_lng',
+        'punch_in_address',
+        'punch_out_address',
         'device_type',
         'shift_id',
     ];

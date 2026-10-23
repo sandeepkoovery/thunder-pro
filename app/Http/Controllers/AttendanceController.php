@@ -652,6 +652,7 @@ class AttendanceController extends Controller
 
                     $attendanceData[] = [
                         'id' => $attendanceId ?? $dateStr,
+                        'user_id' => (int) $userId,
                         'date' => $dateStr,
                         'check_in' => $checkIn,
                         'check_out' => $checkOut,
@@ -887,8 +888,9 @@ class AttendanceController extends Controller
 
             return [
                 'id' => $user->id,
+                'user_id' => (int) $user->id,
                 'name' => $user->name,
-                'date' => $attendance ? Carbon::parse($attendance->date)->format('Y-m-d') : null,
+                'date' => $attendance ? Carbon::parse($attendance->date)->format('Y-m-d') : $date,
                 'check_in' => $checkIn,
                 'check_out' => $checkOut,
                 'status' => $status,
@@ -941,9 +943,9 @@ class AttendanceController extends Controller
             'punch_out' => 'nullable|date|after_or_equal:punch_in',
         ]);
 
+        $targetUser = \App\Models\User::find($request->user_id);
         if ($adminId > 0) {
-            $targetUser = \App\Models\User::find($request->user_id);
-            if (!$targetUser || $targetUser->admin_id != $adminId) {
+            if (!$targetUser || ($targetUser->admin_id && $targetUser->admin_id != $adminId)) {
                 return back()->with('error', 'Unauthorized action.');
             }
         }
@@ -966,6 +968,8 @@ class AttendanceController extends Controller
         Attendance::updateOrCreate(
             ['user_id' => $request->user_id, 'date' => $request->date],
             [
+                'admin_id' => $targetUser?->admin_id ?? ($adminId > 0 ? $adminId : null),
+                'shift_id' => $targetUser?->shift_id ?? null,
                 'punch_in' => $punchIn,
                 'punch_out' => $punchOut,
                 'total_worked_minutes' => $totalWorkedMinutes,
@@ -978,6 +982,11 @@ class AttendanceController extends Controller
 
     public function update(Request $request, Attendance $attendance)
     {
+        $adminId = $this->getTenantAdminId();
+        if ($adminId > 0 && $attendance->admin_id && $attendance->admin_id != $adminId) {
+            return back()->with('error', 'Unauthorized action.');
+        }
+
         $request->validate([
             'punch_in' => 'required|date',
             'punch_out' => 'nullable|date|after_or_equal:punch_in',
@@ -993,12 +1002,18 @@ class AttendanceController extends Controller
             $totalWorkedMinutes = max(0, $punchIn->diffInMinutes($punchOut) - $totalBreakMinutes);
         }
 
-        $attendance->update([
+        $updateData = [
             'punch_in' => $punchIn,
             'punch_out' => $punchOut,
             'total_worked_minutes' => $totalWorkedMinutes,
             'status' => $punchOut ? 'punched_out' : 'punched_in',
-        ]);
+        ];
+
+        if (!$attendance->admin_id && $adminId > 0) {
+            $updateData['admin_id'] = $adminId;
+        }
+
+        $attendance->update($updateData);
 
         return back()->with('success', 'Attendance updated successfully.');
     }
@@ -1247,6 +1262,7 @@ class AttendanceController extends Controller
 
             $attendanceData[] = [
                 'id' => $attendanceId ?? $dateStr,
+                'user_id' => (int) $userId,
                 'date' => $dateStr,
                 'check_in' => $checkIn,
                 'check_out' => $checkOut,

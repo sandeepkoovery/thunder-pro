@@ -472,7 +472,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             setDisplayMode(filters.display);
         }
     }, [filters.display]);
-    const { data, setData, put, post, processing, errors, reset } = useForm({
+    const { data, setData, put, post, processing, errors, reset, clearErrors } = useForm({
         user_id: '',
         date: '',
         punch_in: '',
@@ -569,6 +569,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
     };
 
     const openEditModal = (record) => {
+        clearErrors();
         setEditingAttendance(record);
 
         const formatDateForInput = (dateStr) => {
@@ -587,8 +588,13 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         const punchInVal = record.punch_in_raw ? formatDateForInput(record.punch_in_raw) : `${targetDate}T09:00`;
         const punchOutVal = record.punch_out_raw ? formatDateForInput(record.punch_out_raw) : '';
 
+        const targetUserId = record.user_id
+            || (selectedUser ? selectedUser.id : null)
+            || (filters.user_id ? Number(filters.user_id) : null)
+            || (record.id && !isNaN(Number(record.id)) ? Number(record.id) : '');
+
         setData({
-            user_id: record.id || (selectedUser ? selectedUser.id : ''),
+            user_id: targetUserId,
             date: targetDate,
             punch_in: punchInVal,
             punch_out: punchOutVal,
@@ -620,6 +626,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
     const closeEditModal = () => {
         setEditingAttendance(null);
         reset();
+        clearErrors();
     };
 
     const handleSubmit = (e) => {
@@ -1510,6 +1517,14 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                         </p>
                     </div>
 
+                    {(errors.user_id || errors.date || errors.error) && (
+                        <div className="p-3 bg-red-50 border border-red-200 rounded-xl space-y-1">
+                            {errors.user_id && <p className="text-xs font-semibold text-red-600">{errors.user_id}</p>}
+                            {errors.date && <p className="text-xs font-semibold text-red-600">{errors.date}</p>}
+                            {errors.error && <p className="text-xs font-semibold text-red-600">{errors.error}</p>}
+                        </div>
+                    )}
+
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
                         {/* CHECK IN TIME */}
                         <div className="space-y-1">
@@ -1552,11 +1567,11 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                     </div>
 
                     <div className="flex items-center justify-end mt-6 pt-3 border-t border-gray-100">
-                        <SecondaryButton onClick={closeEditModal} className="mr-3">
+                        <SecondaryButton onClick={closeEditModal} className="mr-3" disabled={processing}>
                             Cancel
                         </SecondaryButton>
                         <PrimaryButton disabled={processing}>
-                            {editingAttendance?.attendance_id ? 'Update' : 'Create'}
+                            {processing ? 'Saving...' : (editingAttendance?.attendance_id ? 'Update' : 'Create')}
                         </PrimaryButton>
                     </div>
                 </form>
