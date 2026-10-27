@@ -769,6 +769,8 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                                     <span>Working Days: <strong className="text-slate-900 font-extrabold">{commonWorkingDays} Days</strong></span>
                                                     <span className="text-slate-300">•</span>
                                                     <span>Required Hours: <strong className="text-blue-700 font-extrabold">{commonNeededHours}h</strong></span>
+                                                    <span className="text-slate-300">•</span>
+                                                    <span>No Break Days: <strong className="text-teal-700 font-extrabold">{noBreakDaysCount} Days</strong></span>
                                                 </div>
                                             )}
                                             {!isSuperAdmin && (
@@ -858,6 +860,8 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                                 <span>Working Days: <strong className="text-slate-900 font-extrabold">{commonWorkingDays} Days</strong></span>
                                                 <span className="text-slate-300">•</span>
                                                 <span>Required Hours: <strong className="text-blue-700 font-extrabold">{commonNeededHours}h</strong></span>
+                                                <span className="text-slate-300">•</span>
+                                                <span>No Break Days: <strong className="text-teal-700 font-extrabold">{noBreakDaysCount} Days</strong></span>
                                             </div>
                                         )}
                                     </div>
@@ -1005,6 +1009,8 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                         <span>Working Days: <strong className="text-slate-900 font-extrabold">{commonWorkingDays} Days</strong></span>
                                         <span className="text-slate-300">•</span>
                                         <span>Required Hours: <strong className="text-blue-700 font-extrabold">{commonNeededHours}h</strong></span>
+                                        <span className="text-slate-300">•</span>
+                                        <span>No Break Days: <strong className="text-teal-700 font-extrabold">{noBreakDaysCount} Days</strong></span>
                                     </div>
                                 )}
                             </div>
@@ -1976,7 +1982,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                 Monthly Attendance Report
                             </div>
                             <p style={{ fontSize: '9.5px', margin: '2px 0 0 0', color: '#475569' }}>
-                                Report Month: <strong>{formatMonthLabel(filters.month || new Date().toISOString().slice(0, 7))}</strong> &bull; Working Days: <strong>{commonWorkingDays} Days</strong> &bull; Required Hours: <strong>{commonNeededHours}h</strong> &bull; Generated On: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                Report Month: <strong>{formatMonthLabel(filters.month || new Date().toISOString().slice(0, 7))}</strong> &bull; Working Days: <strong>{commonWorkingDays} Days</strong> &bull; Required Hours: <strong>{commonNeededHours}h</strong> &bull; No Break Days: <strong>{totalNoBreakDays} Days</strong> &bull; Generated On: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                             </p>
                         </div>
                     </div>
@@ -1987,7 +1993,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                 </div>
 
                 {/* Summary Metric Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px', marginBottom: '12px' }}>
                     <div style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '7px 10px', backgroundColor: '#f8fafc' }}>
                         <div style={{ fontSize: '8.5px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Selected Employees</div>
                         <div style={{ fontSize: '15px', fontWeight: '900', color: '#0f172a', marginTop: '2px', lineHeight: '1.2' }}>{selectedAttendanceRows.length}</div>
@@ -1999,6 +2005,10 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                     <div style={{ border: '1px solid #fecdd3', borderRadius: '6px', padding: '7px 10px', backgroundColor: '#fff1f2' }}>
                         <div style={{ fontSize: '8.5px', fontWeight: '800', color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Absent Days</div>
                         <div style={{ fontSize: '15px', fontWeight: '900', color: '#9f1239', marginTop: '2px', lineHeight: '1.2' }}>{totalAbsentDays} days</div>
+                    </div>
+                    <div style={{ border: '1px solid #99f6e4', borderRadius: '6px', padding: '7px 10px', backgroundColor: '#f0fdfa' }}>
+                        <div style={{ fontSize: '8.5px', fontWeight: '800', color: '#0f766e', textTransform: 'uppercase', letterSpacing: '0.04em' }}>No Break Days</div>
+                        <div style={{ fontSize: '15px', fontWeight: '900', color: '#115e59', marginTop: '2px', lineHeight: '1.2' }}>{totalNoBreakDays} days</div>
                     </div>
                     <div style={{ border: '1px solid #bfdbfe', borderRadius: '6px', padding: '7px 10px', backgroundColor: '#eff6ff' }}>
                         <div style={{ fontSize: '8.5px', fontWeight: '800', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Work Hours</div>
@@ -2016,6 +2026,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                             <th>Leaves</th>
                             <th>Late Days</th>
                             <th>Missing Punchouts</th>
+                            <th>No Break Days</th>
                             <th>Work Hours</th>
                             <th>Break Hours</th>
                         </tr>
@@ -2056,6 +2067,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                                 </div>
                                             )}
                                         </td>
+                                        <td>{row.no_break_days || 0} days</td>
                                         <td className={isLowHours ? 'text-red' : ''}>
                                             <span style={{ color: isLowHours ? '#dc2626' : '#0f172a', fontWeight: isLowHours ? '600' : '400' }}>
                                                 {row.work_hours}
@@ -2067,7 +2079,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                             })
                         ) : (
                             <tr>
-                                <td colSpan="8" style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                                <td colSpan="9" style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
                                     No attendance records selected for export.
                                 </td>
                             </tr>
@@ -2091,6 +2103,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                         </div>
                                     )}
                                 </td>
+                                <td>{totalNoBreakDays} days</td>
                                 <td className={totalExportWorkMinutes < (selectedAttendanceRows.length * commonNeededHours * 60) ? 'text-red' : ''} style={{ color: totalExportWorkMinutes < (selectedAttendanceRows.length * commonNeededHours * 60) ? '#dc2626' : 'inherit' }}>
                                     {formatDuration(totalExportWorkMinutes)}
                                 </td>
