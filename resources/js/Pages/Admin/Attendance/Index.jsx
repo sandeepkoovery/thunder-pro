@@ -50,7 +50,9 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
 
     const [displayMode, setDisplayMode] = useState(filters.display || 'table');
     const [editingAttendance, setEditingAttendance] = useState(null);
-    const [selectedUserIds, setSelectedUserIds] = useState([]);
+    const [selectedUserIds, setSelectedUserIds] = useState(
+        exportPreviewData && exportPreviewData.length > 0 ? exportPreviewData.map(u => u.user_id) : []
+    );
 
     const [selectedReqStatus, setSelectedReqStatus] = useState('all');
     const [approvingReq, setApprovingReq] = useState(null);
@@ -82,7 +84,16 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         );
     };
 
-    const selectedAttendanceRows = (exportPreviewData || []).filter(row => selectedUserIds.includes(row.user_id));
+    const commonWorkingDays = (exportPreviewData && exportPreviewData.length > 0)
+        ? (exportPreviewData[0]?.total_working_days || (exportPreviewData[0]?.present_days + exportPreviewData[0]?.absent_days + exportPreviewData[0]?.leave_days) || 0)
+        : 0;
+    const commonNeededHours = (exportPreviewData && exportPreviewData.length > 0)
+        ? (exportPreviewData[0]?.needed_hours || (commonWorkingDays * 8))
+        : (commonWorkingDays * 8);
+
+    const selectedAttendanceRows = (exportPreviewData || []).filter(row =>
+        selectedUserIds.length > 0 ? selectedUserIds.includes(row.user_id) : true
+    );
 
     const totalExportWorkMinutes = selectedAttendanceRows
         .reduce((acc, row) => acc + (row.total_worked_minutes || 0), 0);
@@ -99,6 +110,8 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             return acc;
         }, 0);
 
+    const totalWorkingDaysSum = selectedAttendanceRows.reduce((acc, r) => acc + (r.total_working_days || (r.present_days + r.absent_days + r.leave_days) || 0), 0);
+    const totalNeededHoursSum = selectedAttendanceRows.reduce((acc, r) => acc + (r.needed_hours || ((r.total_working_days || (r.present_days + r.absent_days + r.leave_days) || 0) * 8)), 0);
     const totalPresentDays = selectedAttendanceRows.reduce((acc, r) => acc + (r.present_days || 0), 0);
     const totalAbsentDays = selectedAttendanceRows.reduce((acc, r) => acc + (r.absent_days || 0), 0);
     const totalLeaveDays = selectedAttendanceRows.reduce((acc, r) => acc + (r.leave_days || 0), 0);
@@ -363,6 +376,21 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             if (updated) setViewingBreaks(updated);
         }
     }, [attendanceData]);
+
+    useEffect(() => {
+        const resetPrintScroll = () => {
+            window.scrollTo(0, 0);
+            document.documentElement.scrollTop = 0;
+            document.body.scrollTop = 0;
+            const mainEl = document.querySelector('.mp-main');
+            if (mainEl) mainEl.scrollTop = 0;
+            const wrapperEl = document.querySelector('.mp-wrapper');
+            if (wrapperEl) wrapperEl.scrollTop = 0;
+        };
+
+        window.addEventListener('beforeprint', resetPrintScroll);
+        return () => window.removeEventListener('beforeprint', resetPrintScroll);
+    }, []);
 
     const BreakEditForm = ({ breakRecord, attendanceRecord, onCancel, onSuccess }) => {
         const [localError, setLocalError] = useState(null);
@@ -693,6 +721,14 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         return '';
     };
 
+    const isLowDailyHours = (record) => {
+        if (!record) return false;
+        const isWorked = ['Present', 'Late', 'Early Leave', 'Late & Early Leave'].includes(record.status);
+        if (!isWorked) return false;
+        const workedMins = record.total_worked_minutes || 0;
+        return workedMins < 480;
+    };
+
     return (
         <AdminLayout>
             <Head title="Attendance Monitoring" />
@@ -728,6 +764,13 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                             <p className="text-xs sm:text-sm text-gray-400 font-medium flex items-center gap-1.5">
                                                 <span className="text-amber-400 text-sm">☼</span> {todayStr}
                                             </p>
+                                            {commonWorkingDays > 0 && (
+                                                <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-100 px-3 py-1 rounded-xl border border-slate-200">
+                                                    <span>Working Days: <strong className="text-slate-900 font-extrabold">{commonWorkingDays} Days</strong></span>
+                                                    <span className="text-slate-300">•</span>
+                                                    <span>Required Hours: <strong className="text-blue-700 font-extrabold">{commonNeededHours}h</strong></span>
+                                                </div>
+                                            )}
                                             {!isSuperAdmin && (
                                                 <div className="bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider border border-indigo-100 inline-flex items-center gap-1.5">
                                                     <span>Office Hours: {officeHoursLabel}</span>
@@ -772,7 +815,14 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                         </div>
                                         <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
                                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Total hours</span>
-                                            <span className="text-base font-black text-slate-800 mt-0.5 block">{formatWorkedTime(totalMonthlyMinutes)}</span>
+                                            <span className={`text-base font-black mt-0.5 block ${commonNeededHours > 0 && totalMonthlyMinutes < (commonNeededHours * 60) ? 'text-red-600' : 'text-slate-800'}`}>
+                                                {formatWorkedTime(totalMonthlyMinutes)}
+                                            </span>
+                                            {commonNeededHours > 0 && (
+                                                <span className="text-[10px] text-gray-500 font-semibold block mt-0.5">
+                                                    Req: {commonNeededHours}h
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="bg-gray-50/80 p-3 rounded-2xl border border-gray-100">
                                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Avg check in</span>
@@ -801,7 +851,16 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                         <div className="bg-white p-6 rounded-[24px] shadow-sm border border-gray-100 mb-6 flex flex-wrap items-center justify-between gap-6">
                             <div className="flex items-center gap-8 flex-wrap">
                                 <div className="flex flex-col gap-1.5">
-                                    <h2 className="text-[28px] font-black text-gray-900 tracking-tight">Attendance Monitoring</h2>
+                                    <div className="flex items-center gap-3 flex-wrap">
+                                        <h2 className="text-[28px] font-black text-gray-900 tracking-tight">Attendance Monitoring</h2>
+                                        {commonWorkingDays > 0 && (
+                                            <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-100 px-3.5 py-1.5 rounded-xl border border-slate-200">
+                                                <span>Working Days: <strong className="text-slate-900 font-extrabold">{commonWorkingDays} Days</strong></span>
+                                                <span className="text-slate-300">•</span>
+                                                <span>Required Hours: <strong className="text-blue-700 font-extrabold">{commonNeededHours}h</strong></span>
+                                            </div>
+                                        )}
+                                    </div>
                                     {!isSuperAdmin && (
                                         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 text-indigo-700 px-4 py-1.5 rounded-xl text-[11px] font-bold uppercase tracking-widest border border-indigo-100 inline-flex items-center gap-1.5 w-fit">
                                             <span>Office Hours: {officeHoursLabel}</span>
@@ -941,6 +1000,13 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                         Reset
                                     </button>
                                 </div>
+                                {commonWorkingDays > 0 && (
+                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-700 bg-slate-100 px-4 py-2.5 rounded-xl border border-slate-200 h-11 ml-auto">
+                                        <span>Working Days: <strong className="text-slate-900 font-extrabold">{commonWorkingDays} Days</strong></span>
+                                        <span className="text-slate-300">•</span>
+                                        <span>Required Hours: <strong className="text-blue-700 font-extrabold">{commonNeededHours}h</strong></span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     )}
@@ -1146,7 +1212,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                             </div>
                                             <div>
                                                 <span className="text-xs text-slate-700 font-bold block mb-1">Total</span>
-                                                <span className="text-lg font-black text-slate-950 block">{record?.hours === '0h 0m' ? '--' : record?.hours}</span>
+                                                <span className={`text-lg font-black block ${isLowDailyHours(record) ? 'text-red-600' : 'text-slate-950'}`}>{record?.hours === '0h 0m' ? '--' : record?.hours}</span>
                                             </div>
                                         </div>
 
@@ -1223,7 +1289,12 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                                 <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Check Out</th>
                                                 <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Status</th>
                                                 <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Current Status</th>
-                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Hours</th>
+                                                <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                                                    <div>Hours</div>
+                                                    <div className="text-[10px] text-blue-600 font-semibold normal-case tracking-normal">
+                                                        (Req: 8h)
+                                                    </div>
+                                                </th>
                                                 <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Break</th>
                                                 <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Location</th>
                                                 <th className="py-6 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Device</th>
@@ -1280,7 +1351,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                                             )}
                                                         </td>
                                                         <td className="py-5 px-4">
-                                                            <div className="text-[14px] font-bold text-gray-800">{record?.hours === '0h 0m' ? '--' : record?.hours}</div>
+                                                            <div className={`text-[14px] font-bold ${isLowDailyHours(record) ? 'text-red-600 font-semibold' : 'text-gray-800'}`}>{record?.hours === '0h 0m' ? '--' : record?.hours}</div>
                                                         </td>
                                                         <td className="py-5 px-4">
                                                             <div className="flex items-center gap-2">
@@ -1402,7 +1473,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                                 </div>
                                                 <div className="text-center bg-blue-50/50 rounded-xl py-2 px-1 border border-blue-50">
                                                     <div className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Hours</div>
-                                                    <div className="text-xs font-bold text-blue-700">{record?.hours === '0h 0m' ? '--' : record?.hours}</div>
+                                                    <div className={`text-xs font-bold ${isLowDailyHours(record) ? 'text-red-600' : 'text-blue-700'}`}>{record?.hours === '0h 0m' ? '--' : record?.hours}</div>
                                                 </div>
                                             </div>
 
@@ -1887,139 +1958,154 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
 
             {/* Clean PDF Print Container (Visible only during window.print()) */}
             <div className="print-only-report">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '14px', marginBottom: '14px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '10px', marginBottom: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {companyInfo?.has_logo && companyInfo?.logo && (
                             <img
                                 src={companyInfo.logo}
                                 alt={companyName}
-                                style={{ maxHeight: '48px', maxWidth: '160px', objectFit: 'contain', display: 'block' }}
+                                style={{ maxHeight: '38px', maxWidth: '140px', objectFit: 'contain', display: 'block' }}
                                 onError={(e) => { e.currentTarget.style.display = 'none'; }}
                             />
                         )}
                         <div>
-                            <h1 style={{ fontSize: '18px', fontWeight: '800', margin: 0, textTransform: 'uppercase', color: '#0f172a', letterSpacing: '-0.01em' }}>
-                                {companyName} - Monthly Attendance Report
+                            <h1 style={{ fontSize: '17px', fontWeight: '900', margin: 0, textTransform: 'uppercase', color: '#0f172a', letterSpacing: '0.02em', lineHeight: '1.2' }}>
+                                {companyName}
                             </h1>
-                            <p style={{ fontSize: '11px', margin: '3px 0 0 0', color: '#475569' }}>
-                                Report Month: <strong>{formatMonthLabel(filters.month || new Date().toISOString().slice(0, 7))}</strong> &bull; Generated On: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
+                            <div style={{ fontSize: '11.5px', fontWeight: '800', textTransform: 'uppercase', color: '#334155', letterSpacing: '0.03em', marginTop: '2px' }}>
+                                Monthly Attendance Report
+                            </div>
+                            <p style={{ fontSize: '9.5px', margin: '2px 0 0 0', color: '#475569' }}>
+                                Report Month: <strong>{formatMonthLabel(filters.month || new Date().toISOString().slice(0, 7))}</strong> &bull; Working Days: <strong>{commonWorkingDays} Days</strong> &bull; Required Hours: <strong>{commonNeededHours}h</strong> &bull; Generated On: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                             </p>
                         </div>
                     </div>
-                    <div style={{ textAlign: 'right', fontSize: '11px', color: '#334155' }}>
+                    <div style={{ textAlign: 'right', fontSize: '9.5px', color: '#334155', lineHeight: '1.4' }}>
                         <p style={{ margin: 0 }}>Selected Employees: <strong>{selectedAttendanceRows.length} of {exportPreviewData?.length || 0}</strong></p>
                         <p style={{ margin: '2px 0 0 0' }}>Total Work Hours: <strong>{formatDuration(totalExportWorkMinutes)}</strong></p>
                     </div>
                 </div>
 
                 {/* Summary Metric Cards */}
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '14px' }}>
-                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '7px 10px', backgroundColor: '#f8fafc' }}>
-                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Selected Employees</div>
-                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#0f172a', marginTop: '2px' }}>{selectedAttendanceRows.length}</div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '12px' }}>
+                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '6px', padding: '7px 10px', backgroundColor: '#f8fafc' }}>
+                        <div style={{ fontSize: '8.5px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Selected Employees</div>
+                        <div style={{ fontSize: '15px', fontWeight: '900', color: '#0f172a', marginTop: '2px', lineHeight: '1.2' }}>{selectedAttendanceRows.length}</div>
                     </div>
-                    <div style={{ border: '1px solid #bbf7d0', borderRadius: '8px', padding: '7px 10px', backgroundColor: '#f0fdf4' }}>
-                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Present Days</div>
-                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#166534', marginTop: '2px' }}>{totalPresentDays} days</div>
+                    <div style={{ border: '1px solid #bbf7d0', borderRadius: '6px', padding: '7px 10px', backgroundColor: '#f0fdf4' }}>
+                        <div style={{ fontSize: '8.5px', fontWeight: '800', color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Present Days</div>
+                        <div style={{ fontSize: '15px', fontWeight: '900', color: '#166534', marginTop: '2px', lineHeight: '1.2' }}>{totalPresentDays} days</div>
                     </div>
-                    <div style={{ border: '1px solid #fecdd3', borderRadius: '8px', padding: '7px 10px', backgroundColor: '#fff1f2' }}>
-                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Absent Days</div>
-                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#9f1239', marginTop: '2px' }}>{totalAbsentDays} days</div>
+                    <div style={{ border: '1px solid #fecdd3', borderRadius: '6px', padding: '7px 10px', backgroundColor: '#fff1f2' }}>
+                        <div style={{ fontSize: '8.5px', fontWeight: '800', color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Absent Days</div>
+                        <div style={{ fontSize: '15px', fontWeight: '900', color: '#9f1239', marginTop: '2px', lineHeight: '1.2' }}>{totalAbsentDays} days</div>
                     </div>
-                    <div style={{ border: '1px solid #bfdbfe', borderRadius: '8px', padding: '7px 10px', backgroundColor: '#eff6ff' }}>
-                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Work Hours</div>
-                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#1e40af', marginTop: '2px' }}>{formatDuration(totalExportWorkMinutes)}</div>
+                    <div style={{ border: '1px solid #bfdbfe', borderRadius: '6px', padding: '7px 10px', backgroundColor: '#eff6ff' }}>
+                        <div style={{ fontSize: '8.5px', fontWeight: '800', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Work Hours</div>
+                        <div style={{ fontSize: '15px', fontWeight: '900', color: '#1e40af', marginTop: '2px', lineHeight: '1.2' }}>{formatDuration(totalExportWorkMinutes)}</div>
+                        <div style={{ fontSize: '8px', fontWeight: '700', color: '#64748b', marginTop: '1px' }}>Target: {commonNeededHours}h / emp</div>
                     </div>
                 </div>
 
                 <table className="print-table">
                     <thead>
                         <tr>
-                            <th style={{ textAlign: 'left', minWidth: '150px' }}>Employee</th>
+                            <th style={{ textAlign: 'left', minWidth: '160px' }}>Employee</th>
                             <th>Present</th>
                             <th>Absent</th>
                             <th>Leaves</th>
                             <th>Late Days</th>
-                            <th>Early Leave</th>
                             <th>Missing Punchouts</th>
-                            <th>No Break Days</th>
                             <th>Work Hours</th>
                             <th>Break Hours</th>
                         </tr>
                     </thead>
                     <tbody>
                         {selectedAttendanceRows && selectedAttendanceRows.length > 0 ? (
-                            selectedAttendanceRows.map(row => (
-                                <tr key={row.user_id}>
-                                    <td style={{ textAlign: 'left' }}>
-                                        <div style={{ fontWeight: '800', color: '#0f172a' }}>{row.name}</div>
-                                        {row.email && (
-                                            <div style={{ fontSize: '9px', color: '#64748b', fontWeight: '400' }}>{row.email}</div>
-                                        )}
-                                    </td>
-                                    <td>
-                                        <span className="print-badge print-badge-present">{row.present_days} days</span>
-                                    </td>
-                                    <td>
-                                        <span className="print-badge print-badge-absent">{row.absent_days} days</span>
-                                    </td>
-                                    <td>
-                                        <span className="print-badge print-badge-leave">{row.leave_days} days</span>
-                                    </td>
-                                    <td>
-                                        <span className="print-badge print-badge-late">{row.late_days} days</span>
-                                    </td>
-                                    <td>
-                                        <span className="print-badge print-badge-early">{row.early_leave_days} days</span>
-                                    </td>
-                                    <td>
-                                        <span className={`print-badge ${row.missing_punchouts > 0 ? 'print-badge-warn' : 'print-badge-neutral'}`}>
-                                            {row.missing_punchouts || 0} days
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <span className={`print-badge ${row.no_break_days > 0 ? 'print-badge-teal' : 'print-badge-neutral'}`}>
-                                            {row.no_break_days || 0} days
-                                        </span>
-                                    </td>
-                                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{row.work_hours}</td>
-                                    <td style={{ color: '#475569' }}>{row.break_hours}</td>
-                                </tr>
-                            ))
+                            selectedAttendanceRows.map(row => {
+                                const workedMins = row.total_worked_minutes || 0;
+                                const targetMins = (commonNeededHours && commonNeededHours > 0)
+                                    ? (commonNeededHours * 60)
+                                    : (row.needed_minutes || ((commonWorkingDays || 21) * 8 * 60));
+                                const isLowHours = workedMins < targetMins;
+                                const missingDays = row.missing_punchouts || 0;
+                                const hasLeave = (row.leave_days || 0) > 0;
+                                const hasAbsent = (row.absent_days || 0) > 0;
+
+                                return (
+                                    <tr key={row.user_id}>
+                                        <td style={{ textAlign: 'left' }}>
+                                            <div style={{ color: '#0f172a', fontWeight: '700', fontSize: '11.5px', lineHeight: '1.25' }}>{row.name}</div>
+                                            {row.email && (
+                                                <div style={{ fontSize: '9px', color: '#64748b', fontWeight: '400', marginTop: '2px', lineHeight: '1.2' }}>{row.email}</div>
+                                            )}
+                                        </td>
+                                        <td>{row.present_days} days</td>
+                                        <td className={hasAbsent ? 'text-red' : ''}>
+                                            <span style={{ color: hasAbsent ? '#dc2626' : '#334155' }}>{row.absent_days} days</span>
+                                        </td>
+                                        <td className={hasLeave ? 'text-red' : ''}>
+                                            <span style={{ color: hasLeave ? '#dc2626' : '#334155' }}>{row.leave_days} days</span>
+                                        </td>
+                                        <td>{row.late_days || 0} days</td>
+                                        <td>
+                                            <div>{missingDays} days</div>
+                                            {missingDays > 0 && (
+                                                <div className="text-red" style={{ color: '#dc2626', fontSize: '9px', marginTop: '2px', fontWeight: '600', lineHeight: '1.2' }}>
+                                                    {missingDays * 8} hours
+                                                </div>
+                                            )}
+                                        </td>
+                                        <td className={isLowHours ? 'text-red' : ''}>
+                                            <span style={{ color: isLowHours ? '#dc2626' : '#0f172a', fontWeight: isLowHours ? '600' : '400' }}>
+                                                {row.work_hours}
+                                            </span>
+                                        </td>
+                                        <td style={{ color: '#475569' }}>{row.break_hours}</td>
+                                    </tr>
+                                );
+                            })
                         ) : (
                             <tr>
-                                <td colSpan="10" style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                                <td colSpan="8" style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
                                     No attendance records selected for export.
                                 </td>
                             </tr>
                         )}
                     </tbody>
                     {selectedAttendanceRows && selectedAttendanceRows.length > 0 && (
-                        <tfoot>
-                            <tr style={{ backgroundColor: '#f1f5f9', fontWeight: '800', borderTop: '2px solid #94a3b8' }}>
+                        <tbody style={{ borderTop: '2px solid #cbd5e1', pageBreakInside: 'avoid', breakInside: 'avoid' }}>
+                            <tr style={{ backgroundColor: '#f8fafc', fontWeight: '700' }}>
                                 <td style={{ textAlign: 'left' }}>
                                     Total ({selectedAttendanceRows.length} {selectedAttendanceRows.length === 1 ? 'Employee' : 'Employees'})
                                 </td>
                                 <td>{totalPresentDays} days</td>
-                                <td>{totalAbsentDays} days</td>
-                                <td>{totalLeaveDays} days</td>
+                                <td className={totalAbsentDays > 0 ? 'text-red' : ''} style={{ color: totalAbsentDays > 0 ? '#dc2626' : 'inherit' }}>{totalAbsentDays} days</td>
+                                <td className={totalLeaveDays > 0 ? 'text-red' : ''} style={{ color: totalLeaveDays > 0 ? '#dc2626' : 'inherit' }}>{totalLeaveDays} days</td>
                                 <td>{totalLateDays} days</td>
-                                <td>{totalEarlyLeaveDays} days</td>
-                                <td>{totalMissingPunchouts} days</td>
-                                <td>{totalNoBreakDays} days</td>
-                                <td>{formatDuration(totalExportWorkMinutes)}</td>
+                                <td>
+                                    <div>{totalMissingPunchouts} days</div>
+                                    {totalMissingPunchouts > 0 && (
+                                        <div className="text-red" style={{ color: '#dc2626', fontSize: '9px', marginTop: '2px', fontWeight: '600' }}>
+                                            {totalMissingPunchouts * 8} hours
+                                        </div>
+                                    )}
+                                </td>
+                                <td className={totalExportWorkMinutes < (selectedAttendanceRows.length * commonNeededHours * 60) ? 'text-red' : ''} style={{ color: totalExportWorkMinutes < (selectedAttendanceRows.length * commonNeededHours * 60) ? '#dc2626' : 'inherit' }}>
+                                    {formatDuration(totalExportWorkMinutes)}
+                                </td>
                                 <td>{formatDuration(totalExportBreakMinutes)}</td>
                             </tr>
-                        </tfoot>
+                        </tbody>
                     )}
                 </table>
 
                 {/* Professional Letterhead Footer */}
-                <div className="print-footer" style={{ marginTop: '20px', paddingTop: '10px', borderTop: '1.5px solid #cbd5e1', fontSize: '10px', color: '#475569', textAlign: 'center', lineHeight: '1.6' }}>
-                    <div style={{ fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.04em', marginBottom: '3px' }}>
+                <div className="print-footer" style={{ marginTop: '12px', paddingTop: '6px', borderTop: '1px solid #cbd5e1', fontSize: '9px', color: '#475569', textAlign: 'center', lineHeight: '1.4' }}>
+                    <div style={{ fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', fontSize: '10.5px', letterSpacing: '0.04em', marginBottom: '2px' }}>
                         {companyName}
                     </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '4px 14px', color: '#334155' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', alignItems: 'center', gap: '3px 12px', color: '#334155' }}>
                         {companyInfo?.address && (
                             <span><strong>Address:</strong> {companyInfo.address}</span>
                         )}
@@ -2033,7 +2119,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                             <span><strong>GSTIN:</strong> {companyInfo.gst_no}</span>
                         )}
                     </div>
-                    <div style={{ marginTop: '5px', fontSize: '9px', color: '#94a3b8' }}>
+                    <div style={{ marginTop: '3px', fontSize: '7.5px', color: '#94a3b8' }}>
                         Confidential &bull; Generated via {companyName} HRMS &bull; Computer generated report, signature not required.
                     </div>
                 </div>
@@ -2057,65 +2143,143 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
 
                 @page {
                     size: landscape;
-                    margin: 8mm;
+                    margin: 6mm 8mm;
                 }
 
                 @media print {
-                    body * {
-                        visibility: hidden !important;
-                    }
-                    header, nav, aside, footer, .no-print, button, a, select, input, .print-hide, .print\\:hidden {
+                    /* 1. Hide on-screen UI components */
+                    .screen-content,
+                    .no-print,
+                    .print-hide,
+                    .print\\:hidden,
+                    header,
+                    nav,
+                    aside,
+                    footer,
+                    button,
+                    a,
+                    select,
+                    input,
+                    .mp-sidebar,
+                    .mp-topbar,
+                    .mp-header,
+                    .mp-bottom-nav,
+                    .theme-customizer {
                         display: none !important;
                     }
-                    body {
+
+                    /* 2. Reset parents so everything displays cleanly without clipping or blank offsets */
+                    html,
+                    html:has(.mp-wrapper),
+                    body,
+                    body:has(.mp-wrapper),
+                    #app,
+                    .mp-wrapper,
+                    .mp-shell,
+                    .mp-body-row,
+                    .mp-body,
+                    .mp-main,
+                    .mp-fade,
+                    main {
+                        display: block !important;
+                        position: static !important;
+                        overflow: visible !important;
+                        overflow-x: visible !important;
+                        overflow-y: visible !important;
+                        height: auto !important;
+                        min-height: 0 !important;
+                        max-height: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        border: none !important;
+                        float: none !important;
+                        transform: none !important;
+                        filter: none !important;
+                        box-shadow: none !important;
                         background: #ffffff !important;
                         color: #000000 !important;
-                        padding: 0 !important;
-                        margin: 0 !important;
                         -webkit-print-color-adjust: exact !important;
                         print-color-adjust: exact !important;
                     }
-                    .print-only-report, .print-only-report * {
-                        visibility: visible !important;
-                    }
+
+                    /* 3. Display print container in normal flow right from top of Page 1 */
                     .print-only-report {
                         display: block !important;
-                        position: absolute !important;
-                        left: 0 !important;
-                        top: 0 !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        position: static !important;
                         width: 100% !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                         background: #ffffff !important;
-                        padding: 10px 14px !important;
-                        z-index: 999999 !important;
+                        box-sizing: border-box !important;
+                        overflow: visible !important;
+                    }
+
+                    .print-only-report * {
+                        visibility: visible !important;
+                        opacity: 1 !important;
                     }
                     .print-table {
                         width: 100% !important;
                         border-collapse: collapse !important;
-                        margin-top: 10px !important;
+                        margin-top: 6px !important;
                         page-break-inside: auto !important;
+                        break-inside: auto !important;
+                    }
+                    .print-table thead {
+                        display: table-header-group !important;
                     }
                     .print-table tr {
                         page-break-inside: avoid !important;
-                        page-break-after: auto !important;
+                        break-inside: avoid !important;
+                        break-inside: avoid-page !important;
+                        -webkit-column-break-inside: avoid !important;
                     }
                     .print-table th, .print-table td {
                         border: 1px solid #cbd5e1 !important;
-                        padding: 5px 7px !important;
-                        font-size: 10px !important;
+                        padding: 7px 9px !important;
+                        font-size: 10.5px !important;
+                        line-height: 1.35 !important;
+                        font-weight: 400 !important;
                         text-align: center !important;
                         vertical-align: middle !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
                     }
                     .print-table th {
-                        background-color: #f1f5f9 !important;
-                        color: #0f172a !important;
-                        font-weight: 800 !important;
+                        background-color: #f8fafc !important;
+                        color: #1e293b !important;
+                        font-weight: 700 !important;
                         text-transform: uppercase !important;
                         font-size: 9.5px !important;
-                        letter-spacing: 0.03em !important;
+                        letter-spacing: 0.04em !important;
+                        padding: 8px 9px !important;
+                    }
+                    .print-table td {
+                        color: #1e293b;
+                    }
+                    .print-table td.text-red,
+                    .print-table td.text-red *,
+                    .print-table .text-red,
+                    .print-table span.text-red {
+                        color: #dc2626 !important;
+                    }
+                    .print-table td:first-child, .print-table th:first-child {
+                        text-align: left !important;
+                        padding-left: 10px !important;
+                    }
+                    .print-footer {
+                        width: 100% !important;
+                        margin-top: 12px !important;
+                        padding-top: 6px !important;
+                        border-top: 1px solid #cbd5e1 !important;
+                        page-break-inside: avoid !important;
+                        break-inside: avoid !important;
                     }
                     .print-badge {
                         display: inline-block !important;
-                        padding: 2px 6px !important;
+                        padding: 2.5px 6px !important;
                         border-radius: 4px !important;
                         font-size: 9.5px !important;
                         font-weight: 800 !important;
@@ -2161,13 +2325,6 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                         background-color: #f8fafc !important;
                         color: #475569 !important;
                         border-color: #e2e8f0 !important;
-                    }
-                    .print-footer {
-                        width: 100% !important;
-                        margin-top: 20px !important;
-                        padding-top: 10px !important;
-                        border-top: 1.5px solid #94a3b8 !important;
-                        page-break-inside: avoid !important;
                     }
                 }
                 @media screen {

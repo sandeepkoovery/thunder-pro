@@ -1596,6 +1596,8 @@ class AttendanceController extends Controller
 
         $columns = [
             'User Name',
+            'Total Working Days',
+            'Hours Needed',
             'Total Present Days',
             'Total Absent Days',
             'Total Leaves',
@@ -1610,6 +1612,13 @@ class AttendanceController extends Controller
         $callback = function () use ($users, $startDate, $endDate, $calculationEndDate, $columns, $today) {
             $file = fopen('php://output', 'w');
             fputcsv($file, $columns);
+
+            $cycleWorkingDays = 0;
+            for ($d2 = $startDate->copy(); $d2 <= $calculationEndDate; $d2->addDay()) {
+                if (!$d2->isSaturday() && !$d2->isSunday()) {
+                    $cycleWorkingDays++;
+                }
+            }
 
             foreach ($users as $user) {
                 $timingRules = $this->getOfficeTimingRules(null, $user);
@@ -1703,8 +1712,13 @@ class AttendanceController extends Controller
                     }
                 }
 
+                $totalWorkingDays = max($cycleWorkingDays, $totalPresent + $absentDays + $leaveDays);
+                $neededHours = $totalWorkingDays * 8;
+
                 fputcsv($file, [
                     $user->name,
+                    $totalWorkingDays,
+                    $neededHours . 'h',
                     $totalPresent,
                     $absentDays,
                     $leaveDays,
@@ -1735,6 +1749,14 @@ class AttendanceController extends Controller
         $today = Carbon::today();
 
         $calculationEndDate = $endDate->gt($today) ? $today : $endDate;
+
+        // Calculate standard cycle working days (non-weekend days up to calculation end date)
+        $cycleWorkingDays = 0;
+        for ($d2 = $startDate->copy(); $d2 <= $calculationEndDate; $d2->addDay()) {
+            if (!$d2->isSaturday() && !$d2->isSunday()) {
+                $cycleWorkingDays++;
+            }
+        }
 
         $usersQuery = \App\Models\User::whereNotIn('role', ['admin', 'manager'])->where('is_active', true);
         if ($adminId > 0) {
@@ -1831,11 +1853,18 @@ class AttendanceController extends Controller
                 }
             }
 
+            $totalWorkingDays = max($cycleWorkingDays, $totalPresent + $absentDays + $leaveDays);
+            $neededHours = $totalWorkingDays * 8;
+            $neededMinutes = $neededHours * 60;
+
             $rows[] = [
                 'user_id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
                 'image_url' => $user->image_url,
+                'total_working_days' => $totalWorkingDays,
+                'needed_hours' => $neededHours,
+                'needed_minutes' => $neededMinutes,
                 'present_days' => $totalPresent,
                 'absent_days' => $absentDays,
                 'leave_days' => $leaveDays,
