@@ -82,9 +82,30 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
         );
     };
 
-    const totalExportWorkMinutes = (exportPreviewData || [])
-        .filter(row => selectedUserIds.includes(row.user_id))
+    const selectedAttendanceRows = (exportPreviewData || []).filter(row => selectedUserIds.includes(row.user_id));
+
+    const totalExportWorkMinutes = selectedAttendanceRows
         .reduce((acc, row) => acc + (row.total_worked_minutes || 0), 0);
+
+    const totalExportBreakMinutes = selectedAttendanceRows
+        .reduce((acc, row) => {
+            if (typeof row.total_break_minutes === 'number') return acc + row.total_break_minutes;
+            const match = (row.break_hours || '').match(/(?:(\d+)h)?\s*(?:(\d+)m)?/);
+            if (match) {
+                const h = parseInt(match[1] || '0', 10);
+                const m = parseInt(match[2] || '0', 10);
+                return acc + (h * 60 + m);
+            }
+            return acc;
+        }, 0);
+
+    const totalPresentDays = selectedAttendanceRows.reduce((acc, r) => acc + (r.present_days || 0), 0);
+    const totalAbsentDays = selectedAttendanceRows.reduce((acc, r) => acc + (r.absent_days || 0), 0);
+    const totalLeaveDays = selectedAttendanceRows.reduce((acc, r) => acc + (r.leave_days || 0), 0);
+    const totalLateDays = selectedAttendanceRows.reduce((acc, r) => acc + (r.late_days || 0), 0);
+    const totalEarlyLeaveDays = selectedAttendanceRows.reduce((acc, r) => acc + (r.early_leave_days || 0), 0);
+    const totalMissingPunchouts = selectedAttendanceRows.reduce((acc, r) => acc + (r.missing_punchouts || 0), 0);
+    const totalNoBreakDays = selectedAttendanceRows.reduce((acc, r) => acc + (r.no_break_days || 0), 0);
 
     // Calculate Summary Stats for selected user / monthly view
     const totalDays = attendanceData ? attendanceData.length : 1;
@@ -1866,7 +1887,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
 
             {/* Clean PDF Print Container (Visible only during window.print()) */}
             <div className="print-only-report">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '14px', marginBottom: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #0f172a', paddingBottom: '14px', marginBottom: '14px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
                         {companyInfo?.has_logo && companyInfo?.logo && (
                             <img
@@ -1880,48 +1901,121 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                             <h1 style={{ fontSize: '18px', fontWeight: '800', margin: 0, textTransform: 'uppercase', color: '#0f172a', letterSpacing: '-0.01em' }}>
                                 {companyName} - Monthly Attendance Report
                             </h1>
-                            <p style={{ fontSize: '11px', margin: '4px 0 0 0', color: '#475569' }}>
+                            <p style={{ fontSize: '11px', margin: '3px 0 0 0', color: '#475569' }}>
                                 Report Month: <strong>{formatMonthLabel(filters.month || new Date().toISOString().slice(0, 7))}</strong> &bull; Generated On: {new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                             </p>
                         </div>
                     </div>
                     <div style={{ textAlign: 'right', fontSize: '11px', color: '#334155' }}>
-                        <p style={{ margin: 0 }}>Selected Employees: <strong>{selectedUserIds.length}</strong></p>
+                        <p style={{ margin: 0 }}>Selected Employees: <strong>{selectedAttendanceRows.length} of {exportPreviewData?.length || 0}</strong></p>
                         <p style={{ margin: '2px 0 0 0' }}>Total Work Hours: <strong>{formatDuration(totalExportWorkMinutes)}</strong></p>
+                    </div>
+                </div>
+
+                {/* Summary Metric Cards */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '10px', marginBottom: '14px' }}>
+                    <div style={{ border: '1px solid #cbd5e1', borderRadius: '8px', padding: '7px 10px', backgroundColor: '#f8fafc' }}>
+                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Selected Employees</div>
+                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#0f172a', marginTop: '2px' }}>{selectedAttendanceRows.length}</div>
+                    </div>
+                    <div style={{ border: '1px solid #bbf7d0', borderRadius: '8px', padding: '7px 10px', backgroundColor: '#f0fdf4' }}>
+                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Present Days</div>
+                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#166534', marginTop: '2px' }}>{totalPresentDays} days</div>
+                    </div>
+                    <div style={{ border: '1px solid #fecdd3', borderRadius: '8px', padding: '7px 10px', backgroundColor: '#fff1f2' }}>
+                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#be123c', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Absent Days</div>
+                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#9f1239', marginTop: '2px' }}>{totalAbsentDays} days</div>
+                    </div>
+                    <div style={{ border: '1px solid #bfdbfe', borderRadius: '8px', padding: '7px 10px', backgroundColor: '#eff6ff' }}>
+                        <div style={{ fontSize: '9px', fontWeight: '800', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Total Work Hours</div>
+                        <div style={{ fontSize: '16px', fontWeight: '900', color: '#1e40af', marginTop: '2px' }}>{formatDuration(totalExportWorkMinutes)}</div>
                     </div>
                 </div>
 
                 <table className="print-table">
                     <thead>
                         <tr>
-                            <th>Employee Name</th>
+                            <th style={{ textAlign: 'left', minWidth: '150px' }}>Employee</th>
                             <th>Present</th>
                             <th>Absent</th>
                             <th>Leaves</th>
                             <th>Late Days</th>
                             <th>Early Leave</th>
+                            <th>Missing Punchouts</th>
+                            <th>No Break Days</th>
                             <th>Work Hours</th>
                             <th>Break Hours</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {exportPreviewData && exportPreviewData.filter(row => selectedUserIds.includes(row.user_id)).map(row => (
-                            <tr key={row.user_id}>
-                                <td><strong>{row.name}</strong></td>
-                                <td>{row.present_days} days</td>
-                                <td>{row.absent_days} days</td>
-                                <td>{row.leave_days} days</td>
-                                <td>{row.late_days} days</td>
-                                <td>{row.early_leave_days} days</td>
-                                <td><strong>{row.work_hours}</strong></td>
-                                <td>{row.break_hours}</td>
+                        {selectedAttendanceRows && selectedAttendanceRows.length > 0 ? (
+                            selectedAttendanceRows.map(row => (
+                                <tr key={row.user_id}>
+                                    <td style={{ textAlign: 'left' }}>
+                                        <div style={{ fontWeight: '800', color: '#0f172a' }}>{row.name}</div>
+                                        {row.email && (
+                                            <div style={{ fontSize: '9px', color: '#64748b', fontWeight: '400' }}>{row.email}</div>
+                                        )}
+                                    </td>
+                                    <td>
+                                        <span className="print-badge print-badge-present">{row.present_days} days</span>
+                                    </td>
+                                    <td>
+                                        <span className="print-badge print-badge-absent">{row.absent_days} days</span>
+                                    </td>
+                                    <td>
+                                        <span className="print-badge print-badge-leave">{row.leave_days} days</span>
+                                    </td>
+                                    <td>
+                                        <span className="print-badge print-badge-late">{row.late_days} days</span>
+                                    </td>
+                                    <td>
+                                        <span className="print-badge print-badge-early">{row.early_leave_days} days</span>
+                                    </td>
+                                    <td>
+                                        <span className={`print-badge ${row.missing_punchouts > 0 ? 'print-badge-warn' : 'print-badge-neutral'}`}>
+                                            {row.missing_punchouts || 0} days
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span className={`print-badge ${row.no_break_days > 0 ? 'print-badge-teal' : 'print-badge-neutral'}`}>
+                                            {row.no_break_days || 0} days
+                                        </span>
+                                    </td>
+                                    <td style={{ fontWeight: '800', color: '#0f172a' }}>{row.work_hours}</td>
+                                    <td style={{ color: '#475569' }}>{row.break_hours}</td>
+                                </tr>
+                            ))
+                        ) : (
+                            <tr>
+                                <td colSpan="10" style={{ padding: '16px', textAlign: 'center', color: '#64748b' }}>
+                                    No attendance records selected for export.
+                                </td>
                             </tr>
-                        ))}
+                        )}
                     </tbody>
+                    {selectedAttendanceRows && selectedAttendanceRows.length > 0 && (
+                        <tfoot>
+                            <tr style={{ backgroundColor: '#f1f5f9', fontWeight: '800', borderTop: '2px solid #94a3b8' }}>
+                                <td style={{ textAlign: 'left' }}>
+                                    Total ({selectedAttendanceRows.length} {selectedAttendanceRows.length === 1 ? 'Employee' : 'Employees'})
+                                </td>
+                                <td>{totalPresentDays} days</td>
+                                <td>{totalAbsentDays} days</td>
+                                <td>{totalLeaveDays} days</td>
+                                <td>{totalLateDays} days</td>
+                                <td>{totalEarlyLeaveDays} days</td>
+                                <td>{totalMissingPunchouts} days</td>
+                                <td>{totalNoBreakDays} days</td>
+                                <td>{formatDuration(totalExportWorkMinutes)}</td>
+                                <td>{formatDuration(totalExportBreakMinutes)}</td>
+                            </tr>
+                        </tfoot>
+                    )}
                 </table>
 
-                {/* Professional Letterhead Footer (No graphics needed) */}
-                <div className="print-footer" style={{ marginTop: '24px', paddingTop: '12px', borderTop: '1.5px solid #cbd5e1', fontSize: '10px', color: '#475569', textAlign: 'center', lineHeight: '1.6' }}>
+                {/* Professional Letterhead Footer */}
+                <div className="print-footer" style={{ marginTop: '20px', paddingTop: '10px', borderTop: '1.5px solid #cbd5e1', fontSize: '10px', color: '#475569', textAlign: 'center', lineHeight: '1.6' }}>
                     <div style={{ fontWeight: '800', color: '#0f172a', textTransform: 'uppercase', fontSize: '11px', letterSpacing: '0.04em', marginBottom: '3px' }}>
                         {companyName}
                     </div>
@@ -1939,7 +2033,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                             <span><strong>GSTIN:</strong> {companyInfo.gst_no}</span>
                         )}
                     </div>
-                    <div style={{ marginTop: '6px', fontSize: '9px', color: '#94a3b8' }}>
+                    <div style={{ marginTop: '5px', fontSize: '9px', color: '#94a3b8' }}>
                         Confidential &bull; Generated via {companyName} HRMS &bull; Computer generated report, signature not required.
                     </div>
                 </div>
@@ -1961,6 +2055,11 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                 .custom-scrollbar-h::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
                 input[type="date"]::-webkit-calendar-picker-indicator { cursor: pointer; filter: opacity(0.2); }
 
+                @page {
+                    size: landscape;
+                    margin: 8mm;
+                }
+
                 @media print {
                     body * {
                         visibility: hidden !important;
@@ -1973,6 +2072,8 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                         color: #000000 !important;
                         padding: 0 !important;
                         margin: 0 !important;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
                     }
                     .print-only-report, .print-only-report * {
                         visibility: visible !important;
@@ -1984,33 +2085,87 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                         top: 0 !important;
                         width: 100% !important;
                         background: #ffffff !important;
-                        padding: 24px !important;
+                        padding: 10px 14px !important;
                         z-index: 999999 !important;
                     }
                     .print-table {
                         width: 100% !important;
                         border-collapse: collapse !important;
-                        margin-top: 15px !important;
+                        margin-top: 10px !important;
+                        page-break-inside: auto !important;
+                    }
+                    .print-table tr {
+                        page-break-inside: avoid !important;
+                        page-break-after: auto !important;
                     }
                     .print-table th, .print-table td {
                         border: 1px solid #cbd5e1 !important;
-                        padding: 8px 10px !important;
-                        font-size: 11px !important;
+                        padding: 5px 7px !important;
+                        font-size: 10px !important;
                         text-align: center !important;
+                        vertical-align: middle !important;
                     }
                     .print-table th {
                         background-color: #f1f5f9 !important;
                         color: #0f172a !important;
                         font-weight: 800 !important;
                         text-transform: uppercase !important;
+                        font-size: 9.5px !important;
+                        letter-spacing: 0.03em !important;
                     }
-                    .print-table th:first-child, .print-table td:first-child {
-                        text-align: left !important;
+                    .print-badge {
+                        display: inline-block !important;
+                        padding: 2px 6px !important;
+                        border-radius: 4px !important;
+                        font-size: 9.5px !important;
+                        font-weight: 800 !important;
+                        border: 1px solid transparent !important;
+                        white-space: nowrap !important;
+                    }
+                    .print-badge-present {
+                        background-color: #ecfdf5 !important;
+                        color: #047857 !important;
+                        border-color: #a7f3d0 !important;
+                    }
+                    .print-badge-absent {
+                        background-color: #fff1f2 !important;
+                        color: #be123c !important;
+                        border-color: #fecdd3 !important;
+                    }
+                    .print-badge-leave {
+                        background-color: #faf5ff !important;
+                        color: #7e22ce !important;
+                        border-color: #e9d5ff !important;
+                    }
+                    .print-badge-late {
+                        background-color: #fffbeb !important;
+                        color: #b45309 !important;
+                        border-color: #fde68a !important;
+                    }
+                    .print-badge-early {
+                        background-color: #f0f9ff !important;
+                        color: #0369a1 !important;
+                        border-color: #bae6fd !important;
+                    }
+                    .print-badge-warn {
+                        background-color: #fef3c7 !important;
+                        color: #92400e !important;
+                        border-color: #fcd34d !important;
+                    }
+                    .print-badge-teal {
+                        background-color: #f0fdfa !important;
+                        color: #0f766e !important;
+                        border-color: #99f6e4 !important;
+                    }
+                    .print-badge-neutral {
+                        background-color: #f8fafc !important;
+                        color: #475569 !important;
+                        border-color: #e2e8f0 !important;
                     }
                     .print-footer {
                         width: 100% !important;
-                        margin-top: 24px !important;
-                        padding-top: 12px !important;
+                        margin-top: 20px !important;
+                        padding-top: 10px !important;
                         border-top: 1.5px solid #94a3b8 !important;
                         page-break-inside: avoid !important;
                     }

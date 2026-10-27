@@ -1846,6 +1846,7 @@ class AttendanceController extends Controller
                 'work_hours' => floor($totalWorkedMinutes / 60) . 'h ' . ($totalWorkedMinutes % 60) . 'm',
                 'break_hours' => floor($totalBreakMinutes / 60) . 'h ' . ($totalBreakMinutes % 60) . 'm',
                 'total_worked_minutes' => $totalWorkedMinutes,
+                'total_break_minutes' => $totalBreakMinutes,
             ];
         }
 
