@@ -50,7 +50,30 @@ class AttendanceCorrectionController extends Controller
         $adminId = $this->getTenantAdminId();
         $date = $request->date;
 
+        // Monthly limit: a user can submit only a limited number of correction requests per month
+        if (AttendanceCorrectionRequest::countThisMonth($user->id) >= AttendanceCorrectionRequest::MONTHLY_LIMIT) {
+            return back()->with('error', 'You have reached the limit of ' . AttendanceCorrectionRequest::MONTHLY_LIMIT . ' correction requests for this month. Please contact your admin/HR for further assistance.');
+        }
+
         $attendance = Attendance::where('user_id', $user->id)->where('date', $date)->first();
+
+        // Duplicate guard: ignore an identical pending request (e.g. double-click on submit)
+        $duplicate = AttendanceCorrectionRequest::where('user_id', $user->id)
+            ->where('date', $date)
+            ->where('request_type', $request->request_type)
+            ->where('status', 'pending')
+            ->where('break_action', $request->break_action)
+            ->where('attendance_break_id', $request->attendance_break_id)
+            ->where('requested_punch_in', $request->requested_punch_in ? Carbon::parse($request->requested_punch_in) : null)
+            ->where('requested_punch_out', $request->requested_punch_out ? Carbon::parse($request->requested_punch_out) : null)
+            ->where('requested_break_start', $request->requested_break_start ? Carbon::parse($request->requested_break_start) : null)
+            ->where('requested_break_end', $request->requested_break_end ? Carbon::parse($request->requested_break_end) : null)
+            ->where('reason', $request->reason)
+            ->exists();
+
+        if ($duplicate) {
+            return back()->with('error', 'An identical correction request is already pending for this date.');
+        }
 
         // Rule 1: Break time request requires an existing check-in (punch_in) for that date
         if ($request->request_type === 'break_time') {

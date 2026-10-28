@@ -1300,6 +1300,7 @@ class AttendanceController extends Controller
             'attendanceData' => $attendanceData,
             'totalMonthlyMinutes' => $totalMonthlyMinutes,
             'correctionRequests' => $correctionRequests,
+            'correctionQuota' => \App\Models\AttendanceCorrectionRequest::monthlyQuota($userId),
             'timingRules' => $timingRules,
             'userShift' => $user ? ($user->relationLoaded('shift') ? $user->shift : $user->load('shift')->shift) : null,
             'currentActiveMonth' => $currentActiveMonth,

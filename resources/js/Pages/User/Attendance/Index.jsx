@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import UserLayout from '@/Layouts/UserLayout';
 import { Head, router, usePage, useForm, Link } from '@inertiajs/react';
 import MonthPicker from '@/Components/MonthPicker';
@@ -8,6 +8,7 @@ import { Home, ChevronRight, Clock, Plus, Edit2, AlertCircle, CheckCircle2, XCir
 export default function Index({
     attendanceData = [],
     correctionRequests = [],
+    correctionQuota = { limit: 3, used: 0, remaining: 3, reached: false },
     filters = {},
     totalMonthlyMinutes = 0,
     timingRules = {},
@@ -22,6 +23,9 @@ export default function Index({
     const [selectedRecord, setSelectedRecord] = useState(null);
     const [activeTab, setActiveTab] = useState('attendance'); // 'attendance' | 'requests'
     const [deletingReqId, setDeletingReqId] = useState(null);
+    const [showLimitModal, setShowLimitModal] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const submittingRef = useRef(false);
 
     const { data, setData, post, processing, errors, reset, clearErrors } = useForm({
         request_type: 'punch_time',
@@ -58,6 +62,10 @@ export default function Index({
     };
 
     const openCorrectionModal = (record = null, initialType = 'punch_time', initialBreakId = null) => {
+        if (correctionQuota?.reached) {
+            setShowLimitModal(true);
+            return;
+        }
         clearErrors();
         const targetDate = record ? record.date : new Date().toISOString().split('T')[0];
         const targetRecord = record || attendanceData.find(r => r.date === targetDate);
@@ -203,10 +211,19 @@ export default function Index({
             requested_break_end: data.requested_break_end ? `${data.date} ${data.requested_break_end}:00` : null,
         };
 
+        // Block duplicate submissions (e.g. double click) until this request finishes
+        if (submittingRef.current) return;
+        submittingRef.current = true;
+        setIsSubmitting(true);
+
         router.post(route('attendance.correction.store'), payload, {
             onSuccess: () => {
                 setShowModal(false);
                 reset();
+            },
+            onFinish: () => {
+                submittingRef.current = false;
+                setIsSubmitting(false);
             }
         });
     };
@@ -1108,16 +1125,38 @@ export default function Index({
                                         </button>
                                         <button
                                             type="submit"
-                                            disabled={processing || hasAnyInlineError}
+                                            disabled={processing || isSubmitting || hasAnyInlineError}
                                             className="px-6 py-2.5 bg-[#1e293b] hover:bg-slate-800 text-white text-xs font-extrabold uppercase tracking-wider rounded-xl transition-all shadow-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
                                         >
-                                            {processing ? 'SUBMITTING...' : 'SUBMIT'}
+                                            {(processing || isSubmitting) ? 'SUBMITTING...' : 'SUBMIT'}
                                         </button>
                                     </div>
                                 </>
                             );
                         })()}
                     </form>
+                </Modal>
+
+                {/* Monthly Correction Limit Reached Modal */}
+                <Modal show={showLimitModal} onClose={() => setShowLimitModal(false)} maxWidth="sm">
+                    <div className="p-6 text-center">
+                        <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+                            <AlertCircle className="h-8 w-8 text-red-600" />
+                        </div>
+                        <h2 className="text-lg font-bold text-gray-800 mb-2">Request Limit Reached</h2>
+                        <p className="text-gray-600 mb-6">
+                            You are not allowed to submit more than {correctionQuota?.limit ?? 3} correction requests in a month.
+                            You have already used all {correctionQuota?.limit ?? 3} requests for this month.
+                            Please contact your admin/HR for further assistance.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={() => setShowLimitModal(false)}
+                            className="px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-md transition"
+                        >
+                            OK
+                        </button>
+                    </div>
                 </Modal>
 
                 {/* ✅ Delete Confirmation Modal */}

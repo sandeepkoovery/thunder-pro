@@ -37,6 +37,36 @@ class AttendanceCorrectionRequest extends Model
         'actioned_at' => 'datetime',
     ];
 
+    /**
+     * Maximum number of correction requests a user can submit per calendar month.
+     */
+    public const MONTHLY_LIMIT = 3;
+
+    /**
+     * Number of correction requests the user has submitted in the current calendar month.
+     */
+    public static function countThisMonth($userId): int
+    {
+        return static::where('user_id', $userId)
+            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->count();
+    }
+
+    /**
+     * Quota summary for the given user for the current month.
+     */
+    public static function monthlyQuota($userId): array
+    {
+        $used = static::countThisMonth($userId);
+
+        return [
+            'limit' => self::MONTHLY_LIMIT,
+            'used' => $used,
+            'remaining' => max(0, self::MONTHLY_LIMIT - $used),
+            'reached' => $used >= self::MONTHLY_LIMIT,
+        ];
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class);
