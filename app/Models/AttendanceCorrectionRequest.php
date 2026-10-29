@@ -43,21 +43,68 @@ class AttendanceCorrectionRequest extends Model
     public const MONTHLY_LIMIT = 3;
 
     /**
-     * Number of correction requests the user has submitted in the current calendar month.
+     * Resolve the [startDate, endDate] (Y-m-d) payroll cycle / month range that a given date belongs to.
      */
-    public static function countThisMonth($userId): int
+    public static function getCycleRangeForDate($userId, $date = null): array
     {
+        $targetDate = $date ? \Carbon\Carbon::parse($date) : now();
+        $user = User::find($userId);
+        $admin = ($user && $user->admin_id) ? Admin::find($user->admin_id) : null;
+
+        $startDay = $admin ? (int) ($admin->month_start_day ?? 25) : 25;
+        $endDay = $admin ? (int) ($admin->month_end_day ?? 24) : 24;
+
+        if ($startDay > 1 && $targetDate->day >= $startDay) {
+            $monthStr = $targetDate->copy()->addMonth()->format('Y-m');
+        } else {
+            $monthStr = $targetDate->format('Y-m');
+        }
+
+        if ($admin && method_exists($admin, 'getMonthDateRange')) {
+            return $admin->getMonthDateRange($monthStr);
+        }
+
+        $baseDate = \Carbon\Carbon::parse($monthStr . '-01');
+        if ($startDay === 1) {
+            return [
+                $baseDate->copy()->startOfMonth()->format('Y-m-d'),
+                $baseDate->copy()->endOfMonth()->format('Y-m-d'),
+            ];
+        }
+
+        $prevMonth = $baseDate->copy()->subMonth();
+        $maxStartDay = min($startDay, $prevMonth->daysInMonth);
+        $startStr = $prevMonth->day($maxStartDay)->format('Y-m-d');
+
+        $maxEndDay = min($endDay, $baseDate->daysInMonth);
+        $endStr = $baseDate->copy()->day($maxEndDay)->format('Y-m-d');
+
+        return [$startStr, $endStr];
+    }
+
+    /**
+     * Number of correction requests the user has submitted for the month/cycle of the given date (or explicit date range).
+     */
+    public static function countThisMonth($userId, $dateOrStart = null, $endStr = null): int
+    {
+        if ($dateOrStart && $endStr) {
+            $start = $dateOrStart;
+            $end = $endStr;
+        } else {
+            [$start, $end] = static::getCycleRangeForDate($userId, $dateOrStart);
+        }
+
         return static::where('user_id', $userId)
-            ->whereBetween('created_at', [now()->startOfMonth(), now()->endOfMonth()])
+            ->whereBetween('date', [$start, $end])
             ->count();
     }
 
     /**
-     * Quota summary for the given user for the current month.
+     * Quota summary for the given user for a specific month/cycle (by date or explicit start/end range).
      */
-    public static function monthlyQuota($userId): array
+    public static function monthlyQuota($userId, $dateOrStart = null, $endStr = null): array
     {
-        $used = static::countThisMonth($userId);
+        $used = static::countThisMonth($userId, $dateOrStart, $endStr);
 
         return [
             'limit' => self::MONTHLY_LIMIT,

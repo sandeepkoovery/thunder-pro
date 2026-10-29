@@ -1250,9 +1250,36 @@ class AttendanceController extends Controller
             $hours = '-';
             $breakTime = '-';
             $attendanceId = null;
+            $currentStatus = '-';
+            $punchInLat = null;
+            $punchInLng = null;
+            $punchOutLat = null;
+            $punchOutLng = null;
+            $deviceType = null;
 
             if ($attendance) {
                 $attendanceId = $attendance->id;
+                $punchInLat = $attendance->punch_in_lat;
+                $punchInLng = $attendance->punch_in_lng;
+                $punchOutLat = $attendance->punch_out_lat;
+                $punchOutLng = $attendance->punch_out_lng;
+                $deviceType = $attendance->device_type;
+                $dbStatus = $attendance->status;
+                $breaks = $attendance->breaks;
+
+                $hasActiveBreak = $breaks && collect($breaks)->whereNull('end_time')->isNotEmpty();
+                if ($attendance->date instanceof \Carbon\Carbon ? $attendance->date->isToday() : $attendance->date === Carbon::today()->toDateString()) {
+                    if ($dbStatus !== 'punched_out' && ($hasActiveBreak || $dbStatus === 'on_break')) {
+                        $currentStatus = 'Break';
+                    } elseif ($dbStatus === 'punched_in') {
+                        $currentStatus = 'Working';
+                    } elseif ($dbStatus === 'punched_out') {
+                        $currentStatus = 'Punched Out';
+                    }
+                } else {
+                    $currentStatus = $attendance->punch_out ? 'Punched Out' : ($hasActiveBreak ? 'Break' : '-');
+                }
+
                 $checkInTime = Carbon::parse($attendance->punch_in)->timezone('Asia/Kolkata');
                 $dateString = $attendance->date instanceof \Carbon\Carbon ? $attendance->date->format('Y-m-d') : $attendance->date;
                 $lateCutoff = $this->getLateCutoff($dateString, $timingRules['start_time'], $timingRules['buffer_minutes']);
@@ -1323,6 +1350,12 @@ class AttendanceController extends Controller
                 'attendance_id' => $attendanceId,
                 'punch_in_raw' => $attendance && $attendance->punch_in ? Carbon::parse($attendance->punch_in, 'Asia/Kolkata')->toIso8601String() : null,
                 'punch_out_raw' => $attendance && $attendance->punch_out ? Carbon::parse($attendance->punch_out, 'Asia/Kolkata')->toIso8601String() : null,
+                'punch_in_lat' => $punchInLat,
+                'punch_in_lng' => $punchInLng,
+                'punch_out_lat' => $punchOutLat,
+                'punch_out_lng' => $punchOutLng,
+                'device_type' => $deviceType,
+                'current_status' => $currentStatus,
                 'total_worked_minutes' => $attendance ? $attendance->total_worked_minutes : 0,
                 'total_break_minutes' => $attendance ? ($attendance->total_break_minutes ?? 0) : 0,
                 'breaks' => $attendance ? $attendance->breaks : [],
@@ -1353,7 +1386,7 @@ class AttendanceController extends Controller
             'attendanceData' => $attendanceData,
             'totalMonthlyMinutes' => $totalMonthlyMinutes,
             'correctionRequests' => $correctionRequests,
-            'correctionQuota' => \App\Models\AttendanceCorrectionRequest::monthlyQuota($userId),
+            'correctionQuota' => \App\Models\AttendanceCorrectionRequest::monthlyQuota($userId, $startDate->toDateString(), $realEndDate->toDateString()),
             'odEnabled' => (bool) ($user->od_enabled ?? false),
             'odRequests' => $odRequests,
             'timingRules' => $timingRules,

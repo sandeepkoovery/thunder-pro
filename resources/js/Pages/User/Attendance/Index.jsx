@@ -3,7 +3,7 @@ import UserLayout from '@/Layouts/UserLayout';
 import { Head, router, usePage, useForm, Link } from '@inertiajs/react';
 import MonthPicker from '@/Components/MonthPicker';
 import Modal from '@/Components/Modal';
-import { Home, ChevronRight, Clock, Plus, Edit2, AlertCircle, CheckCircle2, XCircle, Coffee, Trash2 } from 'lucide-react';
+import { Home, ChevronRight, Clock, Plus, Edit2, AlertCircle, CheckCircle2, XCircle, Coffee, Trash2, MapPin, Smartphone, Monitor } from 'lucide-react';
 
 export default function Index({
     attendanceData = [],
@@ -23,7 +23,7 @@ export default function Index({
 
     const [showModal, setShowModal] = useState(false);
     const [selectedRecord, setSelectedRecord] = useState(null);
-    const [activeTab, setActiveTab] = useState('attendance'); // 'attendance' | 'requests'
+    const [activeTab, setActiveTab] = useState('table'); // 'table' | 'cards' | 'requests' | 'od'
     const [deletingReqId, setDeletingReqId] = useState(null);
     const [showLimitModal, setShowLimitModal] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -91,13 +91,68 @@ export default function Index({
         }
     };
 
+    const isDateMonthQuotaReached = (dateStr) => {
+        if (!dateStr) return !!correctionQuota?.reached;
+        const limit = correctionQuota?.limit ?? 3;
+        const cleanDate = String(dateStr).slice(0, 10);
+
+        // If cleanDate falls within the currently loaded cycleRange, use its exact bounds
+        if (cycleRange?.start && cycleRange?.end && cleanDate >= cycleRange.start && cleanDate <= cycleRange.end) {
+            const count = (correctionRequests || []).filter(r => {
+                const rd = String(r.date || '').slice(0, 10);
+                return rd >= cycleRange.start && rd <= cycleRange.end;
+            }).length;
+            return count >= limit;
+        }
+
+        // Otherwise compute the cycle bounds for cleanDate using the same startDay as cycleRange
+        const startDay = cycleRange?.start ? (parseInt(cycleRange.start.split('-')[2], 10) || 25) : 25;
+        const [y, m, d] = cleanDate.split('-').map(Number);
+        let cycleStart = '';
+        let cycleEnd = '';
+
+        if (startDay === 1) {
+            const lastDay = new Date(y, m, 0).getDate();
+            cycleStart = `${y}-${String(m).padStart(2, '0')}-01`;
+            cycleEnd = `${y}-${String(m).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+        } else {
+            const endDay = startDay - 1;
+            if (d >= startDay) {
+                const nextDate = new Date(y, m, 1);
+                const nextY = nextDate.getFullYear();
+                const nextM = nextDate.getMonth() + 1;
+                const nextMaxEnd = Math.min(endDay, new Date(nextY, nextM, 0).getDate());
+                cycleStart = `${y}-${String(m).padStart(2, '0')}-${String(startDay).padStart(2, '0')}`;
+                cycleEnd = `${nextY}-${String(nextM).padStart(2, '0')}-${String(nextMaxEnd).padStart(2, '0')}`;
+            } else {
+                const prevDate = new Date(y, m - 2, 1);
+                const prevY = prevDate.getFullYear();
+                const prevM = prevDate.getMonth() + 1;
+                const prevMaxStart = Math.min(startDay, new Date(prevY, prevM, 0).getDate());
+                const curMaxEnd = Math.min(endDay, new Date(y, m, 0).getDate());
+                cycleStart = `${prevY}-${String(prevM).padStart(2, '0')}-${String(prevMaxStart).padStart(2, '0')}`;
+                cycleEnd = `${y}-${String(m).padStart(2, '0')}-${String(curMaxEnd).padStart(2, '0')}`;
+            }
+        }
+
+        const count = (correctionRequests || []).filter(r => {
+            const rd = String(r.date || '').slice(0, 10);
+            return rd >= cycleStart && rd <= cycleEnd;
+        }).length;
+        return count >= limit;
+    };
+
     const openCorrectionModal = (record = null, initialType = 'punch_time', initialBreakId = null) => {
-        if (correctionQuota?.reached) {
+        const defaultDate = attendanceData && attendanceData.length > 0
+            ? attendanceData[0].date
+            : new Date().toISOString().split('T')[0];
+        const targetDate = record ? record.date : defaultDate;
+
+        if (isDateMonthQuotaReached(targetDate)) {
             setShowLimitModal(true);
             return;
         }
         clearErrors();
-        const targetDate = record ? record.date : new Date().toISOString().split('T')[0];
         const targetRecord = record || attendanceData.find(r => r.date === targetDate);
 
         setSelectedRecord(targetRecord || null);
@@ -181,6 +236,12 @@ export default function Index({
 
     const handleSubmitCorrection = (e) => {
         e.preventDefault();
+
+        if (isDateMonthQuotaReached(data.date)) {
+            setShowModal(false);
+            setShowLimitModal(true);
+            return;
+        }
 
         const dateRecord = attendanceData.find(r => r.date === data.date);
         const hasPunchIn = dateRecord && !!dateRecord.punch_in_raw;
@@ -558,17 +619,27 @@ export default function Index({
 
                 </div>
 
-                {/* 2. NAVIGATION TABS: Attendance Logs vs My Correction Requests */}
+                {/* 2. NAVIGATION TABS: Table View / Cards View / My Correction Requests / My OD Requests */}
                 <div className="flex overflow-x-auto border-b border-gray-100 bg-white rounded-t-[24px] px-4 sm:px-6 pt-2 sm:pt-4 no-scrollbar">
                     <button
-                        onClick={() => setActiveTab('attendance')}
+                        onClick={() => setActiveTab('table')}
                         className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 ${
-                            activeTab === 'attendance'
+                            activeTab === 'table'
                                 ? 'border-blue-600 text-blue-600 font-extrabold'
                                 : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
                         }`}
                     >
-                        {dateRangeStr} Records
+                        Table View
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('cards')}
+                        className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 ${
+                            activeTab === 'cards'
+                                ? 'border-blue-600 text-blue-600 font-extrabold'
+                                : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
+                        }`}
+                    >
+                        Cards View
                     </button>
                     <button
                         onClick={() => setActiveTab('requests')}
@@ -605,7 +676,182 @@ export default function Index({
                 </div>
 
                 {/* 3. MAIN CONTENT BASED ON TAB */}
-                {activeTab === 'attendance' ? (
+                {activeTab === 'table' ? (
+                    <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 ring-1 ring-gray-100 overflow-hidden">
+                        <div className="overflow-x-auto w-full custom-scrollbar-h">
+                            <table className="w-full text-left border-collapse min-w-[1000px]">
+                                <thead className="bg-[#fcfcfd] border-b border-gray-100">
+                                    <tr>
+                                        <th className="py-5 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Date</th>
+                                        <th className="py-5 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Check In</th>
+                                        <th className="py-5 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Check Out</th>
+                                        <th className="py-5 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Status</th>
+                                        <th className="py-5 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Current Status</th>
+                                        <th className="py-5 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                                            <div>Hours</div>
+                                            <div className="text-[10px] text-blue-600 font-semibold normal-case tracking-normal">(Req: 8h)</div>
+                                        </th>
+                                        <th className="py-5 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Break</th>
+                                        <th className="py-5 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Location</th>
+                                        <th className="py-5 px-4 text-[11px] font-bold text-gray-500 uppercase tracking-widest">Device</th>
+                                        <th className="py-5 px-6 text-[11px] font-bold text-gray-500 uppercase tracking-widest text-right">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50">
+                                    {sortedAttendanceData && sortedAttendanceData.length > 0 ? (
+                                        sortedAttendanceData.map((record) => {
+                                            const rowBg =
+                                                record.status === 'OFF'
+                                                    ? 'bg-blue-50/30'
+                                                    : record.status === 'Absent'
+                                                    ? 'bg-red-50/30'
+                                                    : record.status === 'On Leave' || record.status === 'Leave'
+                                                    ? 'bg-purple-50/30'
+                                                    : record.status === 'OD'
+                                                    ? 'bg-teal-50/30'
+                                                    : '';
+                                            const isLowHours =
+                                                record.total_worked_minutes > 0 && record.total_worked_minutes < 480;
+
+                                            return (
+                                                <tr
+                                                    key={record.id}
+                                                    className={`group hover:bg-gray-50/50 transition-all ${rowBg}`}
+                                                >
+                                                    <td className="py-4 px-6">
+                                                        <div className="text-[14px] font-bold text-gray-800">
+                                                            {formatCardDate(record.date)}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <div className="text-[14px] font-semibold text-gray-700">
+                                                            {record.check_in === '-' || !record.check_in ? '--' : record.check_in}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <div className="flex items-center gap-2 flex-wrap">
+                                                            <span
+                                                                className={`text-[14px] font-semibold ${
+                                                                    isRecordMissingPunchout(record)
+                                                                        ? 'text-amber-600 font-bold'
+                                                                        : 'text-gray-700'
+                                                                }`}
+                                                            >
+                                                                {record.check_out === '-' || !record.check_out ? '--' : record.check_out}
+                                                            </span>
+                                                            {isRecordMissingPunchout(record) && (
+                                                                <span
+                                                                    className="px-2 py-0.5 text-[10px] font-extrabold bg-amber-100 text-amber-800 rounded-md uppercase tracking-wider border border-amber-200"
+                                                                    title="System auto-closed session (missing manual punch-out)"
+                                                                >
+                                                                    Auto Closed
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-4">{getStatusBadge(record.status)}</td>
+                                                    <td className="py-4 px-4">
+                                                        {record.current_status === 'Working' ? (
+                                                            <span className="px-3 py-1.5 bg-green-100 text-green-700 rounded-xl text-[10px] font-bold uppercase tracking-wide">
+                                                                Working
+                                                            </span>
+                                                        ) : record.current_status === 'Break' ? (
+                                                            <span className="px-3 py-1.5 bg-orange-100 text-orange-700 rounded-xl text-[10px] font-bold uppercase tracking-wide">
+                                                                Break
+                                                            </span>
+                                                        ) : record.current_status === 'Punched Out' ? (
+                                                            <span className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-xl text-[10px] font-bold uppercase tracking-wide">
+                                                                Punched Out
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs">-</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <div
+                                                            className={`text-[14px] font-bold ${
+                                                                isLowHours ? 'text-red-600 font-semibold' : 'text-gray-800'
+                                                            }`}
+                                                        >
+                                                            {record.hours === '0h 0m' || record.hours === '-' || !record.hours
+                                                                ? '--'
+                                                                : record.hours}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <span className="text-[14px] font-bold text-gray-800">
+                                                            {record.break_time === '0h 0m' || record.break_time === '-' || !record.break_time
+                                                                ? '--'
+                                                                : record.break_time}
+                                                        </span>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        <div className="flex items-center gap-2">
+                                                            {record.punch_in_lat && (
+                                                                <a
+                                                                    href={`https://www.google.com/maps?q=${record.punch_in_lat},${record.punch_in_lng}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-green-500 hover:text-green-700 transition-all p-1.5 hover:bg-green-50 rounded-xl"
+                                                                    title="Check-in Location"
+                                                                >
+                                                                    <MapPin className="w-4 h-4" />
+                                                                </a>
+                                                            )}
+                                                            {record.punch_out_lat && (
+                                                                <a
+                                                                    href={`https://www.google.com/maps?q=${record.punch_out_lat},${record.punch_out_lng}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-red-500 hover:text-red-700 transition-all p-1.5 hover:bg-red-50 rounded-xl"
+                                                                    title="Check-out Location"
+                                                                >
+                                                                    <MapPin className="w-4 h-4" />
+                                                                </a>
+                                                            )}
+                                                            {!record.punch_in_lat && !record.punch_out_lat && (
+                                                                <span className="text-gray-400">--</span>
+                                                            )}
+                                                        </div>
+                                                    </td>
+                                                    <td className="py-4 px-4">
+                                                        {record.device_type === 'Mobile' ? (
+                                                            <span className="flex items-center gap-2 text-[13px] font-bold text-gray-700" title="Mobile">
+                                                                <Smartphone className="w-4 h-4 text-gray-500" /> Mobile
+                                                            </span>
+                                                        ) : record.device_type === 'Desktop' ? (
+                                                            <span className="flex items-center gap-2 text-[13px] font-bold text-gray-700" title="Desktop">
+                                                                <Monitor className="w-4 h-4 text-gray-500" /> Desktop
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-gray-400">--</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="py-4 px-6 text-right">
+                                                        <button
+                                                            onClick={() => openCorrectionModal(record)}
+                                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 rounded-xl transition-colors"
+                                                            title="Request Change"
+                                                        >
+                                                            <Edit2 className="w-3.5 h-3.5" />
+                                                            <span>Request Change</span>
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })
+                                    ) : (
+                                        <tr>
+                                            <td colSpan={10} className="py-12 text-center text-gray-400 font-medium">
+                                                No attendance records found for this period.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                ) : activeTab === 'cards' ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         {sortedAttendanceData && sortedAttendanceData.length > 0 ? (
                             sortedAttendanceData.map((record) => (

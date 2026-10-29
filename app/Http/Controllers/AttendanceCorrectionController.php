@@ -50,8 +50,8 @@ class AttendanceCorrectionController extends Controller
         $adminId = $this->getTenantAdminId();
         $date = $request->date;
 
-        // Monthly limit: a user can submit only a limited number of correction requests per month
-        if (AttendanceCorrectionRequest::countThisMonth($user->id) >= AttendanceCorrectionRequest::MONTHLY_LIMIT) {
+        // Monthly limit: a user can submit only a limited number of correction requests per month (based on target attendance date's month/cycle)
+        if (AttendanceCorrectionRequest::countThisMonth($user->id, $date) >= AttendanceCorrectionRequest::MONTHLY_LIMIT) {
             return back()->with('error', 'You have reached the limit of ' . AttendanceCorrectionRequest::MONTHLY_LIMIT . ' correction requests for this month. Please contact your admin/HR for further assistance.');
         }
 
