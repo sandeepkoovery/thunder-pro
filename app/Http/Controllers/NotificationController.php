@@ -343,6 +343,10 @@ class NotificationController extends Controller
             $pendingCorrections = AttendanceCorrectionRequest::where('status', 'pending')
                 ->whereIn('user_id', $tenantUserIds)
                 ->count();
+            // Pending OD (On Duty) requests also count toward the Attendance badge
+            $pendingCorrections += \App\Models\OdRequest::where('status', 'pending')
+                ->whereIn('user_id', $tenantUserIds)
+                ->count();
         }
 
         return response()->json([

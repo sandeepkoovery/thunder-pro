@@ -63,6 +63,7 @@ export default function Index() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -71,6 +72,7 @@ export default function Index() {
     role: "user",
     image: null,
     desktop_only: false,
+    od_enabled: false,
     employee_id: "",
     department_id: "",
     shift_id: "",
@@ -214,6 +216,7 @@ export default function Index() {
   const openModal = (user = null) => {
     if (user) {
       setEditingUser(user);
+      setImagePreview(user.image_url || null);
       setForm({
         name: user.name || "",
         email: user.email || "",
@@ -222,6 +225,7 @@ export default function Index() {
         role: user.role || "user",
         image: null,
         desktop_only: !!user.desktop_only,
+        od_enabled: !!user.od_enabled,
         employee_id: user.employee_id || "",
         department_id: user.department_id || "",
         shift_id: user.shift_id || "",
@@ -233,6 +237,7 @@ export default function Index() {
     } else {
       const defaultShift = (shifts || []).find(s => s.is_default);
       setEditingUser(null);
+      setImagePreview(null);
       setForm({
         name: "",
         email: "",
@@ -241,6 +246,7 @@ export default function Index() {
         role: "user",
         image: null,
         desktop_only: false,
+        od_enabled: false,
         employee_id: "",
         department_id: "",
         shift_id: defaultShift?.id || "",
@@ -254,7 +260,10 @@ export default function Index() {
     setIsOpen(true);
   };
 
-  const closeModal = () => setIsOpen(false);
+  const closeModal = () => {
+    setIsOpen(false);
+    setImagePreview(null);
+  };
 
   // Handle input change
   const handleChange = (e) => {
@@ -263,11 +272,24 @@ export default function Index() {
     if (name === 'role' && value === 'manager' && !form.designation) {
       newDesignation = addedManagerTypes.length > 0 ? addedManagerTypes[0] : '';
     }
+    if (name === 'image' && files && files[0]) {
+      const file = files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
     setForm({
       ...form,
       designation: newDesignation,
       [name]: files ? files[0] : type === 'checkbox' ? (checked ? 1 : 0) : value,
     });
+  };
+
+  const handleClearImage = () => {
+    setForm(prev => ({ ...prev, image: null }));
+    setImagePreview(editingUser?.image_url || null);
   };
 
   // Validate inputs
@@ -948,336 +970,505 @@ export default function Index() {
 
         {/* Create/Edit Modal */}
         {isOpen && (
-          <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-start justify-center p-8 z-50 overflow-y-auto">
-            <div className="bg-white rounded-[24px] shadow-[0_32px_96px_-16px_rgba(0,0,0,0.1)] w-full max-w-4xl mt-10 overflow-hidden border border-slate-100 ring-1 ring-slate-900/5 transition-all">
-              <div className="p-8 border-b flex justify-between items-center bg-slate-50/50">
-                <div>
-                  <h2 className="text-2xl font-bold text-slate-900 tracking-tight">
-                    {editingUser ? "Edit Employee Details" : "Add New Employee"}
-                  </h2>
-                  <p className="text-sm font-medium text-slate-400 mt-1">
-                    {editingUser ? "Modify employee login information and role permissions." : "Create a new employee with custom dashboard login credentials."}
-                  </p>
+          <div className="fixed inset-0 bg-slate-900/55 backdrop-blur-sm flex items-start justify-center p-4 sm:p-6 z-50 overflow-y-auto">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl my-6 overflow-hidden border border-slate-200/80 transition-all">
+              {/* Modal Header */}
+              <div className="px-6 sm:px-8 py-5 border-b border-slate-200/80 flex justify-between items-center bg-gradient-to-r from-indigo-50/70 via-slate-50 to-white">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-sm shadow-indigo-500/20">
+                    <User className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900">
+                      {editingUser ? "Edit Employee Details" : "Add New Employee"}
+                    </h2>
+                    <p className="text-xs font-medium text-slate-500 mt-0.5">
+                      {editingUser
+                        ? "Update employee profile, credentials, and attendance privileges."
+                        : "Set up a new employee profile with login credentials and work settings."}
+                    </p>
+                  </div>
                 </div>
                 <button
+                  type="button"
                   onClick={closeModal}
-                  className="p-1.5 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-full transition-all active:scale-90"
+                  className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all active:scale-90"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-8 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                
-                {/* Account Details Heading */}
-                <div className="md:col-span-2 border-b border-gray-100 pb-1.5">
-                  <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">Account Information</h3>
-                </div>
-
-                {/* Name */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    value={form.name}
-                    onChange={handleChange}
-                    className={`w-full px-5 py-2.5 bg-gray-50/50 border rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm ${
-                      errors.name ? "border-red-500" : "border-gray-100"
-                    }`}
-                  />
-                  {errors.name && (
-                    <p className="text-red-500 text-xs font-bold ml-1 mt-1">{errors.name}</p>
-                  )}
-                </div>
-
-                {/* Email */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={form.email}
-                    onChange={handleChange}
-                    disabled={!!editingUser}
-                    className={`w-full px-5 py-2.5 border rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm ${
-                      errors.email ? "border-red-500" : "border-gray-100"
-                    } ${editingUser ? "bg-gray-100 cursor-not-allowed text-gray-400" : "bg-gray-50/50"}`}
-                  />
-                  {errors.email && (
-                    <p className="text-red-500 text-xs font-bold ml-1 mt-1">{errors.email}</p>
-                  )}
-                </div>
-
-                {/* Password */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Password</label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={form.password}
-                    onChange={handleChange}
-                    className={`w-full px-5 py-2.5 bg-gray-50/50 border rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm ${
-                      errors.password ? "border-red-500" : "border-gray-100"
-                    }`}
-                    placeholder={editingUser ? "Leave blank to keep" : ""}
-                  />
-                  {errors.password && (
-                    <p className="text-red-500 text-xs font-bold ml-1 mt-1">{errors.password}</p>
-                  )}
-                </div>
-
-                {/* Confirm Password */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Confirm Password</label>
-                  <input
-                    type="password"
-                    name="password_confirmation"
-                    value={form.password_confirmation}
-                    onChange={handleChange}
-                    className={`w-full px-5 py-2.5 bg-gray-50/50 border rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm ${
-                      errors.password_confirmation ? "border-red-500" : "border-gray-100"
-                    }`}
-                  />
-                  {errors.password_confirmation && (
-                    <p className="text-red-500 text-xs font-bold ml-1 mt-1">{errors.password_confirmation}</p>
-                  )}
-                </div>
-
-                {/* Role */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Role</label>
-                  <select
-                    name="role"
-                    value={form.role}
-                    onChange={handleChange}
-                    className="w-full pl-5 pr-10 py-2.5 bg-gray-50/50 border border-gray-100 rounded-2xl bg-white text-sm font-bold text-gray-800 focus:outline-none focus:border-blue-500 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_14px_center] bg-[size:18px] bg-no-repeat"
-                  >
-                    <option value="user">User</option>
-                    <option value="manager">Manager</option>
-                    <option value="editor">Editor</option>
-                  </select>
-                </div>
-
-                {/* Desktop Toggle & Profile Image */}
-                <div className="space-y-1 flex flex-col justify-end">
-                  <div className="flex items-center p-3 bg-gray-50/30 border border-gray-100 rounded-2xl h-[46px]">
-                    <input
-                      type="checkbox"
-                      name="desktop_only"
-                      id="desktop_only"
-                      checked={!!form.desktop_only}
-                      onChange={handleChange}
-                      className="w-5 h-5 rounded-lg border-gray-200 text-blue-600 focus:ring-blue-500/25 ml-2"
-                    />
-                    <label htmlFor="desktop_only" className="ml-3 block text-sm font-bold text-gray-700">
-                      Desktop Punch-in Only Restriction
-                    </label>
-                  </div>
-                </div>
-
-                {/* Manager Type Selector (only shows managers added in the system) */}
-                {form.role === "manager" && (
-                  <div className="md:col-span-2 p-5 bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-slate-50 border border-blue-100 rounded-2xl space-y-3">
-                    <div className="flex items-center gap-2">
-                      <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
-                        <Crown size={16} />
-                      </div>
-                      <div>
-                        <label className="text-xs font-black text-gray-900 uppercase tracking-wider block">
-                          Manager Type ({addedManagerTypes.length})
-                        </label>
-                        <p className="text-[11px] text-gray-500 font-medium">
-                          Select from the managers configured for your company in the Modules page.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 pt-1 max-w-md">
-                      <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block ml-1">
-                        Select Manager Role
-                      </label>
-                      <select
-                        value={
-                          addedManagerTypes.includes(form.designation)
-                            ? form.designation
-                            : (form.designation ? "custom" : (addedManagerTypes[0] || ""))
-                        }
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (val === "custom") {
-                            setForm(prev => ({ ...prev, designation: "" }));
-                          } else {
-                            const matched = (users || []).find(u => u.role === 'manager' && u.designation === val && Array.isArray(u.module_permissions));
-                            setForm(prev => ({ 
-                              ...prev, 
-                              designation: val,
-                              module_permissions: matched?.module_permissions || prev.module_permissions
-                            }));
-                          }
-                        }}
-                        className="w-full pl-5 pr-10 py-2.5 bg-white border border-blue-200/80 rounded-xl text-sm font-bold text-gray-800 focus:outline-none focus:border-blue-500 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_14px_center] bg-[size:18px] bg-no-repeat shadow-xs"
-                      >
-                        {addedManagerTypes.length === 0 && (
-                          <option value="">No managers created yet</option>
-                        )}
-                        {addedManagerTypes.map((type) => (
-                          <option key={type} value={type}>{type}</option>
-                        ))}
-                        <option value="custom">+ Other / Custom Manager...</option>
-                      </select>
-
-                      {(!addedManagerTypes.includes(form.designation) || form.designation === "") && (
-                        <div className="space-y-1 pt-1">
-                          <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block ml-1">
-                            Custom Manager Title
-                          </label>
-                          <input
-                            type="text"
-                            name="designation"
-                            value={form.designation}
-                            onChange={handleChange}
-                            placeholder="Enter custom manager title"
-                            className="w-full px-4 py-2.5 bg-white border border-blue-200/80 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm shadow-xs"
-                            autoFocus
-                          />
-                        </div>
+              <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-6">
+                {/* 1. TOP PROFILE PHOTO UPLOAD & LIVE PREVIEW */}
+                <div className="flex flex-col sm:flex-row items-center gap-5 p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-50 via-indigo-50/40 to-slate-50 border border-slate-200/80">
+                  <div className="relative group shrink-0">
+                    <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white shadow-md bg-slate-100 flex items-center justify-center ring-2 ring-indigo-500/20">
+                      {imagePreview ? (
+                        <img
+                          src={imagePreview}
+                          alt="Profile preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = getDefaultAvatarUrl();
+                          }}
+                        />
+                      ) : (
+                        <img
+                          src={getDefaultAvatarUrl()}
+                          alt="Default avatar"
+                          className="w-full h-full object-cover opacity-85"
+                        />
                       )}
                     </div>
-                  </div>
-                )}
-
-                {/* Profile Photo */}
-                <div className="md:col-span-2 space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Profile Photo</label>
-                  <input
-                    type="file"
-                    name="image"
-                    accept="image/*"
-                    onChange={handleChange}
-                    className="w-full px-5 py-2 border border-gray-100 rounded-2xl bg-gray-50/50 text-sm font-medium text-gray-800"
-                  />
-                </div>
-
-                {/* Company Details Heading */}
-                <div className="md:col-span-2 border-b border-gray-100 pb-1.5 pt-1.5">
-                  <h3 className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest ml-1">Company Information</h3>
-                </div>
-
-                {/* Employee ID */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Employee ID</label>
-                  <input
-                    type="text"
-                    name="employee_id"
-                    value={form.employee_id}
-                    onChange={handleChange}
-                    className={`w-full px-5 py-2.5 bg-gray-50/50 border rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm ${
-                      errors.employee_id ? "border-red-500" : "border-gray-100"
-                    }`}
-                    placeholder="Leave blank to auto-generate"
-                  />
-                  {errors.employee_id && (
-                    <p className="text-red-500 text-xs font-bold ml-1 mt-1">{errors.employee_id}</p>
-                  )}
-                  <p className="text-[10px] text-gray-400 font-medium ml-1">Can be edited or customized anytime.</p>
-                </div>
-
-                {/* Department */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Department</label>
-                  <select
-                    name="department_id"
-                    value={form.department_id}
-                    onChange={handleChange}
-                    className="w-full pl-5 pr-10 py-2.5 bg-gray-50/50 border border-gray-100 rounded-2xl bg-white text-sm font-bold text-gray-800 focus:outline-none focus:border-blue-500 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_14px_center] bg-[size:18px] bg-no-repeat"
-                  >
-                    <option value="">Select Department</option>
-                    {departments.map((dept) => (
-                      <option key={dept.id} value={dept.id}>{dept.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Designation (shown for non-manager roles since managers select type above) */}
-                {form.role !== "manager" && (
-                  <div className="space-y-1">
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Designation</label>
-                    <input
-                      type="text"
-                      name="designation"
-                      value={form.designation}
-                      onChange={handleChange}
-                      className="w-full px-5 py-2.5 bg-gray-50/50 border border-gray-100 rounded-2xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-bold text-gray-800 text-sm"
-                      placeholder="Designation"
-                    />
-                  </div>
-                )}
-
-                {/* Employment Type */}
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Employment Type</label>
-                  <select
-                    name="employment_type"
-                    value={form.employment_type}
-                    onChange={handleChange}
-                    className="w-full pl-5 pr-10 py-2.5 bg-gray-50/50 border border-gray-100 rounded-2xl bg-white text-sm font-bold text-gray-800 focus:outline-none focus:border-blue-500 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_14px_center] bg-[size:18px] bg-no-repeat"
-                  >
-                    <option value="">Select Type</option>
-                    <option value="permanent">Permanent</option>
-                    <option value="contract">Contract</option>
-                    <option value="intern">Intern</option>
-                  </select>
-                </div>
-
-                {/* Work Shift (Visible when multiple shifts enabled) */}
-                {shiftsEnabled && (
-                  <div className="space-y-1">
-                    <div className="flex items-center justify-between">
-                      <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Work Shift</label>
-                      <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">Multi-Shift</span>
-                    </div>
-                    <select
-                      name="shift_id"
-                      value={form.shift_id}
-                      onChange={handleChange}
-                      className="w-full pl-5 pr-10 py-2.5 bg-gray-50/50 border border-gray-100 rounded-2xl bg-white text-sm font-bold text-gray-800 focus:outline-none focus:border-indigo-500 cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2020%2020%22%20fill%3D%22none%22%3E%3Cpath%20d%3D%22M7%209l3%203%203-3%22%20stroke%3D%22%236b7280%22%20stroke-width%3D%221.5%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_14px_center] bg-[size:18px] bg-no-repeat"
+                    <label
+                      htmlFor="employee_profile_image"
+                      className="absolute -bottom-1.5 -right-1.5 w-7 h-7 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white flex items-center justify-center shadow-md cursor-pointer transition-transform hover:scale-105"
+                      title="Upload photo"
                     >
-                      <option value="">Default Office Shift</option>
-                      {(shifts || []).map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.name} ({s.start_time?.substring(0, 5)} - {s.end_time?.substring(0, 5)}{s.is_night_shift || s.end_time <= s.start_time ? ' Next Day' : ''}) {s.is_default ? '★ Default' : ''}
-                        </option>
-                      ))}
-                    </select>
-                    {errors.shift_id && (
-                      <p className="text-red-500 text-xs font-bold ml-1 mt-1">{errors.shift_id}</p>
+                      <Upload className="w-3.5 h-3.5" />
+                    </label>
+                  </div>
+
+                  <div className="flex-1 text-center sm:text-left space-y-1.5">
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                      <span className="text-sm font-extrabold text-slate-900">Profile Photo</span>
+                      {form.image && (
+                        <span className="px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full">
+                          New Photo Preview
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-slate-500 font-medium">
+                      Upload a clear square image (JPG or PNG, max 2MB). Preview updates immediately before saving.
+                    </p>
+                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2.5 pt-1">
+                      <label
+                        htmlFor="employee_profile_image"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 text-xs font-bold shadow-2xs cursor-pointer transition-all"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>{imagePreview ? "Change Photo" : "Choose Photo"}</span>
+                      </label>
+                      {form.image && (
+                        <button
+                          type="button"
+                          onClick={handleClearImage}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 border border-rose-200/80 text-xs font-bold transition-all"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                          <span>Reset</span>
+                        </button>
+                      )}
+                      {form.image?.name && (
+                        <span className="text-[11px] text-slate-400 font-semibold truncate max-w-[180px]">
+                          {form.image.name}
+                        </span>
+                      )}
+                    </div>
+                    <input
+                      id="employee_profile_image"
+                      type="file"
+                      name="image"
+                      accept="image/*"
+                      onChange={handleChange}
+                      className="hidden"
+                    />
+                    {errors.image && (
+                      <p className="text-red-500 text-xs font-bold mt-1">{errors.image}</p>
                     )}
                   </div>
-                )}
-
-                {/* Joining Date */}
-                <div className={`${shiftsEnabled ? "space-y-1" : "md:col-span-2 space-y-1"}`}>
-                  <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Joining Date</label>
-                  <DatePicker
-                    name="joining_date"
-                    value={form.joining_date}
-                    onChange={(e) => setForm(prev => ({ ...prev, joining_date: e.target ? e.target.value : e }))}
-                  />
                 </div>
 
-                {/* Buttons */}
-                <div className="flex gap-4 pt-4 mt-4 border-t border-slate-50 md:col-span-2">
+                {/* 2. ACCOUNT & ACCESS SECTION */}
+                <div className="p-5 rounded-2xl bg-slate-50/60 border border-slate-100 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-200/70 pb-2.5">
+                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">
+                      Account & Login Credentials
+                    </span>
+                    <span className="text-[11px] font-semibold text-slate-400">Required fields *</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Name */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Full Name <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={form.name}
+                        onChange={handleChange}
+                        placeholder="e.g. Rahul Sharma"
+                        className={`w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-800 text-sm ${
+                          errors.name ? "border-red-500" : "border-slate-200"
+                        }`}
+                      />
+                      {errors.name && (
+                        <p className="text-red-500 text-xs font-bold">{errors.name}</p>
+                      )}
+                    </div>
+
+                    {/* Email */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Email Address <span className="text-rose-500">*</span>
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={form.email}
+                        onChange={handleChange}
+                        disabled={!!editingUser}
+                        placeholder="employee@company.com"
+                        className={`w-full px-4 py-2.5 border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-sm ${
+                          errors.email ? "border-red-500" : "border-slate-200"
+                        } ${editingUser ? "bg-slate-100 cursor-not-allowed text-slate-400" : "bg-white text-slate-800"}`}
+                      />
+                      {errors.email && (
+                        <p className="text-red-500 text-xs font-bold">{errors.email}</p>
+                      )}
+                    </div>
+
+                    {/* Password */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Password {!editingUser && <span className="text-rose-500">*</span>}
+                      </label>
+                      <input
+                        type="password"
+                        name="password"
+                        value={form.password}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-800 text-sm ${
+                          errors.password ? "border-red-500" : "border-slate-200"
+                        }`}
+                        placeholder={editingUser ? "Leave blank to keep current" : "Minimum 6 characters"}
+                      />
+                      {errors.password && (
+                        <p className="text-red-500 text-xs font-bold">{errors.password}</p>
+                      )}
+                    </div>
+
+                    {/* Confirm Password */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">
+                        Confirm Password {!editingUser && <span className="text-rose-500">*</span>}
+                      </label>
+                      <input
+                        type="password"
+                        name="password_confirmation"
+                        value={form.password_confirmation}
+                        onChange={handleChange}
+                        placeholder="Re-enter password"
+                        className={`w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-800 text-sm ${
+                          errors.password_confirmation ? "border-red-500" : "border-slate-200"
+                        }`}
+                      />
+                      {errors.password_confirmation && (
+                        <p className="text-red-500 text-xs font-bold">{errors.password_confirmation}</p>
+                      )}
+                    </div>
+
+                    {/* Role */}
+                    <div className={form.role === "manager" ? "md:col-span-2 space-y-1.5" : "space-y-1.5"}>
+                      <label className="block text-xs font-bold text-slate-700">Role</label>
+                      <select
+                        name="role"
+                        value={form.role}
+                        onChange={handleChange}
+                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                      >
+                        <option value="user">User (Employee)</option>
+                        <option value="manager">Manager</option>
+                        <option value="editor">Editor</option>
+                      </select>
+                    </div>
+
+                    {/* Designation (paired next to Role for non-managers) */}
+                    {form.role !== "manager" && (
+                      <div className="space-y-1.5">
+                        <label className="block text-xs font-bold text-slate-700">Designation</label>
+                        <input
+                          type="text"
+                          name="designation"
+                          value={form.designation}
+                          onChange={handleChange}
+                          className="w-full px-4 py-2.5 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-800 text-sm"
+                          placeholder="e.g. Software Engineer"
+                        />
+                      </div>
+                    )}
+
+                    {/* Manager Type Selector */}
+                    {form.role === "manager" && (
+                      <div className="md:col-span-2 p-4 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-white border border-blue-200/80 rounded-2xl space-y-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                            <Crown size={16} />
+                          </div>
+                          <div>
+                            <label className="text-xs font-black text-slate-900 uppercase tracking-wider block">
+                              Manager Type ({addedManagerTypes.length})
+                            </label>
+                            <p className="text-[11px] text-slate-500 font-medium">
+                              Select from the managers configured for your company in the Modules page.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                              Select Manager Role
+                            </label>
+                            <select
+                              value={
+                                addedManagerTypes.includes(form.designation)
+                                  ? form.designation
+                                  : (form.designation ? "custom" : (addedManagerTypes[0] || ""))
+                              }
+                              onChange={(e) => {
+                                const val = e.target.value;
+                                if (val === "custom") {
+                                  setForm(prev => ({ ...prev, designation: "" }));
+                                } else {
+                                  const matched = (users || []).find(u => u.role === 'manager' && u.designation === val && Array.isArray(u.module_permissions));
+                                  setForm(prev => ({
+                                    ...prev,
+                                    designation: val,
+                                    module_permissions: matched?.module_permissions || prev.module_permissions
+                                  }));
+                                }
+                              }}
+                              className="w-full pl-4 pr-10 py-2.5 bg-white border border-blue-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-blue-500 cursor-pointer"
+                            >
+                              {addedManagerTypes.length === 0 && (
+                                <option value="">No managers created yet</option>
+                              )}
+                              {addedManagerTypes.map((type) => (
+                                <option key={type} value={type}>{type}</option>
+                              ))}
+                              <option value="custom">+ Other / Custom Manager...</option>
+                            </select>
+                          </div>
+
+                          {(!addedManagerTypes.includes(form.designation) || form.designation === "") && (
+                            <div>
+                              <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                                Custom Manager Title
+                              </label>
+                              <input
+                                type="text"
+                                name="designation"
+                                value={form.designation}
+                                onChange={handleChange}
+                                placeholder="Enter custom manager title"
+                                className="w-full px-4 py-2.5 bg-white border border-blue-200 rounded-xl focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all font-semibold text-slate-800 text-sm"
+                                autoFocus
+                              />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* TWO RADIO-STYLE OPTIONS IN A SINGLE LINE */}
+                    <div className="md:col-span-2 pt-1">
+                      <label className="block text-xs font-bold text-slate-700 mb-2">
+                        Attendance & Access Options
+                      </label>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                        {/* Option 1: Desktop Punch-in Only */}
+                        <div
+                          onClick={() =>
+                            setForm(prev => ({ ...prev, desktop_only: prev.desktop_only ? 0 : 1 }))
+                          }
+                          className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all select-none ${
+                            form.desktop_only
+                              ? "bg-indigo-50/70 border-indigo-500 ring-2 ring-indigo-500/15"
+                              : "bg-white border-slate-200 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              readOnly
+                              checked={!!form.desktop_only}
+                              className="w-4 h-4 text-indigo-600 border-slate-300 focus:ring-indigo-500 cursor-pointer pointer-events-none"
+                            />
+                            <div>
+                              <span className="block text-xs sm:text-sm font-bold text-slate-800">
+                                Desktop Punch-in Only
+                              </span>
+                              <span className="block text-[11px] text-slate-500 font-medium">
+                                Restrict mobile attendance check-in
+                              </span>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                              form.desktop_only
+                                ? "bg-indigo-600 text-white"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {form.desktop_only ? "Enabled" : "Off"}
+                          </span>
+                        </div>
+
+                        {/* Option 2: Enable OD (On Duty) Request */}
+                        <div
+                          onClick={() =>
+                            setForm(prev => ({ ...prev, od_enabled: prev.od_enabled ? 0 : 1 }))
+                          }
+                          className={`flex items-center justify-between p-3.5 rounded-xl border cursor-pointer transition-all select-none ${
+                            form.od_enabled
+                              ? "bg-teal-50/70 border-teal-500 ring-2 ring-teal-500/15"
+                              : "bg-white border-slate-200 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="radio"
+                              readOnly
+                              checked={!!form.od_enabled}
+                              className="w-4 h-4 text-teal-600 border-slate-300 focus:ring-teal-500 cursor-pointer pointer-events-none"
+                            />
+                            <div>
+                              <span className="block text-xs sm:text-sm font-bold text-slate-800">
+                                Enable OD (On Duty) Option
+                              </span>
+                              <span className="block text-[11px] text-slate-500 font-medium">
+                                Allow employee to apply for OD days
+                              </span>
+                            </div>
+                          </div>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase ${
+                              form.od_enabled
+                                ? "bg-teal-600 text-white"
+                                : "bg-slate-100 text-slate-500"
+                            }`}
+                          >
+                            {form.od_enabled ? "Enabled" : "Off"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 3. COMPANY & EMPLOYMENT SECTION */}
+                <div className="p-5 rounded-2xl bg-slate-50/60 border border-slate-100 space-y-4">
+                  <div className="border-b border-slate-200/70 pb-2.5">
+                    <span className="text-[11px] font-black text-slate-600 uppercase tracking-widest">
+                      Company & Employment Information
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Employee ID */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Employee ID</label>
+                      <input
+                        type="text"
+                        name="employee_id"
+                        value={form.employee_id}
+                        onChange={handleChange}
+                        className={`w-full px-4 py-2.5 bg-white border rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all font-semibold text-slate-800 text-sm ${
+                          errors.employee_id ? "border-red-500" : "border-slate-200"
+                        }`}
+                        placeholder="Auto-generated if left blank"
+                      />
+                      {errors.employee_id && (
+                        <p className="text-red-500 text-xs font-bold">{errors.employee_id}</p>
+                      )}
+                    </div>
+
+                    {/* Department */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Department</label>
+                      <select
+                        name="department_id"
+                        value={form.department_id}
+                        onChange={handleChange}
+                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                      >
+                        <option value="">Select Department</option>
+                        {departments.map((dept) => (
+                          <option key={dept.id} value={dept.id}>{dept.name}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Employment Type */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Employment Type</label>
+                      <select
+                        name="employment_type"
+                        value={form.employment_type}
+                        onChange={handleChange}
+                        className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                      >
+                        <option value="">Select Type</option>
+                        <option value="permanent">Permanent</option>
+                        <option value="contract">Contract</option>
+                        <option value="intern">Intern</option>
+                      </select>
+                    </div>
+
+                    {/* Joining Date */}
+                    <div className="space-y-1.5">
+                      <label className="block text-xs font-bold text-slate-700">Joining Date</label>
+                      <DatePicker
+                        name="joining_date"
+                        value={form.joining_date}
+                        onChange={(e) => setForm(prev => ({ ...prev, joining_date: e.target ? e.target.value : e }))}
+                      />
+                    </div>
+
+                    {/* Work Shift (Visible when multiple shifts enabled) */}
+                    {shiftsEnabled && (
+                      <div className="md:col-span-2 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-bold text-slate-700">Work Shift</label>
+                          <span className="text-[10px] font-bold px-2 py-0.5 bg-indigo-50 text-indigo-700 rounded-full">Multi-Shift</span>
+                        </div>
+                        <select
+                          name="shift_id"
+                          value={form.shift_id}
+                          onChange={handleChange}
+                          className="w-full pl-4 pr-10 py-2.5 bg-white border border-slate-200 rounded-xl text-sm font-semibold text-slate-800 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                        >
+                          <option value="">Default Office Shift</option>
+                          {(shifts || []).map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name} ({s.start_time?.substring(0, 5)} - {s.end_time?.substring(0, 5)}{s.is_night_shift || s.end_time <= s.start_time ? ' Next Day' : ''}) {s.is_default ? '★ Default' : ''}
+                            </option>
+                          ))}
+                        </select>
+                        {errors.shift_id && (
+                          <p className="text-red-500 text-xs font-bold">{errors.shift_id}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex items-center justify-end gap-3 pt-2">
                   <button
                     type="button"
                     onClick={closeModal}
-                    className="px-6 py-3 text-sm font-semibold text-slate-500 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all active:scale-[0.98]"
+                    className="px-6 py-2.5 text-sm font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-xl transition-all active:scale-[0.98]"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-3 px-6 text-sm font-semibold text-white bg-slate-900 hover:bg-black rounded-xl shadow-[0_10px_20px_-10px_rgba(15,23,42,0.4)] transition-all active:scale-[0.98]"
+                    className="px-7 py-2.5 text-sm font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-xl shadow-md shadow-indigo-500/20 transition-all active:scale-[0.98]"
                   >
                     {editingUser ? "Save Changes" : "Create Employee"}
                   </button>

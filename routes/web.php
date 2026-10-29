@@ -137,6 +137,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/attendance/break/end', [App\Http\Controllers\AttendanceController::class, 'endBreak'])->name('attendance.break.end');
     Route::post('/attendance/correction-request', [AttendanceCorrectionController::class, 'store'])->name('attendance.correction.store');
     Route::delete('/attendance/correction-request/{id}', [AttendanceCorrectionController::class, 'destroy'])->name('attendance.correction.delete');
+    Route::post('/attendance/od-request', [\App\Http\Controllers\OdRequestController::class, 'store'])->name('attendance.od.store');
+    Route::delete('/attendance/od-request/{id}', [\App\Http\Controllers\OdRequestController::class, 'destroy'])->name('attendance.od.delete');
 
     // -------------------------
     // ✅ AI ASSISTANT ROUTES
@@ -321,6 +323,9 @@ Route::middleware(['auth', 'is_admin'])
             Route::post('attendance/correction-requests/{id}/approve', [AttendanceCorrectionController::class, 'approve'])->name('attendance.correction.approve');
             Route::post('attendance/correction-requests/{id}/reject', [AttendanceCorrectionController::class, 'reject'])->name('attendance.correction.reject');
             Route::delete('attendance/correction-requests/{id}', [AttendanceCorrectionController::class, 'destroy'])->name('attendance.correction.destroy');
+            Route::post('attendance/od-requests/{id}/approve', [\App\Http\Controllers\OdRequestController::class, 'approve'])->name('attendance.od.approve');
+            Route::post('attendance/od-requests/{id}/reject', [\App\Http\Controllers\OdRequestController::class, 'reject'])->name('attendance.od.reject');
+            Route::delete('attendance/od-requests/{id}', [\App\Http\Controllers\OdRequestController::class, 'destroy'])->name('attendance.od.destroy');
 
             // -------------------------
             // ✅ SALARY SLIP ROUTES (Admin)

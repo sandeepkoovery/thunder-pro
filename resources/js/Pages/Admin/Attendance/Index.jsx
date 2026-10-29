@@ -12,7 +12,7 @@ import MonthPicker from '@/Components/MonthPicker';
 import DatePicker from '@/Components/DatePicker';
 import CalendarView from '@/Components/CalendarView';
 
-export default function Index({ attendanceData, filters, users, viewType, totalMonthlyMinutes, selectedUser, leaves, settings, exportPreviewData, correctionRequests = [], timingRules, company = null }) {
+export default function Index({ attendanceData, filters, users, viewType, totalMonthlyMinutes, selectedUser, leaves, settings, exportPreviewData, correctionRequests = [], odRequests = [], timingRules, company = null }) {
     const { auth, company: sharedCompany } = usePage().props;
     const companyInfo = company || sharedCompany || {
         name: auth?.user?.company_name || 'WorkNest',
@@ -61,6 +61,25 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
     const [adminNoteText, setAdminNoteText] = useState('');
 
     const pendingRequestsCount = (correctionRequests || []).filter(r => r.status === 'pending').length;
+    const pendingOdCount = (odRequests || []).filter(r => r.status === 'pending').length;
+    const [selectedOdStatus, setSelectedOdStatus] = useState('all');
+    const [odAction, setOdAction] = useState(null); // { req, type: 'approve' | 'reject' }
+    const [odNote, setOdNote] = useState('');
+
+    const submitOdAction = () => {
+        if (!odAction) return;
+        const routeName = odAction.type === 'approve' ? 'admin.attendance.od.approve' : 'admin.attendance.od.reject';
+        router.post(route(routeName, odAction.req.id), { admin_note: odNote }, {
+            preserveScroll: true,
+            onSuccess: () => { setOdAction(null); setOdNote(''); },
+        });
+    };
+
+    const deleteOdRequest = (id) => {
+        if (window.confirm('Delete this OD request?')) {
+            router.delete(route('admin.attendance.od.destroy', id), { preserveScroll: true });
+        }
+    };
 
     useEffect(() => {
         if (exportPreviewData && exportPreviewData.length > 0) {
@@ -592,6 +611,10 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             }
         }
 
+        if (displayMode === 'calendar' && newFilters.display !== 'table') {
+            newFilters.display = 'calendar';
+        }
+
         router.get(route('admin.attendance.index'), newFilters, {
             preserveState: true,
             replace: true
@@ -708,6 +731,7 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
             case 'Late & Early Leave': return 'bg-orange-100 text-orange-600';
             case 'Absent': return 'bg-red-100 text-red-600';
             case 'OFF': return 'bg-blue-100 text-blue-600';
+            case 'OD': return 'bg-teal-100 text-teal-700';
             case 'On Leave':
             case 'Leave': return 'bg-purple-100 text-purple-600';
             default: return 'bg-gray-50 text-gray-400';
@@ -957,10 +981,26 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                 </span>
                             )}
                         </button>
+                        <button
+                            onClick={() => {
+                                setDisplayMode('od');
+                            }}
+                            className={`px-4 sm:px-8 py-3 text-xs sm:text-[13px] font-bold uppercase tracking-wider sm:tracking-widest whitespace-nowrap transition-all border-b-2 inline-flex items-center gap-2 ${displayMode === 'od'
+                                ? 'border-blue-600 text-blue-600'
+                                : 'border-transparent text-gray-400 hover:text-gray-700 hover:border-gray-200'
+                                }`}
+                        >
+                            OD Requests
+                            {pendingOdCount > 0 && (
+                                <span className="px-2 py-0.5 text-xs bg-amber-500 text-white rounded-full font-black">
+                                    {pendingOdCount}
+                                </span>
+                            )}
+                        </button>
                     </div>
 
                     {/* Filters (Hidden in Export tab and Requests tab) */}
-                    {displayMode !== 'export' && displayMode !== 'requests' && (
+                    {displayMode !== 'export' && displayMode !== 'requests' && displayMode !== 'od' && (
                         <div className="bg-white p-6 rounded-b-[24px] shadow-sm border border-gray-100 mb-6">
                             <div className="flex flex-wrap gap-6 items-end">
                                 <div className="flex flex-col gap-1.5">
@@ -1179,6 +1219,144 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                                             )}
                                         </tbody>
                                     </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* OD (On Duty) Requests View */}
+                    {displayMode === 'od' && (
+                        <div className="space-y-6">
+                            <div className="bg-white p-6 rounded-3xl shadow-sm border border-gray-100 flex flex-wrap items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                    {['all', 'pending', 'approved', 'rejected'].map(st => (
+                                        <button
+                                            key={st}
+                                            onClick={() => setSelectedOdStatus(st)}
+                                            className={`px-4 py-2 rounded-xl text-xs font-extrabold capitalize transition-all ${
+                                                selectedOdStatus === st
+                                                    ? 'bg-slate-900 text-white shadow-md'
+                                                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                            }`}
+                                        >
+                                            {st} {st === 'pending' && pendingOdCount > 0 ? `(${pendingOdCount})` : ''}
+                                        </button>
+                                    ))}
+                                </div>
+                                <div className="text-xs font-bold text-gray-400">
+                                    Total OD Requests: {(odRequests || []).length}
+                                </div>
+                            </div>
+
+                            <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 ring-1 ring-gray-100 overflow-hidden">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left border-collapse">
+                                        <thead className="bg-[#fcfcfd] border-b border-gray-100 text-[11px] font-bold text-gray-500 uppercase tracking-widest">
+                                            <tr>
+                                                <th className="py-5 px-6">Employee</th>
+                                                <th className="py-5 px-4">OD Date</th>
+                                                <th className="py-5 px-4">Reason</th>
+                                                <th className="py-5 px-4">Status</th>
+                                                <th className="py-5 px-6 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-100 text-sm font-medium">
+                                            {(odRequests || [])
+                                                .filter(r => selectedOdStatus === 'all' || r.status === selectedOdStatus)
+                                                .map(req => (
+                                                    <tr key={req.id} className="hover:bg-slate-50/70 transition-colors">
+                                                        <td className="py-4 px-6">
+                                                            <div className="font-extrabold text-slate-900">{req.user?.name || 'Unknown'}</div>
+                                                            <div className="text-xs text-gray-400">{req.user?.email}</div>
+                                                        </td>
+                                                        <td className="py-4 px-4 font-bold text-slate-800">
+                                                            {req.date ? new Date(String(req.date).substring(0, 10) + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                                                        </td>
+                                                        <td className="py-4 px-4 text-slate-700 max-w-[320px] whitespace-pre-wrap break-words">
+                                                            {req.reason || '—'}
+                                                        </td>
+                                                        <td className="py-4 px-4">
+                                                            {req.status === 'approved' && (
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-xs font-bold">✓ Approved</span>
+                                                            )}
+                                                            {req.status === 'rejected' && (
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-rose-50 text-rose-700 border border-rose-200 rounded-full text-xs font-bold">✕ Rejected</span>
+                                                            )}
+                                                            {req.status === 'pending' && (
+                                                                <span className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-50 text-amber-700 border border-amber-200 rounded-full text-xs font-bold">⏳ Pending</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="py-4 px-6 text-right">
+                                                            <div className="flex items-center justify-end gap-2">
+                                                                {req.status === 'pending' ? (
+                                                                    <>
+                                                                        <button
+                                                                            onClick={() => { setOdAction({ req, type: 'approve' }); setOdNote(''); }}
+                                                                            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-xs"
+                                                                        >
+                                                                            Approve
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={() => { setOdAction({ req, type: 'reject' }); setOdNote(''); }}
+                                                                            className="px-3.5 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-xl text-xs font-extrabold transition-all shadow-xs"
+                                                                        >
+                                                                            Reject
+                                                                        </button>
+                                                                    </>
+                                                                ) : (
+                                                                    <span className="text-xs text-gray-400 font-medium">
+                                                                        {req.admin_note ? `Note: ${req.admin_note}` : 'Actioned'}
+                                                                    </span>
+                                                                )}
+                                                                <button
+                                                                    onClick={() => deleteOdRequest(req.id)}
+                                                                    className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-all"
+                                                                    title="Delete Request"
+                                                                >
+                                                                    <Trash2 className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            {(odRequests || []).length === 0 && (
+                                                <tr>
+                                                    <td colSpan={5} className="py-12 text-center text-gray-400 font-medium">
+                                                        No OD requests found.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {odAction && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => setOdAction(null)}>
+                            <div className="bg-white rounded-3xl shadow-xl w-full max-w-md p-6 space-y-4" onClick={(e) => e.stopPropagation()}>
+                                <h3 className="text-lg font-extrabold text-slate-900">
+                                    {odAction.type === 'approve' ? 'Approve OD Request' : 'Reject OD Request'}
+                                </h3>
+                                <p className="text-sm text-gray-600">
+                                    {odAction.req.user?.name} — {String(odAction.req.date).substring(0, 10)}
+                                </p>
+                                <textarea
+                                    value={odNote}
+                                    onChange={(e) => setOdNote(e.target.value)}
+                                    rows={3}
+                                    placeholder="Admin note (optional)"
+                                    className="w-full border-gray-200 rounded-xl text-sm"
+                                />
+                                <div className="flex justify-end gap-2">
+                                    <button onClick={() => setOdAction(null)} className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl text-xs font-extrabold text-gray-700">Cancel</button>
+                                    <button
+                                        onClick={submitOdAction}
+                                        className={`px-4 py-2 rounded-xl text-xs font-extrabold text-white ${odAction.type === 'approve' ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700'}`}
+                                    >
+                                        {odAction.type === 'approve' ? 'Approve' : 'Reject'}
+                                    </button>
                                 </div>
                             </div>
                         </div>
@@ -1595,6 +1773,8 @@ export default function Index({ attendanceData, filters, users, viewType, totalM
                         <CalendarView
                             attendanceData={attendanceData}
                             leaves={leaves}
+                            odRequests={odRequests}
+                            selectedUser={selectedUser}
                             filters={filters}
                             settings={settings}
                             onFilterChange={handleFilterChange}

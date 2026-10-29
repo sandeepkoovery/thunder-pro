@@ -481,10 +481,24 @@ class AttendanceController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $odRequests = \App\Models\OdRequest::where(function ($q) use ($adminId, $users) {
+            if ($adminId > 0) {
+                $q->where('admin_id', $adminId)
+                    ->orWhereIn('user_id', $users->pluck('id'));
+            }
+        })
+            ->with(['user', 'actionedBy'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         // Mode 1: Monthly View (Month selected OR Calendar Display forced)
         if ($request->filled('month') || $request->input('display') === 'calendar') {
             $admin = $adminId > 0 ? \App\Models\Admin::find($adminId) : null;
-            $monthParsed = $this->parseMonthInput($request->input('month'), $admin);
+            $monthInput = $request->input('month');
+            if (!$request->filled('month') && $request->input('display') === 'calendar') {
+                $monthInput = Carbon::today()->format('Y-m');
+            }
+            $monthParsed = $this->parseMonthInput($monthInput, $admin);
             $monthStr = $monthParsed['string'];
             $month = $monthParsed['date'];
 
@@ -508,8 +522,13 @@ class AttendanceController extends Controller
                     $timingRules = $this->getOfficeTimingRules($adminId, $selectedUser);
                 }
 
-                // Generate all dates based on admin's payroll cycle
-                [$startDate, $realEndDate] = $this->getCycleDateRange($monthStr, $admin);
+                // Generate all dates based on admin's payroll cycle (or full calendar month in calendar view)
+                if ($request->input('display') === 'calendar') {
+                    $startDate = $month->copy()->startOfMonth();
+                    $realEndDate = $month->copy()->endOfMonth();
+                } else {
+                    [$startDate, $realEndDate] = $this->getCycleDateRange($monthStr, $admin);
+                }
 
                 // Get all attendance records for the month range
                 $attendances = Attendance::where('user_id', $userId)
@@ -535,6 +554,9 @@ class AttendanceController extends Controller
                             });
                     })
                     ->get();
+
+                // Approved OD (On Duty) dates for the cycle
+                $odDates = \App\Models\OdRequest::approvedDatesFor($userId, $startDate->toDateString(), $realEndDate->toDateString());
 
                 $totalMonthlyMinutes = $attendances->sum('total_worked_minutes');
 
@@ -650,6 +672,11 @@ class AttendanceController extends Controller
                         $isMissingPunchout = false;
                     }
 
+                    // Approved OD (On Duty) overrides the day's status
+                    if ($odDates->has($dateStr)) {
+                        $status = 'OD';
+                    }
+
                     $attendanceData[] = [
                         'id' => $attendanceId ?? $dateStr,
                         'user_id' => (int) $userId,
@@ -698,6 +725,7 @@ class AttendanceController extends Controller
                     'timingRules' => $timingRules,
                     'exportPreviewData' => $exportPreviewData,
                     'correctionRequests' => $correctionRequests,
+                    'odRequests' => $odRequests,
                     'company' => $this->getCompanyDetails(),
                 ]);
             } else {
@@ -789,6 +817,7 @@ class AttendanceController extends Controller
                     'timingRules' => $timingRules,
                     'exportPreviewData' => $exportPreviewData,
                     'correctionRequests' => $correctionRequests,
+                    'odRequests' => $odRequests,
                     'company' => $this->getCompanyDetails(),
                 ]);
             }
@@ -813,8 +842,14 @@ class AttendanceController extends Controller
         }
         $attendances = $attendancesQuery->get()->keyBy('user_id');
 
+        // Users with an approved OD (On Duty) on this date
+        $odUserIds = \App\Models\OdRequest::where('date', $date)
+            ->where('status', 'approved')
+            ->pluck('user_id')
+            ->flip();
+
         // Map users to their attendance and calculate status
-        $attendanceData = $filteredUsers->map(function ($user) use ($attendances, $date, $timingRules, $adminId) {
+        $attendanceData = $filteredUsers->map(function ($user) use ($attendances, $date, $timingRules, $adminId, $odUserIds) {
             $attendance = $attendances->get($user->id);
             $status = 'Absent';
             $checkIn = '-';
@@ -886,6 +921,10 @@ class AttendanceController extends Controller
                 }
             }
 
+            if ($odUserIds->has($user->id)) {
+                $status = 'OD';
+            }
+
             return [
                 'id' => $user->id,
                 'user_id' => (int) $user->id,
@@ -929,6 +968,7 @@ class AttendanceController extends Controller
             'timingRules' => $timingRules,
             'exportPreviewData' => $exportPreviewData,
             'correctionRequests' => $correctionRequests,
+            'odRequests' => $odRequests,
             'company' => $this->getCompanyDetails(),
         ]);
     }
@@ -1188,6 +1228,9 @@ class AttendanceController extends Controller
             })
             ->get();
 
+        // Approved OD (On Duty) dates for the cycle
+        $odDates = \App\Models\OdRequest::approvedDatesFor($userId, $startDate->toDateString(), $realEndDate->toDateString());
+
         $totalMonthlyMinutes = $attendances->sum('total_worked_minutes');
 
         $today = Carbon::today();
@@ -1260,6 +1303,11 @@ class AttendanceController extends Controller
                 $isMissingPunchout = false;
             }
 
+            // Approved OD (On Duty) overrides the day's status
+            if ($odDates->has($dateStr)) {
+                $status = 'OD';
+            }
+
             $attendanceData[] = [
                 'id' => $attendanceId ?? $dateStr,
                 'user_id' => (int) $userId,
@@ -1290,6 +1338,11 @@ class AttendanceController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $odRequests = \App\Models\OdRequest::where('user_id', $userId)
+            ->with('actionedBy')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $cycleRange = [
             'start' => $startDate->toDateString(),
             'end' => $realEndDate->toDateString(),
@@ -1301,6 +1354,8 @@ class AttendanceController extends Controller
             'totalMonthlyMinutes' => $totalMonthlyMinutes,
             'correctionRequests' => $correctionRequests,
             'correctionQuota' => \App\Models\AttendanceCorrectionRequest::monthlyQuota($userId),
+            'odEnabled' => (bool) ($user->od_enabled ?? false),
+            'odRequests' => $odRequests,
             'timingRules' => $timingRules,
             'userShift' => $user ? ($user->relationLoaded('shift') ? $user->shift : $user->load('shift')->shift) : null,
             'currentActiveMonth' => $currentActiveMonth,

@@ -86,6 +86,7 @@ class User extends Authenticatable
         'module_permissions',
         'company_name',
         'gst_no',
+        'od_enabled',
     ];
 
     /**
@@ -109,6 +110,7 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'is_active' => 'boolean',
             'desktop_only' => 'boolean',
+            'od_enabled' => 'boolean',
             'must_change_password' => 'boolean',
             'date_of_birth' => 'date',
             'joining_date' => 'date',

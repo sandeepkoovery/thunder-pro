@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 
-const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, settings }) => {
+const CalendarView = ({ attendanceData, leaves, odRequests = [], selectedUser = null, filters, onFilterChange, settings }) => {
     const monthDate = useMemo(() => {
         return filters.month ? new Date(filters.month + '-01') : new Date();
     }, [filters.month]);
@@ -32,17 +32,28 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
             const dateStr = `${monthDate.getFullYear()}-${String(monthDate.getMonth() + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
 
             // Find attendance record
-            const attendance = attendanceData.find(a => {
+            const attendance = (attendanceData || []).find(a => {
+                if (typeof a.date === 'string' && a.date.slice(0, 10) === dateStr) {
+                    return true;
+                }
                 const aDate = new Date(a.date);
                 return aDate.getFullYear() === monthDate.getFullYear() &&
                     aDate.getMonth() === monthDate.getMonth() &&
                     aDate.getDate() === i;
             });
 
+            // Find approved OD record for the selected user & date
+            const targetUserId = selectedUser?.id || filters?.user_id;
+            const odRecord = (odRequests || []).find(o => {
+                const oDate = String(o.date || '').slice(0, 10);
+                const matchesUser = !targetUserId || String(o.user_id) === String(targetUserId);
+                return o.status === 'approved' && matchesUser && oDate === dateStr;
+            });
+
             // Find leave record
             const leave = leaves?.find(l => {
-                const start = l.from_date;
-                const end = l.to_date;
+                const start = String(l.from_date || '').slice(0, 10);
+                const end = String(l.to_date || '').slice(0, 10);
                 return dateStr >= start && dateStr <= end;
             });
 
@@ -61,7 +72,9 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
             let lateMinutes = 0;
             let lateHours = 0;
 
-            if (attendance) {
+            if (odRecord || attendance?.status === 'OD') {
+                status = 'OD';
+            } else if (attendance && attendance.status && attendance.status !== '-' && attendance.status !== 'OFF' && attendance.status !== 'On Leave' && attendance.status !== 'Absent') {
                 // Check if user was late
                 if (attendance.status === 'Late' || attendance.status === 'Late & Early Leave') {
                     isLate = true;
@@ -85,13 +98,13 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
                 } else {
                     status = attendance.status;
                 }
-            } else if (leave) {
-                if (leave.day_type === 'first_half' || leave.day_type === 'second_half') {
+            } else if (leave || attendance?.status === 'On Leave') {
+                if (leave && (leave.day_type === 'first_half' || leave.day_type === 'second_half')) {
                     status = 'Half Day';
                 } else {
                     status = 'On Leave';
                 }
-            } else if (isWeekend) {
+            } else if (isWeekend || attendance?.status === 'OFF') {
                 status = 'Off';
             } else if (isFuture) {
                 status = '-';
@@ -103,6 +116,7 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
                 date: dateStr,
                 attendance,
                 leave,
+                odRecord,
                 status,
                 isLate,
                 lateHours,
@@ -122,7 +136,7 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
         }
 
         return days;
-    }, [monthDate, daysInMonth, firstDayOfMonth, attendanceData, leaves]);
+    }, [monthDate, daysInMonth, firstDayOfMonth, attendanceData, leaves, odRequests, selectedUser, filters?.user_id]);
 
     const getStatusStyles = (status) => {
         switch (status) {
@@ -131,6 +145,7 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
             case 'Absent': return 'bg-red-50 text-red-700';
             case 'On Leave': return 'bg-purple-50 text-purple-700';
             case 'Off': return 'bg-gray-50 text-gray-500';
+            case 'OD': return 'bg-teal-50 text-teal-700';
             default: return 'bg-gray-50 text-gray-400';
         }
     };
@@ -150,6 +165,7 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
         let absent = 0;
         let halfDay = 0;
         let onLeave = 0;
+        let odDays = 0;
         let lateDays = 0;
         let totalMinutes = 0;
         let totalBreakMinutes = 0;
@@ -165,6 +181,7 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
             else if (day.status === 'Absent') absent++;
             else if (day.status === 'Half Day') halfDay++;
             else if (day.status === 'On Leave' || day.status === 'Leave') onLeave++;
+            else if (day.status === 'OD') odDays++;
 
             if (day.isLate) lateDays++;
 
@@ -190,6 +207,7 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
             absent,
             halfDay,
             onLeave,
+            odDays,
             lateDays,
             totalWorked: `${hours}h ${minutes}m`,
             totalBreak: `${breakHours}h ${breakMins}m`
@@ -327,6 +345,10 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
                         <div className="w-3 h-3 rounded-full bg-gray-400 shadow-sm shadow-gray-200"></div>
                         <span className="text-xs text-[#636e72] font-bold uppercase tracking-wider">Off</span>
                     </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-teal-500 shadow-sm shadow-teal-200"></div>
+                        <span className="text-xs text-[#636e72] font-bold uppercase tracking-wider">OD</span>
+                    </div>
                 </div>
             </div>
 
@@ -376,7 +398,7 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
                     </div>
 
                     <div className="pt-4 mt-4 border-t border-gray-100">
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-4 gap-2">
                             <div className="text-center p-2 rounded-xl bg-gray-50">
                                 <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">Half Days</p>
                                 <p className="text-sm font-black text-[#2d3436]">{stats.halfDay}</p>
@@ -384,6 +406,10 @@ const CalendarView = ({ attendanceData, leaves, filters, onFilterChange, setting
                             <div className="text-center p-2 rounded-xl bg-gray-50">
                                 <p className="text-[10px] font-bold text-gray-400 uppercase mb-1">On Leave</p>
                                 <p className="text-sm font-black text-[#2d3436]">{stats.onLeave}</p>
+                            </div>
+                            <div className="text-center p-2 rounded-xl bg-teal-50/60">
+                                <p className="text-[10px] font-bold text-teal-500 uppercase mb-1">OD</p>
+                                <p className="text-sm font-black text-teal-700">{stats.odDays}</p>
                             </div>
                             <div className="text-center p-2 rounded-xl bg-orange-50/50">
                                 <p className="text-[10px] font-bold text-orange-400 uppercase mb-1">Late</p>
